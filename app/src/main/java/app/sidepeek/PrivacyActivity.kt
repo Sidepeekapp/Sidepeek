@@ -14,7 +14,7 @@ class PrivacyActivity : AppCompatActivity() {
     companion object {
         const val UPDATED = "最後更新：2026年10月25日"
         /** Public contact for privacy questions and feedback. */
-        const val CONTACT = "sidepeek.app@gmail.com"
+        const val CONTACT = Feedback.CONTACT
     }
 
     private data class Section(val title: String, val body: List<String>)
@@ -50,7 +50,7 @@ class PrivacyActivity : AppCompatActivity() {
         Section("四、App 所需權限", listOf(
             "• 通知存取權：讀取你選擇的 App 的通知，是本 App 的核心功能。",
             "• 顯示通知：發出整理後的通知。",
-            "• 協助工具（無障礙）服務「Sidepeek 側邊欄」：在螢幕邊緣顯示 Peek 條和側邊欄，並判斷目前是哪個 App 在前景、是否在桌面、鍵盤有沒有打開。不會讀取、儲存或傳送畫面上的文字或內容，也不會代替你操作。",
+            "• 協助工具（無障礙）服務「Sidepeek 側邊欄」：在螢幕邊緣顯示 Peek 條和側邊欄，並判斷目前是哪個 App 在前景、是否在桌面、鍵盤有沒有打開，以及在側邊欄打開時接收返回鍵來關閉它。開啟前 App 會先顯示說明並請你同意。不會讀取、儲存或傳送畫面上的文字或內容，也不會代替你操作。",
             "• 顯示在其他 App 上層：沒有開協助工具時的備用方式，用來顯示 Peek 條和側邊欄。",
             "• 使用情況存取權（選用）：判斷目前是哪個 App 在前景，決定 Peek 條要不要顯示。",
             "• 查看已安裝的 App：讓你挑選要收進側邊欄的 App，清單只在手機上使用。",
@@ -130,21 +130,11 @@ class PrivacyActivity : AppCompatActivity() {
             setOnClickListener { emailUs() }
         }, 2f)
 
-        setContentView(ScrollView(this).apply { addView(col) })
+        setContentView(ScrollView(this).apply { addView(col); padForSystemBars() })
+        addStatusBarScrim()
     }
 
-    private fun emailUs() {
-        val version = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (_: Exception) { "" }
-        val subject = "[Sidepeek $version] 相關問題"
-        // Address + subject in the mailto: URI itself (some mail apps ignore the extras), extras too.
-        val uri = android.net.Uri.parse("mailto:$CONTACT?subject=" + android.net.Uri.encode(subject))
-        val i = android.content.Intent(android.content.Intent.ACTION_SENDTO, uri)
-            .putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf(CONTACT))
-            .putExtra(android.content.Intent.EXTRA_SUBJECT, subject)
-        try { startActivity(i) } catch (_: Exception) {
-            android.widget.Toast.makeText(this, "找不到可以寄信的 App，請寄到 $CONTACT", android.widget.Toast.LENGTH_LONG).show()
-        }
-    }
+    private fun emailUs() = Feedback.send(this, "相關問題", withInfo = false)
 
     override fun onSupportNavigateUp(): Boolean { finish(); return true }
 }

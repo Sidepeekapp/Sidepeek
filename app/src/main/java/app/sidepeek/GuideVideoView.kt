@@ -136,12 +136,12 @@ class GuideVideoView @JvmOverloads constructor(
         val clip = rawRes
         val big = GuideVideoView(context).apply { fullScreen = true; setVideo(clip) }
         box.addView(big, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER).apply {
-            setMargins((16 * d).toInt(), (64 * d).toInt(), (16 * d).toInt(), (40 * d).toInt())
+            setMargins((16 * d).toInt(), (88 * d).toInt(), (16 * d).toInt(), (56 * d).toInt())
         })
         box.addView(TextView(context).apply {
             text = "點任意處關閉"; setTextColor(0xCCFFFFFF.toInt()); textSize = 14f
         }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-            Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = (32 * d).toInt() })
+            Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = (52 * d).toInt() })
         var back: androidx.activity.OnBackPressedCallback? = null
         fun close() {
             back?.remove(); back = null

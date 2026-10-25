@@ -19,3 +19,6 @@ keystore.properties
 bin/
 gen/
 out/
+keystore.properties
+*.jks
+*.keystore

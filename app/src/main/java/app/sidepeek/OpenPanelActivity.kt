@@ -11,7 +11,11 @@ import android.widget.Toast
 class OpenPanelActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (!PanelHost.open(this)) {
+        if (!PanelHost.open(this) && !Prefs.a11yConsent(this)) {
+            // The accessibility disclosure has to be agreed to inside the app first.
+            Toast.makeText(this, "請先在 Sidepeek 裡完成側邊欄設定", Toast.LENGTH_LONG).show()
+            try { startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
+        } else if (!PanelHost.a11yActive && !android.provider.Settings.canDrawOverlays(this)) {
             Toast.makeText(
                 this,
                 "請先試開「Sidepeek 側邊欄」；若被拒絕，關閉後再到 App 資訊 ⋮ 允許受限設定，再回來打開",

@@ -10,6 +10,12 @@
 
 > 📣 **Google Play 測試招募中**：想從 Google Play 安裝、自動更新的話，[填這份表單](https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform)，測試開始時會寄邀請到你的 Gmail。
 
+## 為什麼做這個 App
+
+三星的通知側螢幕面板（Notification Edge）從 2019 年推出之後就沒有再更新了；LINE 自己的通知遇到同一個聊天室連續好幾則訊息時，也只會留下最新一則，前面的內容很難看到。市面上能補足這些的 App，在 Google Play 上大多要付費才能解鎖完整版。
+
+所以有了 Sidepeek：把這些功能做好，**免費**給大家用。
+
 ---
 
 ## 功能
@@ -119,6 +125,10 @@ Copyright (C) 2026 Sidepeek developers
 **Sidepeek for LINE** is an unofficial personal Android app (not affiliated with LINE or LY Corporation). It regroups stacked LINE notifications into per-chat previews and adds an edge handle (the “Peek bar”) that opens a side panel with recent messages. Everything runs on-device; no server, no analytics. Requires Android 8.0+. Designed for Samsung One UI with gesture navigation.
 
 Setup: install the APK from Releases, open the app, and follow the in-app setup guide. On Android 13+, if the accessibility service is blocked as a "restricted setting", try enabling it first, then go to App info → ⋮ → Allow restricted settings, and enable it again. The app explains the accessibility service and asks for consent before sending you to enable it. The service only detects the foreground app, the home screen and keyboard state, and the back key while the panel is open. It never reads on-screen text.
+
+### Why
+
+Samsung's Notification Edge panel hasn't been updated since its 2019 release, and LINE's own notifications keep only the latest message of a chat. Most apps that fill this gap on Google Play charge for the full version. Sidepeek does it for free.
 
 ### License
 

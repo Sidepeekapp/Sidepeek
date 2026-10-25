@@ -1,0 +1,521 @@
+package app.sidepeek
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+
+object Notifier {
+    const val CHANNEL_MSG = "line_preview_messages"
+    const val CHANNEL_PANEL = "panel_service_silent"
+    private const val OLD_CHANNEL_PANEL = "edge_panel_service"
+
+    const val ACTION_REPLY = "app.sidepeek.REPLY"
+    const val ACTION_MARK_READ = "app.sidepeek.MARK_READ"
+    const val ACTION_DISMISS = "app.sidepeek.DISMISS"
+
+    fun ensureChannels(ctx: Context) {
+        val nm = ctx.getSystemService(NotificationManager::class.java)
+        run {
+            nm.createNotificationChannel(
+                NotificationChannel(CHANNEL_MSG, "LINE 訊息預覽", NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = "每個 LINE 聊天室一則通知，未讀訊息逐行顯示（浮動通知）"
+                    enableVibration(true)
+                    setShowBadge(true)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PRIVATE
+                }
+            )
+        }
+        // v2.5: own silent channel for the fallback foreground-service notification. Users can turn
+        // this channel off (Android 13+ then hides the FGS notification). Old channel removed.
+        try { nm.deleteNotificationChannel(OLD_CHANNEL_PANEL) } catch (_: Exception) {}
+        if (nm.getNotificationChannel(CHANNEL_PANEL) == null) {
+            nm.createNotificationChannel(
+                NotificationChannel(CHANNEL_PANEL, "側邊欄常駐通知（備用模式，可關閉）", NotificationManager.IMPORTANCE_MIN).apply {
+                    description = "未開啟無障礙服務時，側邊欄需要的常駐通知。關閉此類別即可隱藏，側邊欄仍會運作。"
+                    setShowBadge(false)
+                    setSound(null, null)
+                    enableVibration(false)
+                    enableLights(false)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_SECRET
+                }
+            )
+        }
+    }
+
+    internal fun titleOf(a: NotificationCompat.Action) = a.title?.toString().orEmpty()
+    internal fun isReply(a: NotificationCompat.Action) =
+        a.remoteInputs?.isNotEmpty() == true || titleOf(a).contains("回覆") || titleOf(a).contains("Reply", true)
+    internal fun isMarkRead(a: NotificationCompat.Action): Boolean {
+        val t = titleOf(a)
+        return t.contains("已讀") || t.contains("已讀取") || t.contains("Mark as read", true) ||
+            t.contains("既読") || (t.contains("讀") && !isReply(a))
+    }
+
+    private fun ownPi(ctx: Context, action: String, chatKey: String, mutable: Boolean): PendingIntent {
+        val i = Intent(ctx, NotifActionReceiver::class.java).setAction(action).putExtra(EXTRA_CHAT_KEY, chatKey)
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            (if (mutable && Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else PendingIntent.FLAG_IMMUTABLE)
+        return PendingIntent.getBroadcast(ctx, (action + chatKey).hashCode(), i, flags)
+    }
+
+    /**
+     * Cap at 3 actions. Priority: reply > 「開啟連結」(only when exactly 1 URL) > mark-as-read.
+     * Reply / mark-read go through [NotifActionReceiver] so we can cancel our notification after
+     * forwarding LINE's original PendingIntent. 「開啟連結」 stays a direct VIEW intent.
+     */
+    private fun addPrioritizedActions(ctx: Context, builder: NotificationCompat.Builder, latest: LineMessage) {
+        val lineActs = MessageStore.lineActionsFor(latest.chatKey)
+        val reply = lineActs.firstOrNull { isReply(it) }
+        val mark = lineActs.firstOrNull { isMarkRead(it) }
+        val others = lineActs.filter { it !== reply && it !== mark }
+
+        val chosen = ArrayList<NotificationCompat.Action>(3)
+        reply?.let { r ->
+            val ris = r.remoteInputs
+            chosen += if (ris.isNullOrEmpty()) r else {
+                val pi = ownPi(ctx, ACTION_REPLY, latest.chatKey, mutable = true)
+                val b = if (r.iconCompat != null)
+                    NotificationCompat.Action.Builder(r.iconCompat, r.title, pi)
+                else
+                    NotificationCompat.Action.Builder(0, r.title, pi)
+                ris.forEach { b.addRemoteInput(it) }
+                b.setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+                    .setShowsUserInterface(false)
+                    .build()
+            }
+        }
+
+        val urls = latest.urls
+        if (urls.size == 1 && chosen.size < 3) {
+            val url = urls[0]
+            val view = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+                (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
+            val pi = PendingIntent.getActivity(ctx, ("link:" + latest.id).hashCode(), view, flags)
+            chosen += NotificationCompat.Action.Builder(0, "開啟連結", pi).build()
+        }
+        mark?.let { m ->
+            if (chosen.size < 3) {
+                val pi = ownPi(ctx, ACTION_MARK_READ, latest.chatKey, mutable = false)
+                val b = if (m.iconCompat != null)
+                    NotificationCompat.Action.Builder(m.iconCompat, m.title, pi)
+                else
+                    NotificationCompat.Action.Builder(0, m.title, pi)
+                chosen += b.setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
+                    .setShowsUserInterface(false)
+                    .build()
+            }
+        }
+        for (a in others) {
+            if (chosen.size >= 3) break
+            chosen += a
+        }
+        for (a in chosen) {
+            try { builder.addAction(a) } catch (e: Throwable) {
+                Diagnostics.note(ctx, "POST skip action ${a.title}: $e")
+            }
+        }
+    }
+
+    fun notificationIdFor(chatKey: String): Int = ("chat:$chatKey").hashCode().let { if (it in 0..10) it + 1000 else it }
+
+    fun fallbackIntent(ctx: Context, pkg: String): PendingIntent? {
+        val launch = ctx.packageManager.getLaunchIntentForPackage(pkg)
+            ?: Intent(ctx, MainActivity::class.java)
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return PendingIntent.getActivity(
+            ctx, pkg.hashCode(), launch,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    const val EXTRA_CHAT_KEY = "app.sidepeek.CHAT_KEY"
+    /** Expanded BigTextStyle text is capped by the system at ~9 lines (then "…"). */
+    private const val BIG_TEXT_LINES = 9
+    /** Approx. width of one notification text line, in CJK-character units (One UI, default font size). */
+    private const val LINE_UNITS = 21f
+    private const val AVATAR_PX = 128
+
+    /** Rough number of display lines a text needs (CJK = 1 unit, Latin/digits/space ≈ 0.55). */
+    private fun estLines(cs: CharSequence): Int = cs.split('\n').sumOf { para ->
+        var u = 0f
+        for (ch in para) u += if (ch.code >= 0x2E80) 1f else 0.55f
+        maxOf(1, kotlin.math.ceil(u / LINE_UNITS).toInt())
+    }
+
+    /** Append the gap between two messages: half-height blank line (小) or full blank line (大). */
+    private fun appendGap(sb: android.text.SpannableStringBuilder, gap: Int) {
+        sb.append('\n')
+        when (gap) {
+            Prefs.GAP_SMALL -> sb.append("\n", android.text.style.RelativeSizeSpan(0.5f), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            Prefs.GAP_LARGE -> sb.append('\n')
+        }
+    }
+
+    /** Re-render every chat notification we are currently showing (after a display setting changed). */
+    fun refreshAllSilently(ctx: Context) {
+        val keys = try {
+            ctx.getSystemService(android.app.NotificationManager::class.java).activeNotifications
+                .mapNotNull { it.notification.extras.getString(EXTRA_CHAT_KEY) }.distinct()
+        } catch (_: Exception) { emptyList() }
+        keys.forEach { try { refreshChatSilently(ctx, it) } catch (_: Exception) {} }
+    }
+    private val clock = java.text.SimpleDateFormat("HH:mm", java.util.Locale.TAIWAN)
+
+    /**
+     * After a message was deleted/restored in the side panel: refresh our stacked notification for
+     * that chat silently, or cancel it if no unread messages remain. Only touches a notification
+     * that is currently showing.
+     */
+    fun refreshChatSilently(ctx: Context, chatKey: String) {
+        val id = notificationIdFor(chatKey)
+        val showing = try {
+            ctx.getSystemService(android.app.NotificationManager::class.java).activeNotifications.any { it.id == id }
+        } catch (_: Exception) { false }
+        if (!showing) return
+        val unread = unreadAfterWatermark(ctx, chatKey, null)
+        if (unread.isEmpty()) { cancelChat(ctx, chatKey); return }
+        val latest = unread.maxBy { it.time }
+        val group = unread.any { it.sender.isNotBlank() && it.sender != it.chatTitle }
+        postChat(ctx, latest, group, silent = true)
+    }
+
+    /** Unread messages after the dismiss watermark; falls back to [fallback] / latest if empty. */
+    private fun unreadAfterWatermark(ctx: Context, chatKey: String, fallback: LineMessage?): List<LineMessage> {
+        val all = MessageStore.unreadForChat(ctx, chatKey, 200).ifEmpty { fallback?.let { listOf(it) } ?: emptyList() }
+        val wm = MessageStore.notifWatermark(ctx, chatKey)
+        val filtered = all.filter { it.time > wm }
+        if (filtered.isNotEmpty()) return filtered
+        // Somehow empty after filter — still allow the latest so a new post isn't dropped.
+        return all.takeLast(1).ifEmpty { fallback?.let { listOf(it) } ?: emptyList() }
+    }
+
+    fun postChat(ctx: Context, latest: LineMessage, isGroupChat: Boolean, silent: Boolean = false) {
+        ensureChannels(ctx)
+        val unread = unreadAfterWatermark(ctx, latest.chatKey, latest)
+        val messaging = Prefs.notifStyle(ctx) == Prefs.STYLE_MESSAGING
+        val cap = if (messaging) 25 else 50
+        val shown = unread.takeLast(minOf(Prefs.notifMax(ctx), cap))
+        val hidden = unread.size - shown.size
+
+        val showSender = { m: LineMessage -> isGroupChat && m.sender.isNotBlank() && m.sender != m.chatTitle }
+
+        /** Text for a message line; image-only rows use 「[圖片]」 when not shown as BigPicture. */
+        fun textOf(m: LineMessage, bigPictureMode: Boolean): String {
+            if (!m.imagePath.isNullOrBlank() && !messaging && !bigPictureMode) {
+                return m.text.ifBlank { "[圖片]" }
+            }
+            return m.text
+        }
+
+        fun body(m: LineMessage, bigPictureMode: Boolean = false): CharSequence {
+            val t = textOf(m, bigPictureMode)
+            if (!showSender(m)) return t
+            val sb = android.text.SpannableStringBuilder()
+            sb.append(m.sender, android.text.style.StyleSpan(android.graphics.Typeface.BOLD), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.append("：").append(t)
+            return sb
+        }
+
+        /** One message: "21:05  text" (1:1 chat, time bold) or "21:05  **小明**：text" (group). Never truncated. */
+        fun line(m: LineMessage, keepNewlines: Boolean, bigPictureMode: Boolean = false): CharSequence {
+            val t = clock.format(java.util.Date(m.time))
+            val sb = android.text.SpannableStringBuilder()
+            if (showSender(m)) sb.append(t) else
+                sb.append(t, android.text.style.StyleSpan(android.graphics.Typeface.BOLD), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.append("  ")
+            val b = body(m, bigPictureMode)
+            sb.append(if (keepNewlines) b else android.text.SpannableStringBuilder(b).also {
+                for (i in it.indices) if (it[i] == '\n') it.replace(i, i + 1, " ")
+            })
+            return sb
+        }
+        val title = latest.chatTitle.ifBlank { latest.sender.ifBlank { Sources.displayName(latest.pkg) } }
+        val builder = NotificationCompat.Builder(ctx, CHANNEL_MSG)
+            .setSmallIcon(R.drawable.ic_stat_msg)
+            .setColor(Sources.forPackage(latest.pkg)?.color ?: 0xFF16A34A.toInt())
+            .setContentTitle(title)
+            // Collapsed fallback (OEMs that ignore MessagingStyle): show the latest 2 messages.
+            .setContentText(collapsedSummary(unread, isGroupChat))
+            .setWhen(latest.time)
+            .setShowWhen(true)
+            .setNumber(unread.size)
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(silent)         // every new message alerts / heads-up again (not on edits)
+            .setSilent(silent)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            // A distinct group per chat => Android never auto-bundles them into one stack.
+            .setGroup("line_preview_chat_${latest.chatKey}")
+            .setContentIntent(MessageStore.intentFor(latest.chatKey) ?: fallbackIntent(ctx, latest.pkg))
+            .setDeleteIntent(ownPi(ctx, ACTION_DISMISS, latest.chatKey, mutable = false))
+            .addExtras(android.os.Bundle().apply { putString(EXTRA_CHAT_KEY, latest.chatKey) })
+
+        // Actions (max 3): reply > open-link (exactly 1 URL) > mark-read.
+        try {
+            addPrioritizedActions(ctx, builder, latest)
+        } catch (e: Throwable) {
+            Diagnostics.fail(ctx, "POST add actions", e)
+        }
+
+        // Header avatar: the chat's own picture (LINE's large icon), else the sender's.
+        (MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
+            ?: MessageStore.loadBitmap(latest.avatarPath))?.let { builder.setLargeIcon(circle(it)) }
+
+        // P1-6: BigPicture only when a single unread has an image; else text list with 「[圖片]」.
+        val useBigPicture = !messaging && unread.size == 1 && !latest.imagePath.isNullOrBlank()
+        val picture = if (useBigPicture) MessageStore.loadBitmap(latest.imagePath) else null
+        if (picture != null) {
+            builder.setStyle(
+                NotificationCompat.BigPictureStyle()
+                    .setBigContentTitle(title)
+                    .bigPicture(picture)
+                    .bigLargeIcon(null as android.graphics.Bitmap?)
+                    .setSummaryText(body(latest, bigPictureMode = true))
+            )
+        } else if (messaging) {
+            try {
+                applyMessagingStyle(ctx, builder, latest, title, shown, isGroupChat)
+            } catch (e: Throwable) {
+                Diagnostics.fail(ctx, "POST MessagingStyle chat=${latest.chatKey}", e)
+                // Fall back to BigText so the user still gets a preview.
+                try {
+                    val gap = Prefs.msgGap(ctx)
+                    val big = android.text.SpannableStringBuilder()
+                    shown.forEachIndexed { i, m -> if (i > 0) appendGap(big, gap); big.append(line(m, keepNewlines = true)) }
+                    builder.setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(big))
+                } catch (e2: Throwable) {
+                    Diagnostics.fail(ctx, "POST BigText-fallback chat=${latest.chatKey}", e2)
+                }
+            }
+        } else if (Prefs.notifStyle(ctx) == Prefs.STYLE_INBOX) {
+            // 精簡每行：one line per message (system ellipsizes long lines)
+            val style = NotificationCompat.InboxStyle().setBigContentTitle(title)
+            shown.forEach { style.addLine(line(it, keepNewlines = false)) }
+            val more = unread.size - shown.size
+            if (more > 0) style.setSummaryText("還有 $more 則較早的訊息")
+            builder.setStyle(style)
+        } else {
+            // 完整文字 (default): every message wraps fully, separated by a gap (setting 「訊息之間的間距」).
+            val gap = Prefs.msgGap(ctx)
+            val gapCost = if (gap == Prefs.GAP_NONE) 0 else 1
+            val lines = shown.map { line(it, keepNewlines = true) }
+            var used = 0
+            var fit = 0
+            for (i in lines.indices.reversed()) {
+                val cost = estLines(lines[i]) + (if (fit > 0) gapCost else 0)
+                val noteCost = if (i > 0 || hidden > 0) 1 + gapCost else 0
+                if (fit > 0 && used + cost + noteCost > BIG_TEXT_LINES) break
+                used += cost; fit++
+            }
+            val older = unread.size - fit
+            val big = android.text.SpannableStringBuilder()
+            if (older > 0) { big.append("（還有 $older 則較早的訊息）"); appendGap(big, gap) }
+            lines.takeLast(fit).forEachIndexed { i, l -> if (i > 0) appendGap(big, gap); big.append(l) }
+            builder.setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(big))
+        }
+
+        // P1-1: lock-screen public version — app name + count only, no chat title.
+        builder.setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(
+                NotificationCompat.Builder(ctx, CHANNEL_MSG)
+                    .setSmallIcon(R.drawable.ic_stat_msg)
+                    .setColor(Sources.forPackage(latest.pkg)?.color ?: 0xFF16A34A.toInt())
+                    .setContentTitle(Sources.displayName(latest.pkg))
+                    .setContentText("${unread.size} 則新訊息")
+                    .setNumber(unread.size)
+                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                    .build()
+            )
+
+        val id = notificationIdFor(latest.chatKey)
+        try {
+            if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) {
+                Diagnostics.note(ctx, "POST blocked: app notifications disabled chat=${latest.chatKey}")
+                return
+            }
+            NotificationManagerCompat.from(ctx).notify(id, builder.build())
+            Diagnostics.note(ctx, "POST ok id=$id chat=${latest.chatKey} style=${Prefs.notifStyle(ctx)} silent=$silent unread=${unread.size}")
+        } catch (e: SecurityException) {
+            Diagnostics.fail(ctx, "POST SecurityException (POST_NOTIFICATIONS?) chat=${latest.chatKey}", e)
+        } catch (e: Throwable) {
+            Diagnostics.fail(ctx, "POST notify chat=${latest.chatKey}", e)
+            // Last-resort plain notification without a fancy style.
+            try {
+                val plain = NotificationCompat.Builder(ctx, CHANNEL_MSG)
+                    .setSmallIcon(R.drawable.ic_stat_msg)
+                    .setContentTitle(title)
+                    .setContentText(latest.text)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(latest.text))
+                    .setContentIntent(MessageStore.intentFor(latest.chatKey) ?: fallbackIntent(ctx, latest.pkg))
+                    .setDeleteIntent(ownPi(ctx, ACTION_DISMISS, latest.chatKey, mutable = false))
+                    .setAutoCancel(true)
+                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                    .addExtras(android.os.Bundle().apply { putString(EXTRA_CHAT_KEY, latest.chatKey) })
+                NotificationManagerCompat.from(ctx).notify(id, plain.build())
+                Diagnostics.note(ctx, "POST plain-fallback ok id=$id chat=${latest.chatKey}")
+            } catch (e2: Throwable) {
+                Diagnostics.fail(ctx, "POST plain-fallback chat=${latest.chatKey}", e2)
+            }
+        }
+    }
+
+    /** Latest 1–2 messages for the collapsed one-line/two-line summary. */
+    private fun collapsedSummary(unread: List<LineMessage>, isGroupChat: Boolean): CharSequence {
+        val last = unread.takeLast(2)
+        if (last.isEmpty()) return ""
+        fun one(m: LineMessage): CharSequence {
+            val t = if (!m.imagePath.isNullOrBlank()) m.text.ifBlank { "[圖片]" } else m.text
+            if (!(isGroupChat && m.sender.isNotBlank() && m.sender != m.chatTitle)) return t
+            val sb = android.text.SpannableStringBuilder()
+            sb.append(m.sender, android.text.style.StyleSpan(android.graphics.Typeface.BOLD), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.append("：").append(t)
+            return sb
+        }
+        if (last.size == 1) return one(last[0])
+        return android.text.SpannableStringBuilder().append(one(last[0])).append("\n").append(one(last[1]))
+    }
+
+    private data class ShortcutSnap(val title: String, val avatarMtime: Long)
+    private val shortcutCache = java.util.concurrent.ConcurrentHashMap<String, ShortcutSnap>()
+
+    /**
+     * 對話樣式: NotificationCompat.MessagingStyle, like Instagram / WhatsApp. One UI shows the latest
+     * two messages when collapsed and the whole list when expanded. The notification is linked to a
+     * long-lived per-chat shortcut so Android 11+ treats it as a real conversation.
+     */
+    private fun applyMessagingStyle(
+        ctx: Context, builder: NotificationCompat.Builder, latest: LineMessage, title: String,
+        shown: List<LineMessage>, isGroupChat: Boolean,
+    ) {
+        val me = androidx.core.app.Person.Builder().setName("我").setKey("me").build()
+        val style = NotificationCompat.MessagingStyle(me).setGroupConversation(isGroupChat)
+        if (isGroupChat) style.setConversationTitle(title)
+        val people = LinkedHashMap<String, androidx.core.app.Person>()
+        var chatPerson: androidx.core.app.Person? = null
+        for (m in shown) {
+            val name = (if (isGroupChat) m.sender else m.sender.takeIf { it.isNotBlank() && it != "我" } ?: title).ifBlank { title }
+            val p = people.getOrPut(name) {
+                androidx.core.app.Person.Builder().setName(name).setKey("${m.chatKey}|$name").apply {
+                    // P0-3: Person icon only for group chats; 1:1 relies on shortcut/largeIcon.
+                    if (isGroupChat) {
+                        MessageStore.loadBitmap(m.avatarPath)?.let {
+                            setIcon(androidx.core.graphics.drawable.IconCompat.createWithBitmap(circle(it)))
+                        }
+                    }
+                }.build()
+            }
+            if (!isGroupChat) chatPerson = p
+            val msg = NotificationCompat.MessagingStyle.Message(m.text, m.time, p)
+            imageUri(ctx, m.imagePath)?.let { uri ->
+                msg.setData(imageMime(m.imagePath!!), uri)
+            }
+            style.addMessage(msg)
+        }
+        builder.setStyle(style)
+        try {
+            val chatIcon = MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
+                ?: MessageStore.loadBitmap(latest.avatarPath)
+            val id = "chat_" + latest.chatKey.hashCode().toUInt().toString(16)
+            val avatarFile = MessageStore.chatAvatarPath(ctx, latest.chatKey)?.let { java.io.File(it) }
+                ?: latest.avatarPath?.let { java.io.File(it) }
+            val mtime = avatarFile?.takeIf { it.exists() }?.lastModified() ?: 0L
+            val snap = ShortcutSnap(title, mtime)
+            val cached = shortcutCache[id]
+            // P1-4: only pushDynamicShortcut when title or avatar mtime changes; always setShortcutId/LocusId.
+            if (cached != snap) {
+                val sc = androidx.core.content.pm.ShortcutInfoCompat.Builder(ctx, id)
+                    .setShortLabel(title.take(24).ifBlank { "LINE" })
+                    .setLongLived(true)
+                    .setIntent(Intent(ctx, OpenChatActivity::class.java).setAction(Intent.ACTION_VIEW)
+                        .putExtra(EXTRA_CHAT_KEY, latest.chatKey).putExtra(OpenChatActivity.EXTRA_PKG, latest.pkg))
+                    .setIcon(chatIcon?.let { androidx.core.graphics.drawable.IconCompat.createWithBitmap(circle(it)) }
+                        ?: androidx.core.graphics.drawable.IconCompat.createWithResource(ctx, R.mipmap.ic_launcher))
+                    .apply {
+                        val ps = chatPerson?.let { arrayOf(it) } ?: people.values.toTypedArray()
+                        if (ps.isNotEmpty()) setPersons(ps)
+                    }
+                    .build()
+                androidx.core.content.pm.ShortcutManagerCompat.pushDynamicShortcut(ctx, sc)
+                shortcutCache[id] = snap
+            }
+            builder.setShortcutId(id)
+            try {
+                builder.setLocusId(androidx.core.content.LocusIdCompat(id))
+            } catch (e: Exception) {
+                Diagnostics.note(ctx, "NOTIF LocusId failed: $e")
+            }
+        } catch (e: Exception) {
+            Diagnostics.note(ctx, "NOTIF shortcut failed: $e")
+        }
+    }
+
+    /** Prefer BitmapFactory bounds outMimeType; fall back to image/png. */
+    private fun imageMime(path: String): String = try {
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(path, opts)
+        opts.outMimeType?.takeIf { it.startsWith("image/") } ?: "image/png"
+    } catch (_: Exception) { "image/png" }
+
+    /** content:// uri (FileProvider) for a stored image, readable by SystemUI. */
+    private fun imageUri(ctx: Context, path: String?): android.net.Uri? {
+        if (path.isNullOrBlank()) return null
+        val f = java.io.File(path)
+        if (!f.exists()) return null
+        return try {
+            androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.files", f).also {
+                try { ctx.grantUriPermission("com.android.systemui", it, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+            }
+        } catch (_: Exception) { null }
+    }
+
+    /** Always output a square [AVATAR_PX] circular bitmap (largeIcon / shortcut / Person). */
+    private fun circle(src: android.graphics.Bitmap, outPx: Int = AVATAR_PX): android.graphics.Bitmap {
+        val s = minOf(src.width, src.height)
+        val out = android.graphics.Bitmap.createBitmap(outPx, outPx, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(out)
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG)
+        c.drawCircle(outPx / 2f, outPx / 2f, outPx / 2f, p)
+        p.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+        val l = (src.width - s) / 2
+        val t = (src.height - s) / 2
+        c.drawBitmap(src, android.graphics.Rect(l, t, l + s, t + s), android.graphics.Rect(0, 0, outPx, outPx), p)
+        return out
+    }
+
+    fun cancelChat(ctx: Context, chatKey: String) {
+        NotificationManagerCompat.from(ctx).cancel(notificationIdFor(chatKey))
+    }
+
+    fun postTest(ctx: Context) {
+        val chatKey = "test|demo"
+        MessageStore.markRead(ctx, chatKey)   // start a fresh stack
+        MessageStore.setNotifWatermark(ctx, chatKey, 0L)
+        val now = System.currentTimeMillis() + 5
+        // A small group chat that shows off what the app does: several senders, a link button,
+        // a user name that only looks like a URL (no button), and a long message shown in full.
+        val title = "測試｜週末烤肉群組"
+        val lines = listOf(
+            "小明" to "週六烤肉確定嗎？",
+            "阿華" to "確定！地點在這 https://example.com/bbq",
+            "小美" to "我負責買肉和飲料，總共 1,800 元，一人 450，晚點我再把轉帳帳號貼上來，記得週五前轉給我喔",
+            "阿華" to "食譜可以參考 chef.lu.tw 的分享",
+            "小明" to "收到 👌",
+        )
+        var last: LineMessage? = null
+        lines.forEachIndexed { i, (who, t) ->
+            val m = LineMessage(
+                id = "test-$now-$i", pkg = LineListenerService.LINE_PKG, chatKey = chatKey,
+                chatTitle = title, sender = who, text = t, time = now + 1 + i,
+                urls = LinkExtractor.extract(t),
+            )
+            MessageStore.add(ctx, m); last = m
+        }
+        last?.let { postChat(ctx, it, isGroupChat = true) }
+    }
+}

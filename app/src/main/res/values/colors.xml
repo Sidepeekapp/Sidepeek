@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sidepeek brand colors: green family to sit well next to LINE, but deliberately not LINE's #06C755. -->
+<resources>
+    <color name="brand_primary">#15803D</color>
+    <color name="brand_primary_variant">#166534</color>
+    <color name="brand_on_primary">#FFFFFF</color>
+    <color name="brand_accent">#16A34A</color>
+    <color name="brand_on_accent">#FFFFFF</color>
+    <color name="section_text">#15803D</color>
+</resources>

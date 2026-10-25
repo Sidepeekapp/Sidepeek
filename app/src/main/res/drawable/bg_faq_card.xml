@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 常見問題卡片：半透明灰底，淺色／深色主題都清楚 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#1A888888" />
+    <corners android:radius="16dp" />
+</shape>

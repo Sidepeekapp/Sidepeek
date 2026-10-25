@@ -1,6 +1,8 @@
-# Sidepeek — for LINE
+# Sidepeek — Bring Notification Edge back
 
-> 非官方的個人 Android App，與 LINE、LY Corporation 無關。Sidepeek 原名「訊息預覽」。
+**LINE 通知整理＋邊緣側邊欄，免費、開源。**
+
+> 非官方的個人 Android App，與 LINE、LY Corporation、Samsung 無關。Sidepeek 原名「訊息預覽」。
 
 把 LINE 疊成一團的通知，依聊天室整理成對話預覽；從螢幕邊緣的 Peek 條一拉，就能在側邊欄看最近的訊息。所有處理都在手機上完成，沒有後端伺服器。
 
@@ -12,7 +14,7 @@
 
 ## 為什麼做這個 App
 
-三星的 Notification Edge 在 2019 年推出後就停止更新，再也沒有新功能；LINE 的通知又只留下每個聊天室的最新一則，訊息一多，前面說了什麼就看不到了。市面上雖然有 App 能補上這些缺口，但大多得在 Google Play 付費，才能解鎖完整功能。
+三星的 Notification Edge 從 2019 年之後就沒有再更新；LINE 的通知又只留下每個聊天室的最新一則，訊息一多，前面說了什麼就看不到了。市面上雖然有 App 能補上這些缺口，但不少得在 Google Play 付費，才能解鎖完整功能。
 
 Sidepeek 想做的事很簡單：把這些該有的功能做好，**完全免費**，讓每個人都能用。
 
@@ -122,13 +124,13 @@ Copyright (C) 2026 Sidepeek developers
 
 ## English
 
-**Sidepeek for LINE** is an unofficial personal Android app (not affiliated with LINE or LY Corporation). It regroups stacked LINE notifications into per-chat previews and adds an edge handle (the “Peek bar”) that opens a side panel with recent messages. Everything runs on-device; no server, no analytics. Requires Android 8.0+. Designed for Samsung One UI with gesture navigation.
+**Sidepeek for LINE** is an unofficial personal Android app (not affiliated with LINE, LY Corporation or Samsung). It regroups stacked LINE notifications into per-chat previews and adds an edge handle (the “Peek bar”) that opens a side panel with recent messages. Everything runs on-device; no server, no analytics. Requires Android 8.0+. Designed for Samsung One UI with gesture navigation.
 
 Setup: install the APK from Releases, open the app, and follow the in-app setup guide. On Android 13+, if the accessibility service is blocked as a "restricted setting", try enabling it first, then go to App info → ⋮ → Allow restricted settings, and enable it again. The app explains the accessibility service and asks for consent before sending you to enable it. The service only detects the foreground app, the home screen and keyboard state, and the back key while the panel is open. It never reads on-screen text.
 
 ### Why
 
-Samsung's Notification Edge has not been updated since its 2019 release, and LINE keeps only the latest message of each chat in its notifications, so earlier messages are easy to miss. The apps that fill this gap on Google Play mostly charge for their full features. Sidepeek's goal is simple: do it well, and keep it **completely free** for everyone.
+Samsung's Notification Edge has not been updated since 2019, and LINE keeps only the latest message of each chat in its notifications, so earlier messages are easy to miss. Many of the apps that fill this gap on Google Play charge for their full features. Sidepeek's goal is simple: do it well, and keep it **completely free** for everyone.
 
 ### License
 

@@ -1,0 +1,578 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  首頁資訊架構（由上而下）：
+  1. 狀態卡       statusSummary
+  2. 怎麼用       howtoCard（精靈完成後才顯示）
+  3. 設定精靈     wizardCard（一次一步，未完成才出現）
+  4. 控制台       dashGroup（主開關精簡＋建議＋進階收合）
+  5. 常見問題     hdrFaq／grpFaq（可展開）
+  6. 遇到問題     hdrHelp／grpHelp（可展開）
+  文字與顯示狀態都由 MainActivity.refresh() 控制。
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="32dp">
+
+        <!-- ===================== 1. 狀態卡 ===================== -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
+            <TextView android:id="@+id/statusSummary" style="@style/Status"
+                android:textSize="20sp" android:textStyle="bold"
+                android:lineSpacingExtra="4dp" />
+        </LinearLayout>
+
+        <!-- ===================== 怎麼用（精簡總覽；精靈完成後才顯示） ===================== -->
+        <LinearLayout android:id="@+id/howtoCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView style="@style/Section" android:text="怎麼用" android:layout_marginTop="0dp" />
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:maxHeight="240dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/img_steps_overview"
+                android:contentDescription="三步驟：通知整理成對話、螢幕邊緣有 Peek 條、從 Peek 條往內滑打開側邊欄"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp" />
+
+            <TextView style="@style/Hint"
+                android:text="把一堆 LINE 通知收成一則對話預覽；螢幕邊緣有一條半透明的「Peek 條」，從 Peek 條往內滑就能打開側邊欄（用法跟三星的側拉標籤類似）。" />
+        </LinearLayout>
+
+        <!-- ===================== 2. 設定精靈（一次一步） ===================== -->
+        <LinearLayout android:id="@+id/wizardCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView android:id="@+id/wizardProgress" style="@style/Hint"
+                android:textSize="14sp" android:alpha="0.9"
+                android:text="第 1／8 步" />
+            <TextView style="@style/Section"
+                android:text="照著按就可以用" android:layout_marginTop="4dp" />
+
+            <ImageView android:id="@+id/wizardImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:maxHeight="360dp"
+                android:scaleType="fitCenter"
+                android:visibility="gone"
+                android:layout_marginTop="8dp"
+                android:contentDescription="步驟說明圖" />
+
+            <!-- 系統設定那幾步：操作示範影片（自動循環、無聲，點一下放大） -->
+            <app.sidepeek.GuideVideoView android:id="@+id/wizardVideo"
+                android:layout_width="wrap_content"
+                android:layout_height="400dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:visibility="gone" />
+
+            <TextView android:id="@+id/wizardTitle" style="@style/Status"
+                android:textSize="18sp" android:textStyle="bold"
+                android:paddingTop="12dp"
+                android:text="允許讀取通知" />
+            <TextView android:id="@+id/wizardHint" style="@style/Hint"
+                android:textSize="15sp" android:alpha="0.9"
+                android:lineSpacingExtra="3dp"
+                android:text="點下面按鈕，在清單裡打開「Sidepeek」。" />
+
+            <!-- 保留舊 id，給 refresh()／診斷用；畫面不顯示 -->
+            <TextView android:id="@+id/statusAccess" android:visibility="gone"
+                android:layout_width="0dp" android:layout_height="0dp" />
+            <TextView android:id="@+id/statusListener" android:visibility="gone"
+                android:layout_width="0dp" android:layout_height="0dp" />
+            <TextView android:id="@+id/statusPost" android:visibility="gone"
+                android:layout_width="0dp" android:layout_height="0dp" />
+            <Button android:id="@+id/btnAccess" android:visibility="gone"
+                android:layout_width="0dp" android:layout_height="0dp" />
+            <Button android:id="@+id/btnRebind" android:visibility="gone"
+                android:layout_width="0dp" android:layout_height="0dp" />
+            <Button android:id="@+id/btnPost" android:visibility="gone"
+                android:layout_width="0dp" android:layout_height="0dp" />
+            <Button android:id="@+id/btnSkipSetup" android:visibility="gone"
+                android:layout_width="0dp" android:layout_height="0dp" />
+
+            <Button android:id="@+id/wizardPrimary" style="@style/Btn"
+                android:minHeight="56dp" android:textSize="17sp" android:textStyle="bold"
+                android:layout_marginTop="12dp"
+                android:text="去設定" />
+            <Button android:id="@+id/wizardSecondary" style="@style/Btn"
+                android:minHeight="48dp" android:textSize="15sp"
+                android:visibility="gone"
+                android:text="下一步" />
+            <Button android:id="@+id/wizardSkip" style="@style/Btn"
+                android:minHeight="48dp" android:textSize="15sp"
+                android:visibility="gone"
+                android:text="略過" />
+        </LinearLayout>
+
+        <!-- ===================== 3. 控制台 ===================== -->
+        <LinearLayout android:id="@+id/dashGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 主開關 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView style="@style/Section" android:text="主開關" android:layout_marginTop="0dp" />
+                <TextView style="@style/Hint"
+                    android:text="日常只用這兩個開關就夠了。細節在下面的進階設定。" />
+
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/swEnabled" style="@style/Sw"
+                    android:minHeight="56dp" android:textSize="17sp"
+                    android:text="用 Sidepeek 接管 LINE" />
+                <!-- 隱藏原本：併入主開關，保留 id 以免舊邏輯找不到 -->
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/swHide" style="@style/Sw"
+                    android:visibility="gone"
+                    android:text="隱藏 LINE 原本的通知" />
+
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/swEdge" style="@style/Sw"
+                    android:minHeight="56dp" android:textSize="17sp"
+                    android:text="側邊欄" />
+
+                <!-- 側邊欄開著、但側邊欄服務還沒開時才出現（正確順序：先試開服務） -->
+                <LinearLayout android:id="@+id/a11yBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="8dp">
+                    <TextView android:id="@+id/statusA11y" style="@style/Status" android:textStyle="bold" />
+                    <Button android:id="@+id/btnA11y" style="@style/Btn" android:minHeight="56dp"
+                        android:textSize="16sp" android:textStyle="bold"
+                        android:text="① 試開側邊欄服務" />
+                    <Button android:id="@+id/btnA11yAppInfo" style="@style/Btn" android:minHeight="56dp"
+                        android:textSize="16sp" android:textStyle="bold"
+                        android:layout_marginTop="6dp"
+                        android:text="② 允許受限設定" />
+                    <TextView style="@style/Status"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:paddingTop="6dp"
+                        android:text="先①試開；被拒絕後才做②" />
+                    <TextView style="@style/Hint"
+                        android:text="先到無障礙 → 已安裝的應用程式 → Sidepeek 側邊欄試著打開。若跳出「應用程式存取權已遭拒絕」，按關閉；此時 App 資訊右上角才會出現 ⋮ → 允許受限設定。再回無障礙打開服務。這個服務只用來判斷桌面／鍵盤，不會讀取螢幕內容。" />
+                </LinearLayout>
+
+                <!-- 長圖文導覽已移入設定精靈；此處保留空殼以免舊程式碼找不到 id -->
+                <LinearLayout android:id="@+id/a11yGuideBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingTop="8dp">
+                    <Button android:id="@+id/btnTest" style="@style/Btn"
+                        android:layout_width="0dp" android:layout_weight="1"
+                        android:layout_marginEnd="8dp" android:minHeight="52dp"
+                        android:text="送測試通知" />
+                    <Button android:id="@+id/btnOpenPanel" style="@style/Btn"
+                        android:layout_width="0dp" android:layout_weight="1"
+                        android:minHeight="52dp"
+                        android:text="打開側邊欄" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 建議設定：還有沒做的才出現 -->
+            <LinearLayout android:id="@+id/cardSuggest"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView style="@style/Section" android:text="讓它更穩定" />
+                <TextView style="@style/Hint"
+                    android:text="不做也能用，但可能漏訊息，或同一則訊息跳兩次。" />
+
+                <TextView android:id="@+id/statusLineMute" style="@style/Status" android:paddingTop="8dp" />
+                <Button android:id="@+id/btnLineMute" style="@style/Btn" android:text="打開 LINE 的通知設定" />
+                <Button android:id="@+id/btnLineMuteDone" style="@style/Btn" android:text="我已經關好了" />
+
+                <TextView android:id="@+id/statusBattery" style="@style/Status" android:paddingTop="12dp" />
+                <Button android:id="@+id/btnBattery" style="@style/Btn" android:text="改成不受限制" />
+
+                <TextView android:id="@+id/statusNeverSleep" style="@style/Status" android:paddingTop="12dp" />
+                <Button android:id="@+id/btnNeverSleep" style="@style/Btn" android:text="打開三星的電池設定" />
+                <Button android:id="@+id/btnNeverSleepDone" style="@style/Btn" android:text="我已經加入了" />
+            </LinearLayout>
+
+            <!-- 進階設定：預設收合 -->
+            <TextView style="@style/Hint" android:paddingTop="8dp"
+                android:text="進階設定（點標題展開）" />
+
+            <!-- 通知外觀 -->
+            <TextView android:id="@+id/hdrLook" style="@style/Section"
+                android:minHeight="52dp" android:gravity="center_vertical"
+                android:clickable="true" android:focusable="true"
+                android:background="?attr/selectableItemBackground" />
+            <LinearLayout android:id="@+id/grpLook"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:visibility="gone">
+
+                <TextView style="@style/Status" android:text="通知長什麼樣子" />
+                <RadioGroup android:id="@+id/rgNotifStyle"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                    <RadioButton android:id="@+id/rbStyleMsg" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="對話（推薦）" />
+                    <RadioButton android:id="@+id/rbStyleBig" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="完整文字" />
+                    <RadioButton android:id="@+id/rbStyleInbox" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="精簡" />
+                </RadioGroup>
+
+                <TextView style="@style/Status" android:paddingTop="8dp" android:text="一則通知最多放幾則訊息" />
+                <RadioGroup android:id="@+id/rgNotifMax"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                    <RadioButton android:id="@+id/rbMax5" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="5" android:layout_marginEnd="16dp" />
+                    <RadioButton android:id="@+id/rbMax10" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="10（預設）" android:layout_marginEnd="16dp" />
+                    <RadioButton android:id="@+id/rbMax25" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="25" />
+                </RadioGroup>
+                <TextView style="@style/Hint"
+                    android:text="收合時系統通常只顯示最新一兩則，展開後才照這個數量。" />
+
+                <TextView android:id="@+id/lblMsgGap" style="@style/Status" android:paddingTop="8dp" android:text="訊息間距（只對完整文字有效）" />
+                <RadioGroup android:id="@+id/rgMsgGap"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                    <RadioButton android:id="@+id/rbGapNone" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="無" android:layout_marginEnd="20dp" />
+                    <RadioButton android:id="@+id/rbGapSmall" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="小（預設）" android:layout_marginEnd="20dp" />
+                    <RadioButton android:id="@+id/rbGapLarge" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="大" />
+                </RadioGroup>
+                <TextView android:id="@+id/hintMsgGap" style="@style/Hint"
+                    android:text="側邊欄卡片的間距也會跟著變。間距越大，一則通知放得下的訊息越少，較早的會顯示成「還有 N 則較早的訊息」。" />
+            </LinearLayout>
+
+            <!-- 側邊欄：顯示方式 -->
+            <TextView android:id="@+id/hdrPanelMode" style="@style/Section"
+                android:minHeight="52dp" android:gravity="center_vertical"
+                android:clickable="true" android:focusable="true"
+                android:background="?attr/selectableItemBackground" />
+            <LinearLayout android:id="@+id/grpPanelMode"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:visibility="gone">
+
+                <TextView android:id="@+id/statusOverlay" style="@style/Status" />
+
+                <!-- 備用方式：側邊欄服務已開時整塊隱藏 -->
+                <LinearLayout android:id="@+id/backupBox"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <TextView android:id="@+id/txtBackupTitle" style="@style/Status" android:textStyle="bold"
+                        android:text="進階：沒辦法開側邊欄服務時才用" />
+                    <Button android:id="@+id/btnOverlay" style="@style/Btn" android:text="允許顯示在其他 App 上層（備用方式）" />
+                    <Button android:id="@+id/btnFgsChannel" style="@style/Btn" android:text="隱藏備用方式的常駐通知" />
+                    <TextView android:id="@+id/txtBackupHint" style="@style/Hint"
+                        android:text="一般請用側邊欄服務就好。只有系統不讓你開輔助工具時，才改用「顯示在其他 App 上層」，那時通知欄會多出常駐通知。" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/swHomeOnly" style="@style/Sw"
+                    android:minHeight="52dp" android:text="只在桌面顯示 Peek 條" />
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/swHideIme" style="@style/Sw"
+                    android:minHeight="52dp" android:text="打字時隱藏 Peek 條" />
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/swShowOnLock" style="@style/Sw"
+                    android:minHeight="52dp" android:text="鎖定畫面也顯示 Peek 條與訊息" />
+                <TextView style="@style/Hint"
+                    android:text="開啟時，鎖定畫面也會顯示 Peek 條，往內滑就能查看訊息；關閉時，鎖定畫面不顯示 Peek 條也不顯示訊息。部分系統版本可能仍限制鎖定畫面的覆蓋顯示；若看不到可重開側邊欄服務。" />
+                <TextView android:id="@+id/statusUsage" style="@style/Status" />
+                <Button android:id="@+id/btnUsage" style="@style/Btn" android:text="允許讀取使用情況" />
+                <TextView style="@style/Hint"
+                    android:text="在『Sidepeek』這個 App 裡，Peek 條一定會顯示，方便你調位置。其他 App：預設也會顯示（跟三星的側拉標籤一樣）；若只想在桌面出現，再打開下面開關。" />
+            </LinearLayout>
+
+            <!-- 側邊欄：收哪些 App -->
+            <TextView android:id="@+id/hdrSources" style="@style/Section"
+                android:minHeight="52dp" android:gravity="center_vertical"
+                android:clickable="true" android:focusable="true"
+                android:background="?attr/selectableItemBackground" />
+            <LinearLayout android:id="@+id/grpSources"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:visibility="gone">
+                <LinearLayout android:id="@+id/appSwitches"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+                <TextView style="@style/Hint"
+                    android:text="打開的 App，訊息會收進側邊欄。預設開啟 LINE、IG、Threads、Messenger、Teams；按「選擇其他 App」可以加入手機上的任何 App。只有 LINE 的通知會被整理，其他 App 的通知維持原樣。來電、會議開始、下載進度、音樂播放這類通知不會收進來。" />
+            </LinearLayout>
+
+            <!-- 側邊欄：Peek 條與外觀 -->
+            <TextView android:id="@+id/hdrHandle" style="@style/Section"
+                android:minHeight="52dp" android:gravity="center_vertical"
+                android:clickable="true" android:focusable="true"
+                android:background="?attr/selectableItemBackground" />
+            <LinearLayout android:id="@+id/grpHandle"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:visibility="gone">
+
+                <TextView style="@style/Status" android:text="Peek 條外觀" />
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:maxHeight="130dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/img_samsung_handle"
+                    android:contentDescription="半透明磨砂 Peek 條示意，以及不透明度淡、預設、清楚的差別"
+                    android:layout_marginBottom="8dp" />
+                <TextView style="@style/Hint"
+                    android:text="Peek 條是螢幕邊緣那條半透明的磨砂膠條。若看不清楚，把下面的「不透明度」調高。" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:maxHeight="260dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/img_guide_handle_drag"
+                    android:contentDescription="左：長按 Peek 條半秒再上下拖調整高度；右：從 Peek 條往內滑打開側邊欄"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="4dp" />
+                <TextView style="@style/Hint"
+                    android:text="按住 Peek 條約半秒（會震動）再上下拖，可調整高度；從 Peek 條往內滑則打開側邊欄。" />
+
+                <TextView style="@style/Status" android:text="Peek 條在哪一邊" />
+                <RadioGroup android:id="@+id/rgSide"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <RadioButton android:id="@+id/rbRight" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:minHeight="48dp"
+                        android:text="右邊（右手）" android:layout_marginEnd="24dp" />
+                    <RadioButton android:id="@+id/rbLeft" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:minHeight="48dp"
+                        android:text="左邊（左手）" />
+                </RadioGroup>
+                <TextView android:id="@+id/lblInset" style="@style/Status" />
+                <SeekBar android:id="@+id/sbInset" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+                <TextView android:id="@+id/lblWidth" style="@style/Status" />
+                <SeekBar android:id="@+id/sbWidth" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+                <TextView android:id="@+id/lblHeight" style="@style/Status" />
+                <SeekBar android:id="@+id/sbHeight" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+                <TextView android:id="@+id/lblOpacity" style="@style/Status" />
+                <SeekBar android:id="@+id/sbOpacity" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+                <TextView style="@style/Hint"
+                    android:text="預設貼齊螢幕邊緣（0dp）。用手勢導覽時，螢幕最邊緣也是系統的「返回」手勢；如果常不小心觸發返回，把「距離邊緣」調到 12dp 以上。高度最多 200dp（Android 的限制）。改了馬上生效。" />
+                <Button android:id="@+id/btnAddTile" style="@style/Btn" android:text="把「開啟訊息側邊欄」加到快速設定" />
+                <Button android:id="@+id/btnResetHandle" style="@style/Btn" android:text="Peek 條恢復預設" />
+
+                <TextView style="@style/Status" android:paddingTop="16dp" android:textStyle="bold" android:text="側邊欄外觀" />
+                <TextView style="@style/Hint" android:text="拖動滑桿或切換選項時，側邊欄會直接出現讓你看效果，放開後自動收起。" />
+                <TextView android:id="@+id/lblPanelW" style="@style/Status" />
+                <SeekBar android:id="@+id/sbPanelW" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+                <TextView android:id="@+id/lblPanelH" style="@style/Status" />
+                <SeekBar android:id="@+id/sbPanelH" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+                <TextView style="@style/Status" android:text="出現的位置" />
+                <RadioGroup android:id="@+id/rgPanelPos"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                    <RadioButton android:id="@+id/rbPosTop" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="靠上" android:layout_marginEnd="20dp" />
+                    <RadioButton android:id="@+id/rbPosCenter" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="置中" android:layout_marginEnd="20dp" />
+                    <RadioButton android:id="@+id/rbPosBottom" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="靠下（單手好按）" />
+                </RadioGroup>
+                <TextView android:id="@+id/lblPanelR" style="@style/Status" />
+                <SeekBar android:id="@+id/sbPanelR" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+                <TextView style="@style/Status" android:text="文字大小" />
+                <RadioGroup android:id="@+id/rgPanelText"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                    <RadioButton android:id="@+id/rbTextS" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="小" android:layout_marginEnd="20dp" />
+                    <RadioButton android:id="@+id/rbTextM" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                       android:minHeight="48dp" android:text="中" android:layout_marginEnd="20dp" />
+                    <RadioButton android:id="@+id/rbTextL" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:text="大" />
+                </RadioGroup>
+                <TextView android:id="@+id/lblPanelML" style="@style/Status" />
+                <SeekBar android:id="@+id/sbPanelML" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/swPanelScrim" style="@style/Sw"
+                    android:minHeight="52dp" android:text="打開側邊欄時背景變暗（點背景就關閉）" />
+                <Button android:id="@+id/btnPanelPreview" style="@style/Btn" android:text="預覽側邊欄" />
+                <Button android:id="@+id/btnPanelReset" style="@style/Btn" android:text="外觀恢復預設" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===================== 4. 常見問題（可展開） ===================== -->
+        <TextView android:id="@+id/hdrFaq" style="@style/Section"
+            android:minHeight="52dp" android:gravity="center_vertical"
+            android:clickable="true" android:focusable="true"
+            android:background="?attr/selectableItemBackground" />
+        <LinearLayout android:id="@+id/grpFaq"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone"
+            android:paddingBottom="8dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:maxHeight="180dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/img_faq_header"
+                android:contentDescription="三星的側拉標籤與 Sidepeek 的 Peek 條各自獨立，可錯開位置"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout style="@style/FaqCard">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView style="@style/FaqBadge" />
+                    <TextView style="@style/FaqQ" android:text="為什麼不能跟三星的側螢幕面板整合在一起？" />
+                </LinearLayout>
+                <TextView style="@style/FaqA" android:text="三星的側螢幕面板不開放第三方 App 加入。\nSidepeek 只能用自己的 Peek 條和側邊欄，所以兩者沒辦法合併在一起。" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FaqCard">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView style="@style/FaqBadge" />
+                    <TextView style="@style/FaqQ" android:text="跟三星的側螢幕面板差在哪？會不會衝突？" />
+                </LinearLayout>
+                <TextView style="@style/FaqA" android:text="• 三星側螢幕面板：放系統捷徑和 App 捷徑，從「側拉標籤」拉出來\n• Sidepeek 側邊欄：收 LINE、IG、Threads 等你選的 App 的訊息，從「Peek 條」拉出來\n\n側拉標籤和 Peek 條各自獨立，可以放在不同邊或不同高度。剛好重疊時，到「側邊欄：Peek 條與外觀」調整位置。" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FaqCard">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView style="@style/FaqBadge" />
+                    <TextView style="@style/FaqQ" android:text="為什麼通知欄的整理只有 LINE？" />
+                </LinearLayout>
+                <TextView style="@style/FaqA" android:text="LINE 原生通知，同一個聊天室只會顯示最新的一則，前面的就看不到。\n\n所以 Sidepeek 會接管 LINE：每個聊天室重新發一則通知，把未讀訊息逐則列出，再藏起 LINE 原本的通知。\n\nMessenger、IG、Threads、Teams 原生就會顯示同一段對話的多則訊息，所以維持原樣，只收進側邊欄。要收哪些 App，可以在進階「側邊欄：要收哪些 App」選，手機上的任何 App 都能加。" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FaqCard">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView style="@style/FaqBadge" />
+                    <TextView style="@style/FaqQ" android:text="為什麼要開無障礙（側邊欄服務）？" />
+                </LinearLayout>
+                <TextView style="@style/FaqA" android:text="這是讓 Peek 條顯示在螢幕邊緣的推薦方式，開了不會有常駐通知。系統預設沒開，要手動開一次：\n1. 到無障礙試開「Sidepeek 側邊欄」\n2. 被拒絕的話按「關閉」，到 App 資訊右上角 ⋮ →「允許受限設定」\n3. 回無障礙再打開一次\n\n這個服務不會讀取螢幕內容。「顯示在其他 App 上層」只是備用方式。" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FaqCard">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView style="@style/FaqBadge" />
+                    <TextView style="@style/FaqQ" android:text="鍵盤打開時，Peek 條為什麼會消失？" />
+                </LinearLayout>
+                <TextView style="@style/FaqA" android:text="跟三星的側拉標籤一樣，打字時 Peek 條會淡出，避免擋到鍵盤或誤觸；鍵盤收起後再淡入。\n\n不想要的話，到進階「側邊欄：顯示方式」關掉「打字時隱藏 Peek 條」。" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FaqCard">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView style="@style/FaqBadge" />
+                    <TextView style="@style/FaqQ" android:text="為什麼在其他 App 裡也看得到 Peek 條？" />
+                </LinearLayout>
+                <TextView style="@style/FaqA" android:text="為了跟三星的側拉標籤用法一樣，預設在任何 App 裡都能叫出側邊欄。\n\n只想在桌面出現的話，到進階「側邊欄：顯示方式」打開「只在桌面顯示 Peek 條」。" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/FaqCard">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView style="@style/FaqBadge" />
+                    <TextView style="@style/FaqQ" android:text="鎖定畫面看得到訊息嗎？" />
+                </LinearLayout>
+                <TextView style="@style/FaqA" android:text="可以。預設鎖定畫面也會顯示 Peek 條，往內滑就能看訊息。\n\n不想在鎖定畫面顯示，到進階「側邊欄：顯示方式」關掉。部分系統版本會擋住；看不到的話，把側邊欄服務關掉再打開一次。" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===================== 5. 遇到問題（一律可展開） ===================== -->
+        <TextView android:id="@+id/hdrHelp" style="@style/Section"
+            android:minHeight="52dp" android:gravity="center_vertical"
+            android:clickable="true" android:focusable="true"
+            android:background="?attr/selectableItemBackground" />
+        <LinearLayout android:id="@+id/grpHelp"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+
+            <TextView style="@style/Tip"
+                android:text="• 預覽只顯示「您有新訊息」？到 LINE → 設定 → 通知，打開「顯示訊息內容」。LINE 關掉這個選項時，通知裡沒有文字，Sidepeek 也拿不到。" />
+            <TextView style="@style/Tip"
+                android:text="• 貼圖沒出現？貼圖要連網才能下載，還沒下載到時會先顯示佔位圖。" />
+            <TextView style="@style/Tip"
+                android:text="• Messenger／Instagram／Threads／Teams 收不到？確認那個 App 本身和系統的通知都有打開。" />
+            <TextView style="@style/Tip"
+                android:text="• 三星手機過一陣子就失效？設定 → 電池 → 背景使用限制，確認「Sidepeek」不在「休眠」或「深度休眠」名單裡。" />
+            <TextView style="@style/Tip"
+                android:text="• 跳出來的通知只有一行？三星：設定 → 通知 → 通知彈出樣式，選「詳細」；並在 設定 → 應用程式 → Sidepeek → 通知，把「LINE 訊息預覽」設為「提醒」、允許浮動通知。" />
+            <TextView style="@style/Tip"
+                android:text="• 同一則 LINE 訊息響兩次、跳兩次？到系統的 LINE 通知頁，把「聲音和震動」關掉，就只剩 Sidepeek 提醒。「允許通知」要保持開啟，不然 Sidepeek 收不到訊息。" />
+
+            <TextView style="@style/Status" android:paddingTop="12dp" android:textStyle="bold"
+                android:text="還是不行？" />
+            <TextView style="@style/Hint"
+                android:text="先讓那個 App 收幾則訊息（最好有貼圖或照片），再按「匯出診斷記錄」把檔案傳給開發者。記錄裡有訊息內容，分享前請留意隱私。" />
+            <Button android:id="@+id/btnExport" style="@style/Btn" android:text="匯出診斷記錄" />
+            <Button android:id="@+id/btnClearDiag" style="@style/Btn" android:text="清除診斷記錄" />
+        </LinearLayout>
+
+        <!-- ===================== 頁尾：隱私權政策 ===================== -->
+        <TextView android:id="@+id/linkPrivacy"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="24dp"
+            android:minHeight="48dp" android:gravity="center"
+            android:paddingStart="16dp" android:paddingEnd="16dp"
+            android:clickable="true" android:focusable="true"
+            android:background="?attr/selectableItemBackground"
+            android:textColor="@color/section_text" android:textSize="15sp"
+            android:text="隱私權政策" />
+        <TextView android:id="@+id/txtFooter"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:textSize="12sp" android:alpha="0.6"
+            android:text="Sidepeek・非官方 App，與 LINE / LY Corporation 無關" />
+    </LinearLayout>
+</ScrollView>
+

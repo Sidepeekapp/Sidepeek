@@ -1,0 +1,314 @@
+package app.sidepeek
+
+import android.app.PendingIntent
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.os.Handler
+import android.os.Looper
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
+
+/** One LINE message as captured from a notification. */
+data class LineMessage(
+    val id: String,
+    val pkg: String,
+    val chatKey: String,
+    val chatTitle: String,
+    val sender: String,
+    val text: String,
+    val time: Long,
+    val imagePath: String? = null,
+    val avatarPath: String? = null,
+    /** Up to 3 http(s) URLs extracted from [text] at store time. */
+    val urls: List<String> = emptyList(),
+)
+
+/**
+ * Keeps the last [MAX] messages in memory, persisted as JSON in filesDir.
+ * PendingIntents (LINE's contentIntent) can't be persisted, so they are only kept
+ * in memory per chat; after a process restart we fall back to launching LINE.
+ */
+object MessageStore {
+    private const val MAX = 200
+    private const val FILE = "messages.json"
+
+    private val messages = ArrayList<LineMessage>()
+    private val chatIntents = HashMap<String, PendingIntent>()
+    /** Reply / mark-as-read actions copied from the latest LINE notification for a chat (in-memory). */
+    private val chatActions = HashMap<String, List<androidx.core.app.NotificationCompat.Action>>()
+    private val listeners = LinkedHashSet<() -> Unit>()
+    private val main = Handler(Looper.getMainLooper())
+    private var loaded = false
+
+    @Synchronized
+    fun ensureLoaded(ctx: Context) {
+        if (loaded) return
+        loaded = true
+        try {
+            val f = File(ctx.filesDir, FILE)
+            if (!f.exists()) return
+            val arr = JSONArray(f.readText())
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                messages.add(
+                    LineMessage(
+                        id = o.getString("id"),
+                        pkg = o.optString("pkg", LineListenerService.LINE_PKG),
+                        chatKey = o.getString("chatKey"),
+                        chatTitle = o.optString("chatTitle"),
+                        sender = o.optString("sender"),
+                        text = o.optString("text"),
+                        time = o.optLong("time"),
+                        imagePath = o.optString("image").ifEmpty { null },
+                        avatarPath = o.optString("avatar").ifEmpty { null },
+                        // Recompute from text so older, wrongly-detected links (e.g. user names) disappear.
+                        urls = LinkExtractor.extract(o.optString("text")),
+                    )
+                )
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    @Synchronized
+    fun all(ctx: Context): List<LineMessage> {
+        ensureLoaded(ctx); return ArrayList(messages)
+    }
+
+    @Synchronized
+    fun forChat(ctx: Context, chatKey: String, limit: Int): List<LineMessage> {
+        ensureLoaded(ctx)
+        return messages.filter { it.chatKey == chatKey }.sortedBy { it.time }.takeLast(limit)
+    }
+
+    /** Messages of a chat received after it was last read (LINE cleared it / user opened ours). */
+    @Synchronized
+    fun unreadForChat(ctx: Context, chatKey: String, limit: Int): List<LineMessage> {
+        ensureLoaded(ctx)
+        val since = readMarks(ctx).getLong(chatKey, 0L)
+        return messages.filter { it.chatKey == chatKey && it.time > since }.sortedBy { it.time }.takeLast(limit)
+    }
+
+    private fun readMarks(ctx: Context) = ctx.getSharedPreferences("read_marks", Context.MODE_PRIVATE)
+
+    fun markRead(ctx: Context, chatKey: String) {
+        val latest = synchronized(this) { messages.filter { it.chatKey == chatKey }.maxOfOrNull { it.time } ?: 0L }
+        readMarks(ctx).edit().putLong(chatKey, maxOf(latest, System.currentTimeMillis())).apply()
+    }
+
+    /** Per-chat notification dismiss watermark: postChat only shows messages with time > this. Not markRead. */
+    private fun notifWatermarks(ctx: Context) = ctx.getSharedPreferences("notif_watermarks", Context.MODE_PRIVATE)
+
+    fun setNotifWatermark(ctx: Context, chatKey: String, time: Long) {
+        notifWatermarks(ctx).edit().putLong(chatKey, time).apply()
+    }
+
+    fun notifWatermark(ctx: Context, chatKey: String): Long = notifWatermarks(ctx).getLong(chatKey, 0L)
+
+    fun saveChatAvatar(ctx: Context, chatKey: String, bmp: Bitmap) {
+        saveBitmap(ctx, "chatav", chatKey.hashCode().toUInt().toString(), bmp, 192)
+    }
+
+    fun chatAvatarPath(ctx: Context, chatKey: String): String? =
+        File(File(ctx.filesDir, "chatav"), chatKey.hashCode().toUInt().toString() + ".png").takeIf { it.exists() }?.absolutePath
+
+    @Synchronized
+    fun contains(ctx: Context, id: String): Boolean {
+        ensureLoaded(ctx); return messages.any { it.id == id }
+    }
+
+    @Synchronized
+    fun intentFor(chatKey: String): PendingIntent? = chatIntents[chatKey]
+
+    /** Each message's own tap target (the notification's contentIntent), in memory only. */
+    private val msgIntents = object : LinkedHashMap<String, PendingIntent>(64, .75f, true) {
+        override fun removeEldestEntry(e: MutableMap.MutableEntry<String, PendingIntent>?) = size > 400
+    }
+    @Synchronized fun setMessageIntent(id: String, pi: PendingIntent?) { if (pi != null) msgIntents[id] = pi }
+    @Synchronized fun intentForMessage(id: String): PendingIntent? = msgIntents[id]
+
+    @Synchronized
+    fun setIntent(chatKey: String, pi: PendingIntent?) {
+        if (pi != null) chatIntents[chatKey] = pi
+    }
+
+    fun setLineActions(chatKey: String, actions: List<androidx.core.app.NotificationCompat.Action>) {
+        if (actions.isEmpty()) return
+        synchronized(this) { chatActions[chatKey] = actions }
+    }
+
+    fun lineActionsFor(chatKey: String): List<androidx.core.app.NotificationCompat.Action> =
+        synchronized(this) { chatActions[chatKey].orEmpty() }
+
+    private fun midOf(id: String): String? = id.substringAfter("|mid:", "").takeIf { it.isNotEmpty() }
+    private fun norm(t: String) = t.trim().replace(Regex("\\s+"), " ")
+
+    /**
+     * Returns the reason if [msg] duplicates something already stored, else null.
+     *  1. same LINE message id (line.message.id)   2. same internal id
+     *  3. same chat + same text + same/blank sender within [windowMs]
+     */
+    @Synchronized
+    fun duplicateReason(ctx: Context, msg: LineMessage, windowMs: Long = 10_000L): String? {
+        ensureLoaded(ctx)
+        val mid = midOf(msg.id)
+        val t = norm(msg.text)
+        for (m in messages.asReversed()) {
+            if (m.id == msg.id) return "same id"
+            if (mid != null && midOf(m.id) == mid && m.chatKey == msg.chatKey) return "same line.message.id"
+            // Same event posted twice by non-LINE apps under different titles, e.g. Threads
+            // 「1 個新的讚」+「chen__.90 說你的回覆讚…」 and 「chen__.90」+「說你的回覆讚…」.
+            if (m.pkg == msg.pkg && m.pkg != LineListenerService.LINE_PKG && kotlin.math.abs(m.time - msg.time) <= 15_000L) {
+                val a = norm(m.text); val shorter = minOf(a.length, t.length)
+                if (shorter >= 8 && (a.endsWith(t) || t.endsWith(a))) return "same event, different title"
+            }
+            if (m.chatKey == msg.chatKey && norm(m.text) == t &&
+                (m.sender == msg.sender || m.sender.isBlank() || msg.sender.isBlank())) {
+                val dt = kotlin.math.abs(m.time - msg.time)
+                if (dt <= windowMs) return "same chat+sender+text within ${windowMs / 1000}s"
+                // Long texts (announcements, official accounts) that LINE re-posts minutes later.
+                if (t.length >= LONG_TEXT && dt <= LONG_WINDOW_MS) return "same long text within ${dt / 60000}min"
+            }
+        }
+        return null
+    }
+
+    private const val LONG_TEXT = 20
+    private const val LONG_WINDOW_MS = 30 * 60_000L
+
+    /** Remove one message (swipe-to-delete in the panel). Image file is kept until [purgeImage]. */
+    fun remove(ctx: Context, id: String): LineMessage? {
+        val removed = synchronized(this) {
+            ensureLoaded(ctx)
+            val i = messages.indexOfFirst { it.id == id }
+            if (i < 0) null else messages.removeAt(i).also { save(ctx) }
+        }
+        if (removed != null) notifyListeners()
+        return removed
+    }
+
+    /** Delete a removed message's image if no stored message still uses it. */
+    @Synchronized
+    fun purgeImage(path: String?) {
+        if (path != null && messages.none { it.imagePath == path }) File(path).delete()
+    }
+
+    /** Attach a sticker/image downloaded after the initial post (silent refresh). */
+    fun updateImagePath(ctx: Context, id: String, path: String) {
+        synchronized(this) {
+            ensureLoaded(ctx)
+            val i = messages.indexOfFirst { it.id == id }
+            if (i < 0) return
+            val old = messages[i]
+            if (old.imagePath == path) return
+            messages[i] = old.copy(imagePath = path)
+            save(ctx)
+        }
+        notifyListeners()
+    }
+
+    /** Put a removed message back (undo). Skips dedupe. */
+    fun restore(ctx: Context, msg: LineMessage) {
+        synchronized(this) {
+            ensureLoaded(ctx)
+            if (messages.any { it.id == msg.id }) return
+            messages.add(msg); messages.sortBy { it.time }; save(ctx)
+        }
+        notifyListeners()
+    }
+
+    /** Newest stored message time for a chat (0 if none). */
+    @Synchronized
+    fun lastTimeForChat(ctx: Context, chatKey: String): Long {
+        ensureLoaded(ctx); return messages.filter { it.chatKey == chatKey }.maxOfOrNull { it.time } ?: 0L
+    }
+
+    /** Adds [msg] unless it is a duplicate. Returns null when added, else the reason it was skipped. */
+    fun add(ctx: Context, msg: LineMessage): String? {
+        synchronized(this) {
+            ensureLoaded(ctx)
+            duplicateReason(ctx, msg)?.let { return it }
+            messages.add(msg)
+            messages.sortBy { it.time }
+            while (messages.size > MAX) {
+                val old = messages.removeAt(0)
+                old.imagePath?.let { p -> if (messages.none { it.imagePath == p }) File(p).delete() }
+                old.avatarPath?.let { p -> if (messages.none { it.avatarPath == p }) File(p).delete() }
+            }
+            save(ctx)
+        }
+        notifyListeners()
+        return null
+    }
+
+    fun clear(ctx: Context) {
+        synchronized(this) {
+            ensureLoaded(ctx)
+            messages.clear()
+            save(ctx)
+            File(ctx.filesDir, "img").deleteRecursively()
+        }
+        notifyListeners()
+    }
+
+    private fun save(ctx: Context) {
+        try {
+            val arr = JSONArray()
+            for (m in messages) {
+                arr.put(JSONObject().apply {
+                    put("id", m.id); put("pkg", m.pkg); put("chatKey", m.chatKey)
+                    put("chatTitle", m.chatTitle); put("sender", m.sender); put("text", m.text)
+                    put("time", m.time); put("image", m.imagePath ?: ""); put("avatar", m.avatarPath ?: "")
+                    put("urls", JSONArray(m.urls))
+                })
+            }
+            val tmp = File(ctx.filesDir, "$FILE.tmp")
+            tmp.writeText(arr.toString())
+            tmp.renameTo(File(ctx.filesDir, FILE))
+        } catch (_: Exception) {
+        }
+    }
+
+    fun addListener(l: () -> Unit) = synchronized(listeners) { listeners.add(l) }
+    fun removeListener(l: () -> Unit) = synchronized(listeners) { listeners.remove(l) }
+    private fun notifyListeners() {
+        val copy = synchronized(listeners) { listeners.toList() }
+        main.post { copy.forEach { it() } }
+    }
+
+    /** Save a bitmap (scaled down) into filesDir/<dir>/<name>.png and return its path. */
+    fun saveBitmap(ctx: Context, dir: String, name: String, bmp: Bitmap, maxSize: Int): String? = try {
+        val d = File(ctx.filesDir, dir).apply { mkdirs() }
+        val f = File(d, "$name.png")
+        val scale = minOf(1f, maxSize.toFloat() / maxOf(bmp.width, bmp.height))
+        val out = if (scale < 1f) Bitmap.createScaledBitmap(
+            bmp, (bmp.width * scale).toInt().coerceAtLeast(1), (bmp.height * scale).toInt().coerceAtLeast(1), true
+        ) else bmp
+        FileOutputStream(f).use { out.compress(Bitmap.CompressFormat.PNG, 90, it) }
+        f.absolutePath
+    } catch (_: Exception) {
+        null
+    }
+
+    /** Stable file name from a bitmap's content (same picture → same name, different → different). */
+    fun bitmapKey(bmp: Bitmap): String = try {
+        val small = Bitmap.createScaledBitmap(bmp, 24, 24, true)
+        val px = IntArray(24 * 24)
+        small.getPixels(px, 0, 24, 0, 0, 24, 24)
+        if (small !== bmp) small.recycle()
+        val crc = java.util.zip.CRC32()
+        for (p in px) { crc.update(p ushr 24); crc.update(p ushr 16); crc.update(p ushr 8); crc.update(p) }
+        "a_" + java.lang.Long.toHexString(crc.value) + "_" + bmp.width + "x" + bmp.height
+    } catch (_: Exception) {
+        "a_" + System.nanoTime()
+    }
+
+    fun loadBitmap(path: String?): Bitmap? = try {
+        if (path == null) null else BitmapFactory.decodeFile(path)
+    } catch (_: Exception) {
+        null
+    }
+}

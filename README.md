@@ -12,9 +12,9 @@
 
 ## 為什麼做這個 App
 
-三星的通知側螢幕面板（Notification Edge）從 2019 年推出之後就沒有再更新了；LINE 自己的通知遇到同一個聊天室連續好幾則訊息時，也只會留下最新一則，前面的內容很難看到。市面上能補足這些的 App，在 Google Play 上大多要付費才能解鎖完整版。
+三星的 Notification Edge 在 2019 年推出後就停止更新，再也沒有新功能；LINE 的通知又只留下每個聊天室的最新一則，訊息一多，前面說了什麼就看不到了。市面上雖然有 App 能補上這些缺口，但大多得在 Google Play 付費，才能解鎖完整功能。
 
-所以有了 Sidepeek：把這些功能做好，**免費**給大家用。
+Sidepeek 想做的事很簡單：把這些該有的功能做好，**完全免費**，讓每個人都能用。
 
 ---
 
@@ -128,7 +128,7 @@ Setup: install the APK from Releases, open the app, and follow the in-app setup 
 
 ### Why
 
-Samsung's Notification Edge panel hasn't been updated since its 2019 release, and LINE's own notifications keep only the latest message of a chat. Most apps that fill this gap on Google Play charge for the full version. Sidepeek does it for free.
+Samsung's Notification Edge has not been updated since its 2019 release, and LINE keeps only the latest message of each chat in its notifications, so earlier messages are easy to miss. The apps that fill this gap on Google Play mostly charge for their full features. Sidepeek's goal is simple: do it well, and keep it **completely free** for everyone.
 
 ### License
 

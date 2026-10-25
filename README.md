@@ -89,11 +89,35 @@ Android 13 以上，從 APK 安裝的 App 預設不能開協助工具。請照�
 ./gradlew :app:assembleDebug
 ```
 
+正式版（R8 壓縮、不可除錯）：在專案根目錄放 `keystore.properties`（已列在 .gitignore，不會上傳）：
+
+```
+storeFile=/path/to/release.jks
+storePassword=…
+keyAlias=…
+keyPassword=…
+```
+
+再執行 `./gradlew :app:bundleRelease`（上架用 .aab）或 `./gradlew :app:assembleRelease`（直接安裝的 .apk）。
+
+## 授權
+
+程式碼以 [GNU GPL v3.0](LICENSE) 授權。如果你**散布或上架**修改後的版本，必須同樣以 GPL-3.0 公開完整原始碼，並保留原作者的版權聲明。
+
+「Sidepeek」名稱與圖示**不在**授權範圍內。修改版請改用別的名稱和圖示，避免讓人以為是同一個 App。
+
+Sidepeek 是非官方 App，與 LINE、LY Corporation 無關。
+
+Copyright (C) 2026 Sidepeek developers
+
 ---
 
 ## English
 
 **Sidepeek for LINE** is an unofficial personal Android app (not affiliated with LINE or LY Corporation). It regroups stacked LINE notifications into per-chat previews and adds an edge handle (the “Peek bar”) that opens a side panel with recent messages. Everything runs on-device; no server, no analytics. Requires Android 8.0+. Designed for Samsung One UI with gesture navigation.
 
-Setup: install the APK from Releases, open the app, and follow the in-app setup guide. On Android 13+, if the accessibility service is blocked as a "restricted setting", try enabling it first, then go to App info → ⋮ → Allow restricted settings, and enable it again. The accessibility service only detects the home screen and keyboard state. It never reads on-screen text.
+Setup: install the APK from Releases, open the app, and follow the in-app setup guide. On Android 13+, if the accessibility service is blocked as a "restricted setting", try enabling it first, then go to App info → ⋮ → Allow restricted settings, and enable it again. The app explains the accessibility service and asks for consent before sending you to enable it. The service only detects the foreground app, the home screen and keyboard state, and the back key while the panel is open. It never reads on-screen text.
 
+### License
+
+Code: [GNU GPL v3.0](LICENSE). If you distribute or publish a modified version, it must also be GPL-3.0 with full source. The "Sidepeek" name and icon are not covered by the license: please rename and re-icon your fork. Unofficial app, not affiliated with LINE or LY Corporation.

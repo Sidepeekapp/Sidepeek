@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -83,6 +84,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        findViewById<ViewGroup>(android.R.id.content).getChildAt(0).padForSystemBars()
+        addStatusBarScrim()
         Prefs.migrateSamsungHandleDefaultsV1(this)
         Prefs.migrateHandleInsetGestureV1(this)
         Prefs.migrateNotifMaxV1(this)
@@ -147,7 +150,7 @@ class MainActivity : AppCompatActivity() {
             Prefs.set(this, Prefs.KEY_LINE_MUTE_DONE, true); refresh()
             Toast.makeText(this, "好，記下來了：LINE 自己的通知已關閉", Toast.LENGTH_SHORT).show()
         }
-        findViewById<Button>(R.id.btnNeverSleep).setOnClickListener { openNeverSleepSettings() }
+        findViewById<Button>(R.id.btnNeverSleep).setOnClickListener { openBackgroundSettings() }
         findViewById<Button>(R.id.btnNeverSleepDone).setOnClickListener {
             Prefs.set(this, Prefs.KEY_NEVER_SLEEP_DONE, true); refresh()
             Toast.makeText(this, "好，記下來了：已加入永不休眠", Toast.LENGTH_SHORT).show()
@@ -338,11 +341,14 @@ class MainActivity : AppCompatActivity() {
             "⚠️ 電池會被省電功能限制\n手機省電時可能把 App 關掉，就會漏掉訊息。"
         findViewById<Button>(R.id.btnBattery).visibility = vis(!ignoring)
 
-        val neverSleepOk = Prefs.neverSleepDone(this) || ignoring
+        val oem = OemGuide.guide()
+        val neverSleepOk = Prefs.neverSleepDone(this) || oem.brand == OemGuide.Brand.OTHER ||
+            (ignoring && !oem.needsAutostart)
         statusNeverSleep.text = if (neverSleepOk)
             "✅ 背景執行：已設定好"
         else
-            "⚠️ 三星手機：還沒加入「永不休眠的應用程式」\n設定 → 電池與裝置維護 → 電池 → 背景使用限制 → 永不休眠的應用程式 → 加入「Sidepeek」。不是三星可以略過。"
+            "⚠️ ${oem.name}手機：還要設定背景執行\n${oem.steps}"
+        findViewById<Button>(R.id.btnNeverSleep).text = oem.button
         findViewById<Button>(R.id.btnNeverSleep).visibility = vis(!neverSleepOk)
         findViewById<Button>(R.id.btnNeverSleepDone).visibility = vis(!neverSleepOk)
 
@@ -420,7 +426,8 @@ class MainActivity : AppCompatActivity() {
                 STEP_BATTERY -> {
                     val ignoring = getSystemService(PowerManager::class.java)
                         .isIgnoringBatteryOptimizations(packageName)
-                    if (ignoring) STEP_DONE else -1
+                    // Xiaomi/OPPO/vivo…: battery exemption alone isn't enough, auto-start too.
+                    if (ignoring && (!OemGuide.guide().needsAutostart || Prefs.neverSleepDone(this))) STEP_DONE else -1
                 }
                 else -> -1
             }
@@ -490,9 +497,21 @@ class MainActivity : AppCompatActivity() {
                 video = R.raw.guide_step6
             }
             STEP_BATTERY -> {
-                wizardTitle.text = "停用電池最佳化"
-                wizardHint.text = "省電功能可能把「Sidepeek」關掉而漏訊息。點下面允許「不受限制」。這步可略過。"
-                wizardPrimary.text = "改成不受限制"
+                val g = OemGuide.guide()
+                val ignoring = getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
+                if (!ignoring) {
+                    wizardTitle.text = "停用電池最佳化"
+                    wizardHint.text = "省電功能可能把「Sidepeek」關掉而漏訊息。點下面允許「不受限制」。" +
+                        (if (g.needsAutostart) "接著還要設定${g.name}手機的「自動啟動」。" else "") + "這步可略過。"
+                    wizardPrimary.text = "改成不受限制"
+                } else {
+                    // Battery done; this phone brand also needs its own auto-start switch.
+                    wizardTitle.text = "允許自動啟動（${g.name}）"
+                    wizardHint.text = g.steps + "\n選項名稱可能因系統版本略有不同。設定好再按「我已設定好，下一步」。"
+                    wizardPrimary.text = g.button
+                    wizardSecondary.visibility = View.VISIBLE
+                    wizardSecondary.text = "我已設定好，下一步"
+                }
                 wizardSkip.visibility = View.VISIBLE
                 wizardSkip.text = "略過"
             }
@@ -531,13 +550,21 @@ class MainActivity : AppCompatActivity() {
             STEP_TRY_A11Y -> openA11ySettings(markTry = true)
             STEP_RESTRICTED -> openA11yAppInfo()
             STEP_REOPEN_A11Y -> openA11ySettings(markTry = false)
-            STEP_BATTERY -> requestBatteryExemption()
+            STEP_BATTERY -> {
+                val ignoring = getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
+                if (!ignoring) requestBatteryExemption() else openBackgroundSettings()
+            }
             STEP_DONE -> finishWizard()
         }
     }
 
     private fun onWizardSecondary() {
         when (wizardStep) {
+            STEP_BATTERY -> {
+                Prefs.set(this, Prefs.KEY_NEVER_SLEEP_DONE, true)
+                wizardStep = STEP_DONE
+                refresh()
+            }
             STEP_TRY_A11Y -> {
                 wizardStep = STEP_RESTRICTED
                 refresh()
@@ -605,6 +632,7 @@ class MainActivity : AppCompatActivity() {
 
     /** Open App Info so user can allow Restricted Settings — only after trying a11y (Samsung). */
     private fun openA11yAppInfo() {
+        if (!Prefs.a11yConsent(this)) { A11yDisclosure.ensure(this) { openA11yAppInfo() }; return }
         Prefs.set(this, Prefs.KEY_A11Y_APPINFO_OPENED_V1, true)
         val ok = safeStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
         if (!ok) safeStart(Intent(Settings.ACTION_SETTINGS))
@@ -613,6 +641,7 @@ class MainActivity : AppCompatActivity() {
 
     /** Open Accessibility settings to toggle the sidebar service. */
     private fun openA11ySettings(markTry: Boolean = true) {
+        if (!Prefs.a11yConsent(this)) { A11yDisclosure.ensure(this) { openA11ySettings(markTry) }; return }
         if (markTry) Prefs.set(this, Prefs.KEY_A11Y_TRY_OPENED_V1, true)
         if (!safeStart(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))) safeStart(Intent(Settings.ACTION_SETTINGS))
     }
@@ -659,6 +688,15 @@ class MainActivity : AppCompatActivity() {
             previewPanel()
         }
         findViewById<Button>(R.id.btnPanelPreview).setOnClickListener { openPanelNow() }
+        findViewById<TextView>(R.id.linkFeedback).apply {
+            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+            setOnClickListener { Feedback.send(this@MainActivity, "意見回饋") }
+        }
+        findViewById<Button>(R.id.btnFeedback).setOnClickListener { Feedback.send(this, "問題回報") }
+        findViewById<TextView>(R.id.tipBackground).text = OemGuide.guide().let { g ->
+            if (g.brand == OemGuide.Brand.OTHER) "• 過一陣子就收不到？設定 → 應用程式 → Sidepeek → 電池，選「不受限制」。"
+            else "• ${g.name}手機過一陣子就收不到？${g.steps}"
+        }
         findViewById<TextView>(R.id.linkPrivacy).apply {
             paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
             setOnClickListener { startActivity(Intent(this@MainActivity, PrivacyActivity::class.java)) }
@@ -886,17 +924,9 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, "請手動打開：設定 → 應用程式 → LINE → 通知", Toast.LENGTH_LONG).show()
     }
 
-    private fun openNeverSleepSettings() {
-        val trials = listOf(
-            Intent().setClassName("com.samsung.android.lool", "com.samsung.android.sm.battery.ui.BatteryActivity"),
-            Intent().setClassName("com.samsung.android.sm", "com.samsung.android.sm.battery.ui.BatteryActivity"),
-            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")),
-        )
-        for (i in trials) {
-            if (safeStart(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))) return
-        }
-        Toast.makeText(this, "請手動打開：設定 → 電池 → 永不休眠的應用程式", Toast.LENGTH_LONG).show()
+    /** Brand-specific background / auto-start screen (Samsung 永不休眠, Xiaomi 自動啟動…). */
+    private fun openBackgroundSettings() {
+        if (!OemGuide.open(this)) Toast.makeText(this, "請手動打開：設定 → 應用程式 → Sidepeek → 電池", Toast.LENGTH_LONG).show()
     }
 
     private fun requestBatteryExemption() {

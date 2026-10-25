@@ -181,6 +181,9 @@ object Prefs {
     const val KEY_A11Y_APPINFO_OPENED_V1 = "a11y_appinfo_opened_v1"
     /** User opened Accessibility to try enabling the sidebar service (Samsung denial flow). */
     const val KEY_A11Y_TRY_OPENED_V1 = "a11y_try_opened_v1"
+    /** User agreed to the accessibility prominent disclosure (A11yDisclosure). */
+    const val KEY_A11Y_CONSENT_V1 = "a11y_consent_v1"
+    fun a11yConsent(ctx: Context) = sp(ctx).getBoolean(KEY_A11Y_CONSENT_V1, false)
     /** First-run multi-step wizard finished (or skipped via complete). */
     const val KEY_WIZARD_DONE_V1 = "wizard_done_v1"
     fun lineMuteDone(ctx: Context) = sp(ctx).getBoolean(KEY_LINE_MUTE_DONE, false)

@@ -232,7 +232,7 @@
 
                 <TextView android:id="@+id/statusNeverSleep" style="@style/Status" android:paddingTop="12dp" />
                 <Button android:id="@+id/btnNeverSleep" style="@style/Btn" android:text="打開三星的電池設定" />
-                <Button android:id="@+id/btnNeverSleepDone" style="@style/Btn" android:text="我已經加入了" />
+                <Button android:id="@+id/btnNeverSleepDone" style="@style/Btn" android:text="我已經設定好了" />
             </LinearLayout>
 
             <!-- 進階設定：預設收合 -->
@@ -541,8 +541,7 @@
                 android:text="• 貼圖沒出現？貼圖要連網才能下載，還沒下載到時會先顯示佔位圖。" />
             <TextView style="@style/Tip"
                 android:text="• Messenger／Instagram／Threads／Teams 收不到？確認那個 App 本身和系統的通知都有打開。" />
-            <TextView style="@style/Tip"
-                android:text="• 三星手機過一陣子就失效？設定 → 電池 → 背景使用限制，確認「Sidepeek」不在「休眠」或「深度休眠」名單裡。" />
+            <TextView android:id="@+id/tipBackground" style="@style/Tip" />
             <TextView style="@style/Tip"
                 android:text="• 跳出來的通知只有一行？三星：設定 → 通知 → 通知彈出樣式，選「詳細」；並在 設定 → 應用程式 → Sidepeek → 通知，把「LINE 訊息預覽」設為「提醒」、允許浮動通知。" />
             <TextView style="@style/Tip"
@@ -551,16 +550,27 @@
             <TextView style="@style/Status" android:paddingTop="12dp" android:textStyle="bold"
                 android:text="還是不行？" />
             <TextView style="@style/Hint"
-                android:text="先讓那個 App 收幾則訊息（最好有貼圖或照片），再按「匯出診斷記錄」把檔案傳給開發者。記錄裡有訊息內容，分享前請留意隱私。" />
+                android:text="按「寄信給開發者」描述你遇到的狀況，手機型號等資訊會自動附上。需要的話，先讓那個 App 收幾則訊息（最好有貼圖或照片），再按「匯出診斷記錄」把檔案傳給開發者。記錄裡有訊息內容，分享前請留意隱私。" />
+            <Button android:id="@+id/btnFeedback" style="@style/Btn" android:text="寄信給開發者" />
             <Button android:id="@+id/btnExport" style="@style/Btn" android:text="匯出診斷記錄" />
             <Button android:id="@+id/btnClearDiag" style="@style/Btn" android:text="清除診斷記錄" />
         </LinearLayout>
 
         <!-- ===================== 頁尾：隱私權政策 ===================== -->
-        <TextView android:id="@+id/linkPrivacy"
+        <TextView android:id="@+id/linkFeedback"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="24dp"
+            android:minHeight="48dp" android:gravity="center"
+            android:paddingStart="16dp" android:paddingEnd="16dp"
+            android:clickable="true" android:focusable="true"
+            android:background="?attr/selectableItemBackground"
+            android:textColor="@color/section_text" android:textSize="15sp"
+            android:text="意見回饋" />
+        <TextView android:id="@+id/linkPrivacy"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="0dp"
             android:minHeight="48dp" android:gravity="center"
             android:paddingStart="16dp" android:paddingEnd="16dp"
             android:clickable="true" android:focusable="true"

@@ -1,0 +1,67 @@
+# Builds the release APK (unsigned: the signing key never leaves the owner's hands), runs the
+# unit tests, and attaches the APK to a private *draft* Release named "CI build <sha>".
+# Sign it afterwards with:  apksigner sign --ks sidepeek-release.jks app-release-unsigned.apk
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create the draft Release that holds the APK
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+
+      - name: Build release APK (unsigned)
+        run: ./gradlew --no-daemon :app:assembleRelease
+
+      - name: Collect APK + signing tools
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cp app/build/outputs/apk/release/*.apk out/
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "build-tools: $BT"
+          cp "$BT/lib/apksigner.jar" out/apksigner.jar
+          "$BT/zipalign" -c -p 4 out/*.apk && echo "zipalign OK"
+          ls -la out
+
+      - name: Upload to draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHORT=${GITHUB_SHA::7}
+          TAG="ci-$SHORT"
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          gh release create "$TAG" out/* --draft --target "$GITHUB_SHA" \
+            --title "CI build $SHORT" \
+            --notes "未簽名的建置（commit $GITHUB_SHA）。用正式金鑰簽名後才能安裝；這個草稿可以刪掉。"
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: app/build/reports/

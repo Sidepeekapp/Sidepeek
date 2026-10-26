@@ -182,7 +182,11 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     private val fullHeights = HashMap<Int, Int>()
 
     private fun updateIme() {
-        val now = imeByInsets == true || imeByResize == true || imeByReflection == true || imeByA11y == true
+        // Accessibility mode: the keyboard window list from getWindows() is authoritative. The handle
+        // window's insets can report a stale keyboard (e.g. panel opened while the keyboard was
+        // closing) and then never update, which hid the Peek bar until something else changed.
+        val now = if (accessibilityMode && imeByA11y != null) imeByA11y == true
+                  else imeByInsets == true || imeByResize == true || imeByReflection == true || imeByA11y == true
         if (now != imeVisible) {
             imeVisible = now
             Diagnostics.note(this, "IME ${if (now) "shown" else "hidden"} (a11y=$imeByA11y insets=$imeByInsets resize=$imeByResize reflect=$imeByReflection)")
@@ -1237,7 +1241,19 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             text = m.text; setTextColor(0xFFF2F2F7.toInt()); textSize = 14.5f * ts
             maxLines = Prefs.panelMaxLines(this@PanelController); ellipsize = TextUtils.TruncateAt.END
             setLineSpacing(dp(2f).toFloat(), 1f)
-        })
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        // Same notification re-posted N times (bubble 「有新消息。」): a counter under the text,
+        // so it never competes with the name/badge/time row for width.
+        if (m.repeat > 1) {
+            bubble.addView(TextView(this).apply {
+                text = "共 ${m.repeat} 則"; textSize = 11.5f * ts; typeface = Typeface.DEFAULT_BOLD
+                setTextColor(0xFF052E16.toInt()); maxLines = 1
+                background = rounded(0xFF4ADE80.toInt(), 999f)
+                setPadding(dp(8f), dp(1f), dp(8f), dp(2f))
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(6f)
+            })
+        }
         val bmp = MessageStore.loadBitmap(m.imagePath)
         if (bmp != null) {
             bubble.addView(ImageView(this).apply {

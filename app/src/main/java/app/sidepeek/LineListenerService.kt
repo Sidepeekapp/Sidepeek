@@ -88,6 +88,13 @@ class LineListenerService : NotificationListenerService() {
 
     private fun dedupeLog(msg: String) = Diagnostics.note(this, "DEDUPE $msg")
 
+    /** notification key -> postTime of the previous post (non-LINE apps), to spot re-posts. */
+    private val lastPostByKey = HashMap<String, Long>()
+    /** notification key -> `when` of the previous post (non-LINE apps). */
+    private val lastWhenByKey = HashMap<String, Long>()
+    /** notification key -> "sender|text" of the card it last produced (non-LINE apps). */
+    private val lastTextByKey = HashMap<String, String>()
+
     override fun onListenerConnected() {
         connected = true
         Notifier.ensureChannels(this)
@@ -384,7 +391,16 @@ class LineListenerService : NotificationListenerService() {
             ex.getCharSequence(Notification.EXTRA_BIG_TEXT), ex.getString("line.message.id"),
             ms?.messages?.joinToString("\u0001") { "${it.timestamp}|${it.person?.name}|${it.text}" }
         ).joinToString("\u0002") { it?.toString() ?: "" }.hashCode()
-        if (lastContent[sbn.key] == fingerprint) { dedupeLog("skip unchanged update key=${sbn.key}"); return }
+        // Non-LINE apps that re-post the SAME text for every new message (bubble: 「有新消息。」)
+        // give each real new message a fresh `when`; plain refreshes keep the old one.
+        val isLinePkg = sbn.packageName == LINE_PKG || sbn.packageName == LINE_LITE_PKG
+        val prevWhen = if (isLinePkg || n.`when` <= 0) null else lastWhenByKey.put(sbn.key, n.`when`)
+        if (lastContent[sbn.key] == fingerprint) {
+            dedupeLog("skip unchanged update key=${sbn.key}")
+            if (prevWhen != null && n.`when` - prevWhen >= 5_000L &&
+                MessageStore.bumpRepeat(this, chatKey, n.`when`)) dedupeLog("repeat +1 (new when) chat=$chatKey")
+            return
+        }
         if (lastKeyPostTime[sbn.key] == sbn.postTime && lastContent.containsKey(sbn.key)) {
             dedupeLog("skip same key+postTime key=${sbn.key} postTime=${sbn.postTime}"); return
         }
@@ -414,6 +430,17 @@ class LineListenerService : NotificationListenerService() {
         val pendingStickerByMsgId = LinkedHashMap<String, List<String>>()
 
         val newMessages = ArrayList<LineMessage>()
+
+        // Some apps (e.g. bubble: 「有新消息。」) re-post the SAME notification for every new
+        // message. Nothing new to show, but count it and move the card to the new time.
+        val prevPost = if (isLine) null else lastPostByKey.put(sbn.key, sbn.postTime)
+        fun repeatIfReposted() {
+            if (isLine || prevPost == null) return
+            // bubble re-posts with FLAG_ONLY_ALERT_ONCE and the old `when`, so neither can tell a
+            // refresh from a new message; only re-posts seconds apart are treated as the same event.
+            if (sbn.postTime - prevPost < 5_000L) return
+            if (MessageStore.bumpRepeat(this, chatKey, sbn.postTime)) dedupeLog("repeat +1 chat=$chatKey")
+        }
 
         val msgs = ms?.messages.orEmpty()
         val lineMsgId = if (isLine) ex.getString("line.message.id")?.takeIf { it.isNotBlank() } else null
@@ -489,11 +516,11 @@ class LineListenerService : NotificationListenerService() {
             val sender = title ?: chatTitle
             val time = if (n.`when` > 0) n.`when` else sbn.postTime
             val id = if (lineMsgId != null) "$chatKey|mid:$lineMsgId" else idOf(chatKey, sender, text, time, null)
-            if (MessageStore.contains(this, id) || isRecentDupe(id)) { dedupeLog("skip seen id=$id"); return }
-            if (text.isNotEmpty() && seenOnKey(sbn.key, "$sender|$text")) { dedupeLog("skip re-post on same key=${sbn.key}"); return }
+            if (MessageStore.contains(this, id) || isRecentDupe(id)) { dedupeLog("skip seen id=$id"); repeatIfReposted(); return }
+            if (text.isNotEmpty() && seenOnKey(sbn.key, "$sender|$text")) { dedupeLog("skip re-post on same key=${sbn.key}"); repeatIfReposted(); return }
             // Same text re-posted in the same chat within a few seconds => treat as duplicate.
             val softId = idOf(chatKey, sender, text, 0, null)
-            if (isRecentDupe(softId, windowMs = 10_000)) { dedupeLog("skip same text <10s chat=$chatKey"); return }
+            if (isRecentDupe(softId, windowMs = 10_000)) { dedupeLog("skip same text <10s chat=$chatKey"); repeatIfReposted(); return }
             if (stickerish) {
                 pendingStickerByMsgId[id] = notifSticker.candidates
                 if (notifSticker.candidates.isEmpty()) {
@@ -507,13 +534,27 @@ class LineListenerService : NotificationListenerService() {
         // Final, store-level dedupe (line.message.id / id / chat+sender+text within 10s).
         // Remember each message's own tap target (Threads: the liked post, Messenger: the chat…).
         newMessages.forEach { MessageStore.setMessageIntent(it.id, n.contentIntent) }
+        // Same notification slot, same sender + text as the card it made last time, but a new
+        // timestamp (bubble sometimes bumps `when`): count it on that card, don't add a twin.
+        // Checked against the stored card (not memory), so it also works right after a restart.
+        if (!isLine && newMessages.size == 1) {
+            val m = newMessages[0]
+            val last = MessageStore.latestInChat(this, chatKey)
+            if (last != null && last.sender == m.sender && last.text.trim() == m.text.trim() &&
+                m.imagePath == null && maxOf(m.time, sbn.postTime) - last.time >= 5_000L &&
+                MessageStore.bumpRepeat(this, chatKey, maxOf(m.time, sbn.postTime))) {
+                dedupeLog("repeat +1 (new when, same text) chat=$chatKey")
+                return
+            }
+        }
         val added = newMessages.filter { m ->
             val why = MessageStore.add(this, m)
             if (why != null) dedupeLog("skip store duplicate ($why) chat=${m.chatKey} text=${m.text.take(40)}")
             else dedupeLog("added id=${m.id} chat=${m.chatKey}")
             why == null
         }
-        if (added.isEmpty()) return
+        if (!isLine) added.lastOrNull()?.let { lastTextByKey[sbn.key] = "${it.sender}|${it.text.trim()}" }
+        if (added.isEmpty()) { repeatIfReposted(); return }
 
         // Reposting / stacking is LINE-only. Other apps already show messages fine.
         if (!isLine || !Prefs.enabled(this)) return

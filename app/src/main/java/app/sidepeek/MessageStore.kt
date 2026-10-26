@@ -24,6 +24,8 @@ data class LineMessage(
     val avatarPath: String? = null,
     /** Up to 3 http(s) URLs extracted from [text] at store time. */
     val urls: List<String> = emptyList(),
+    /** How many times the app re-posted this same notification (e.g. bubble's 「有新消息。」). */
+    val repeat: Int = 1,
 )
 
 /**
@@ -66,6 +68,7 @@ object MessageStore {
                         avatarPath = o.optString("avatar").ifEmpty { null },
                         // Recompute from text so older, wrongly-detected links (e.g. user names) disappear.
                         urls = LinkExtractor.extract(o.optString("text")),
+                        repeat = o.optInt("repeat", 1).coerceAtLeast(1),
                     )
                 )
             }
@@ -220,8 +223,34 @@ object MessageStore {
         notifyListeners()
     }
 
+    /** Newest stored card of a chat, or null. */
+    @Synchronized
+    fun latestInChat(ctx: Context, chatKey: String): LineMessage? {
+        ensureLoaded(ctx)
+        return messages.filter { it.chatKey == chatKey }.maxByOrNull { it.time }
+    }
+
+    /**
+     * The app re-posted the same notification again (same content, new alert): instead of a
+     * duplicate card, move the chat's newest card to [time] and count it.
+     * @return true if a card was updated
+     */
+    @Synchronized
+    fun bumpRepeat(ctx: Context, chatKey: String, time: Long): Boolean {
+        ensureLoaded(ctx)
+        val idx = messages.indices.filter { messages[it].chatKey == chatKey }.maxByOrNull { messages[it].time } ?: return false
+        val m = messages[idx]
+        if (time <= m.time) return false
+        messages[idx] = m.copy(time = time, repeat = m.repeat + 1)
+        messages.sortBy { it.time }
+        save(ctx)
+        notifyListeners()
+        return true
+    }
+
     /** Newest stored message time for a chat (0 if none). */
     @Synchronized
+
     fun lastTimeForChat(ctx: Context, chatKey: String): Long {
         ensureLoaded(ctx); return messages.filter { it.chatKey == chatKey }.maxOfOrNull { it.time } ?: 0L
     }
@@ -262,7 +291,7 @@ object MessageStore {
                     put("id", m.id); put("pkg", m.pkg); put("chatKey", m.chatKey)
                     put("chatTitle", m.chatTitle); put("sender", m.sender); put("text", m.text)
                     put("time", m.time); put("image", m.imagePath ?: ""); put("avatar", m.avatarPath ?: "")
-                    put("urls", JSONArray(m.urls))
+                    put("urls", JSONArray(m.urls)); put("repeat", m.repeat)
                 })
             }
             val tmp = File(ctx.filesDir, "$FILE.tmp")

@@ -263,8 +263,11 @@ object Notifier {
             Diagnostics.fail(ctx, "POST add actions", e)
         }
 
-        // Header avatar: the chat's own picture (LINE's large icon), else the sender's.
-        (MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
+        // Header avatar: the chat's own picture (LINE's large icon), else the sender's. Group chats:
+        // LINE's large icon is the latest SENDER, so a member's photo would sit next to the group
+        // name; use a neutral group badge there instead (members keep their own avatars per line).
+        if (isGroupChat) builder.setLargeIcon(groupIcon(ctx, latest.chatTitle))
+        else (MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
             ?: MessageStore.loadBitmap(latest.avatarPath))?.let { builder.setLargeIcon(circle(it)) }
 
         // P1-6: BigPicture only when a single unread has an image; else text list with 「[圖片]」.
@@ -419,8 +422,9 @@ object Notifier {
         }
         builder.setStyle(style)
         try {
-            val chatIcon = MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
-                ?: MessageStore.loadBitmap(latest.avatarPath)
+            val chatIcon = if (isGroupChat) groupIcon(ctx, title)
+                else MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
+                    ?: MessageStore.loadBitmap(latest.avatarPath)
             val id = "chat_" + latest.chatKey.hashCode().toUInt().toString(16)
             val avatarFile = MessageStore.chatAvatarPath(ctx, latest.chatKey)?.let { java.io.File(it) }
                 ?: latest.avatarPath?.let { java.io.File(it) }
@@ -475,6 +479,21 @@ object Notifier {
     }
 
     /** Always output a square [AVATAR_PX] circular bitmap (largeIcon / shortcut / Person). */
+    /** Neutral round group badge: brand-green circle with the group name's first character. */
+    private fun groupIcon(ctx: Context, name: String): android.graphics.Bitmap {
+        val px = AVATAR_PX
+        val bmp = android.graphics.Bitmap.createBitmap(px, px, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(bmp)
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF16A34A.toInt() }
+        c.drawCircle(px / 2f, px / 2f, px / 2f, p)
+        val ch = name.trim().let { if (it.isEmpty()) "群" else String(Character.toChars(it.codePointAt(0))) }
+        p.color = android.graphics.Color.WHITE; p.textSize = px * 0.46f; p.textAlign = android.graphics.Paint.Align.CENTER
+        p.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        val fm = p.fontMetrics
+        c.drawText(ch, px / 2f, px / 2f - (fm.ascent + fm.descent) / 2f, p)
+        return bmp
+    }
+
     private fun circle(src: android.graphics.Bitmap, outPx: Int = AVATAR_PX): android.graphics.Bitmap {
         val s = minOf(src.width, src.height)
         val out = android.graphics.Bitmap.createBitmap(outPx, outPx, android.graphics.Bitmap.Config.ARGB_8888)

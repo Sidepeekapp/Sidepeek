@@ -102,9 +102,13 @@ object Prefs {
     const val KEY_HIDE_ON_IME = "hide_on_ime"
     fun hideOnIme(ctx: Context) = sp(ctx).getBoolean(KEY_HIDE_ON_IME, true)
 
-    /** Show the edge handle on the lock screen (panel still refused while locked). */
+    /**
+     * Show the edge handle on the lock screen. The panel itself never opens while locked: swiping
+     * the handle there asks to unlock first (OpenPanelActivity), so message contents are never
+     * shown on the lock screen. Off by default.
+     */
     const val KEY_SHOW_ON_LOCK = "show_on_lock"
-    fun showOnLock(ctx: Context) = sp(ctx).getBoolean(KEY_SHOW_ON_LOCK, true)
+    fun showOnLock(ctx: Context) = sp(ctx).getBoolean(KEY_SHOW_ON_LOCK, false)
 
     // ---- panel appearance
     const val KEY_PANEL_WIDTH = "panel_width_pct"

@@ -185,7 +185,23 @@ class LineListenerService : NotificationListenerService() {
     }
 
     // ------------------------------------------------------------------ hiding LINE's originals
-    private fun hideWanted() = Prefs.enabled(this) && Prefs.hideOriginal(this)
+    /**
+     * Hide LINE's original only when our own notification can be shown. If Sidepeek may not post
+     * (permission denied, app notifications or the 「LINE 訊息預覽」 channel turned off), LINE's
+     * notification stays so the user is still alerted. Leftovers are picked up by the sweep /
+     * 30s health check once posting works again.
+     */
+    private fun hideWanted(): Boolean {
+        if (!Prefs.enabled(this) || !Prefs.hideOriginal(this)) return false
+        val ok = Notifier.canRepost(this)
+        if (ok != lastCanRepost) {
+            lastCanRepost = ok
+            Diagnostics.note(this, if (ok) "HIDE resumed: Sidepeek can post again"
+                else "HIDE paused: Sidepeek cannot post (permission/channel off) -> keep LINE originals")
+        }
+        return ok
+    }
+    @Volatile private var lastCanRepost: Boolean? = null
 
     /** sbn.key -> time we last cancelled/snoozed it (to detect cancels that did not stick). */
     private val hiddenAt = object : LinkedHashMap<String, Long>(64, .75f, true) {

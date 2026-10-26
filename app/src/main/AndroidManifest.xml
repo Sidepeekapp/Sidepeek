@@ -100,6 +100,15 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- Peek-bar swipe on the lock screen: asks to unlock, then opens the panel.
+             Not noHistory: it must stay alive behind the unlock prompt to get the result. -->
+        <activity
+            android:name=".UnlockPanelActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name=".PanelTileService"
             android:exported="true"

@@ -34,6 +34,13 @@
             <TextView android:id="@+id/statusSummary" style="@style/Status"
                 android:textSize="20sp" android:textStyle="bold"
                 android:lineSpacingExtra="4dp" />
+            <!-- Sidepeek 不能發通知時：說明目前先保留 LINE 原本的通知（Notifier.canRepost）。 -->
+            <TextView android:id="@+id/statusRepost" style="@style/Status"
+                android:visibility="gone"
+                android:text="⚠️ Sidepeek 現在不能發通知，所以先保留 LINE 原本的通知，不會漏掉訊息。\n想讓 LINE 通知依聊天室整理，請允許 Sidepeek 顯示通知，並打開「LINE 訊息預覽」這個通知類別。" />
+            <Button android:id="@+id/btnRepostFix" style="@style/Btn"
+                android:visibility="gone"
+                android:text="打開通知設定" />
         </LinearLayout>
 
         <!-- ===================== 怎麼用（精簡總覽；精靈完成後才顯示） ===================== -->
@@ -314,9 +321,9 @@
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swHideIme" style="@style/Sw"
                     android:minHeight="52dp" android:text="打字時隱藏 Peek 條" />
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swShowOnLock" style="@style/Sw"
-                    android:minHeight="52dp" android:text="鎖定畫面也顯示 Peek 條與訊息" />
+                    android:minHeight="52dp" android:text="鎖定畫面也顯示 Peek 條" />
                 <TextView style="@style/Hint"
-                    android:text="開啟時，鎖定畫面也會顯示 Peek 條，往內滑就能查看訊息；關閉時，鎖定畫面不顯示 Peek 條也不顯示訊息。部分系統版本可能仍限制鎖定畫面的覆蓋顯示；若看不到可重開側邊欄服務。" />
+                    android:text="開啟時，鎖定畫面也會顯示 Peek 條；往內滑會先要求解鎖，解鎖後才打開側邊欄，訊息內容不會出現在鎖定畫面上。關閉時，鎖定畫面不顯示 Peek 條。部分系統版本可能仍限制鎖定畫面的覆蓋顯示；若看不到可重開側邊欄服務。" />
                 <TextView android:id="@+id/statusUsage" style="@style/Status" />
                 <Button android:id="@+id/btnUsage" style="@style/Btn" android:text="允許讀取使用情況" />
                 <TextView style="@style/Hint"

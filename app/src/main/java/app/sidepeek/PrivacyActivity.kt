@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 class PrivacyActivity : AppCompatActivity() {
 
     companion object {
-        const val UPDATED = "最後更新：2026年10月25日"
+        const val UPDATED = "最後更新：2026年10月27日"
         /** Public contact for privacy questions and feedback. */
         const val CONTACT = Feedback.CONTACT
     }
@@ -38,7 +38,7 @@ class PrivacyActivity : AppCompatActivity() {
             "• 在通知上回覆或按已讀時，本 App 是透過原本那個 App（例如 LINE）提供的按鈕送出，內容直接交給該 App，本 App 不另外保存回覆內容。",
         )),
         Section("二、網路連線", listOf(
-            "• 本 App 只在下載 LINE 貼圖時連網：依通知裡的貼圖編號，向 LINE 公開的貼圖伺服器（stickershop.line-scdn.net）下載貼圖圖片。不會傳送你的訊息內容或帳號資料。LINE 的伺服器會看到你的 IP 位址，並依 LINE 的隱私權政策處理。",
+            "• 本 App 只在下載 LINE 貼圖時連網：依通知裡的貼圖編號，向 LINE 公開的貼圖伺服器（stickershop.line-scdn.net 等 LINE 自己的網域）下載貼圖圖片；不是 LINE 網域的網址一律不連，也不會因為訊息裡出現網址就自動連線。不會傳送你的訊息內容或帳號資料。LINE 的伺服器會看到你的 IP 位址，並依 LINE 的隱私權政策處理。",
             "• 你點側邊欄裡的網址按鈕時，會用手機上的瀏覽器開啟該網址。",
         )),
         Section("三、不收集的資料", listOf(

@@ -27,6 +27,34 @@ object StickerLoader {
         RegexOption.IGNORE_CASE,
     )
 
+    /**
+     * Only LINE's own sticker hosts are ever contacted. The regex above merely finds candidates; a
+     * URL like https://other.site/line.me.png would match it, so every URL is checked by real host.
+     */
+    private val ALLOWED_HOST_SUFFIXES = listOf("line-scdn.net", "line-cdn.net", "line.naver.jp")
+
+    /**
+     * Notification fields that carry what people typed (message text, names). Never scanned for
+     * sticker URLs: anyone could otherwise make the phone fetch a URL just by sending a message.
+     */
+    private val TEXT_KEYS = setOf(
+        "android.text", "android.bigText", "android.title", "android.title.big", "android.subText",
+        "android.summaryText", "android.infoText", "android.conversationTitle", "android.textLines",
+        "android.selfDisplayName", "text", "sender", "line.message.text",
+    )
+
+    /** Max bytes downloaded for one sticker image (LINE stickers are well under 1 MB). */
+    private const val MAX_BYTES = 2L * 1024 * 1024
+
+    /** True for https URLs on a LINE sticker host (exact host or a subdomain of it). */
+    fun isAllowedUrl(url: String): Boolean = try {
+        val u = java.net.URI(url.trim())
+        val host = u.host?.lowercase().orEmpty()
+        u.scheme.equals("https", ignoreCase = true) && u.userInfo == null &&
+            (u.port == -1 || u.port == 443) &&
+            ALLOWED_HOST_SUFFIXES.any { host == it || host.endsWith(".$it") }
+    } catch (_: Exception) { false }
+
     data class Discovery(
         val candidates: List<String>,
         val stickerKeys: List<String>,
@@ -80,7 +108,7 @@ object StickerLoader {
                     kl == "line.sticker.version" -> {
                     digitId(v)?.let { if (stkVer == null) stkVer = it }
                 }
-                v is String -> URL_RE.findAll(v).forEach { urls += it.value }
+                v is String && k !in TEXT_KEYS -> URL_RE.findAll(v).forEach { urls += it.value }
             }
         }
 
@@ -95,7 +123,7 @@ object StickerLoader {
                     is Array<*> -> v.forEach { item ->
                         when (item) {
                             is Bundle -> walk(item, depth + 1)
-                            is String -> URL_RE.findAll(item).forEach { urls += it.value }
+                            is String -> if (k !in TEXT_KEYS) URL_RE.findAll(item).forEach { urls += it.value }
                             is Parcelable -> try {
                                 // MessagingStyle.Message-like: reflect extras if present
                                 val m = item.javaClass.methods.firstOrNull { it.name == "getExtras" && it.parameterCount == 0 }
@@ -107,7 +135,7 @@ object StickerLoader {
                     is java.util.ArrayList<*> -> v.forEach { item ->
                         when (item) {
                             is Bundle -> walk(item, depth + 1)
-                            is String -> URL_RE.findAll(item).forEach { urls += it.value }
+                            is String -> if (k !in TEXT_KEYS) URL_RE.findAll(item).forEach { urls += it.value }
                             is Parcelable -> try {
                                 val m = item.javaClass.methods.firstOrNull { it.name == "getExtras" && it.parameterCount == 0 }
                                 val ex = m?.invoke(item) as? Bundle
@@ -142,7 +170,7 @@ object StickerLoader {
             }
         }
         // De-dupe preserving order
-        val candidates = built.map { it.trim() }.filter { it.startsWith("http") }.distinct()
+        val candidates = built.map { it.trim() }.filter { isAllowedUrl(it) }.distinct()
         return Discovery(candidates, keys.toList().sorted(), stkId, stkPkgId, stkVer)
     }
 
@@ -192,27 +220,65 @@ object StickerLoader {
 
     /** Download (with on-disk cache) and decode. Must be called off the main thread. */
     fun load(ctx: Context, url: String): Bitmap? {
+        if (!isAllowedUrl(url)) {
+            Log.i("Sidepeek", "sticker URL refused (not a LINE sticker host): $url")
+            return null
+        }
         val dir = File(ctx.cacheDir, "stickers").apply { mkdirs() }
         val f = File(dir, url.hashCode().toUInt().toString(16) + ".img")
-        if (f.exists() && f.length() > 0) BitmapFactory.decodeFile(f.absolutePath)?.let { return it }
+        if (f.exists() && f.length() > 0) decodeSampled(f)?.let { return it }
         return try {
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 4000
-                readTimeout = 6000
-                instanceFollowRedirects = true
-                setRequestProperty("User-Agent", "Line/14.0.0")
-                setRequestProperty("Accept", "image/webp,image/apng,image/*,*/*")
+            var target = url
+            var conn: HttpURLConnection? = null
+            // Follow at most 3 redirects, and only to another LINE sticker host.
+            for (hop in 0..3) {
+                val c = (URL(target).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 4000
+                    readTimeout = 6000
+                    instanceFollowRedirects = false
+                    setRequestProperty("User-Agent", "Sidepeek/1.0 (Android)")
+                    setRequestProperty("Accept", "image/webp,image/apng,image/*,*/*")
+                }
+                val code = c.responseCode
+                if (code in 300..399) {
+                    val next = c.getHeaderField("Location")?.let { URL(URL(target), it).toString() }
+                    c.disconnect()
+                    if (next == null || !isAllowedUrl(next) || hop == 3) {
+                        Log.i("Sidepeek", "sticker redirect refused $target -> $next")
+                        return null
+                    }
+                    target = next
+                    continue
+                }
+                if (code !in 200..299) {
+                    Log.i("Sidepeek", "sticker HTTP $code $target")
+                    c.disconnect()
+                    return null
+                }
+                conn = c
+                break
             }
-            val code = conn.responseCode
-            if (code !in 200..299) {
-                Log.i("Sidepeek", "sticker HTTP $code $url")
-                conn.disconnect()
-                f.delete()
+            val c = conn ?: return null
+            if (c.contentLengthLong > MAX_BYTES) {
+                Log.i("Sidepeek", "sticker too large (${c.contentLengthLong} bytes) $target")
+                c.disconnect()
                 return null
             }
-            conn.inputStream.use { input -> f.outputStream().use { input.copyTo(it) } }
-            conn.disconnect()
-            val bmp = BitmapFactory.decodeFile(f.absolutePath)
+            var total = 0L
+            c.inputStream.use { input ->
+                f.outputStream().use { out ->
+                    val buf = ByteArray(16 * 1024)
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        total += n
+                        if (total > MAX_BYTES) throw java.io.IOException("sticker larger than $MAX_BYTES bytes")
+                        out.write(buf, 0, n)
+                    }
+                }
+            }
+            c.disconnect()
+            val bmp = decodeSampled(f)
             if (bmp == null) f.delete()
             bmp
         } catch (e: Exception) {
@@ -221,4 +287,15 @@ object StickerLoader {
             null
         }
     }
+
+    /** Decode, shrinking anything larger than 1024px per side so a huge image cannot exhaust memory. */
+    private fun decodeSampled(f: File): Bitmap? = try {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(f.absolutePath, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) null else {
+            var sample = 1
+            while (bounds.outWidth / sample > 1024 || bounds.outHeight / sample > 1024) sample *= 2
+            BitmapFactory.decodeFile(f.absolutePath, BitmapFactory.Options().apply { inSampleSize = sample })
+        }
+    } catch (_: Exception) { null }
 }

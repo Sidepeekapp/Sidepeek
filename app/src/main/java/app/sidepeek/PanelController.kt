@@ -116,6 +116,9 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     }
 
     // ---------------------------------------------------------------- helpers
+    /** Last time a lock-screen swipe asked to unlock (stops a re-ask loop if still locked after it). */
+    private var unlockAskedAt = 0L
+    private val UNLOCK_RETRY_MS = 3000L
     private var openedAt = 0L
     private val OPEN_GUARD_MS = 300L
 
@@ -381,6 +384,12 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
 
     /** Show the handle when allowed: panel closed, screen on, and (if enabled) on home; lock screen optional via showOnLock. */
     private fun applyVisibility() {
+        // Locked while the panel is open (e.g. Smart Lock / lock without screen-off): close it.
+        if (panelRoot != null && keyguardLocked()) {
+            log("keyguard locked while panel open -> close")
+            closePanel(animate = false)
+            return   // closePanel() calls applyVisibility() again with the panel gone
+        }
         if (handleView == null || handleParams == null) return
         val interactive = getSystemService(android.os.PowerManager::class.java)?.isInteractive != false
         // home-only: unknown foreground must HIDE the handle (was: null+!polling => show, which
@@ -698,11 +707,23 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     fun openPanel(animate: Boolean = true, preview: Boolean = false) {
         if (panelRoot != null) return
         if (!preview) { previewMode = false; mainHandler.removeCallbacks(previewClose) }
-        if (keyguardLocked() && !Prefs.showOnLock(this)) {
-            log("open refused: device locked (showOnLock off)")
+        // Never show message contents on the lock screen. With 「鎖定畫面也顯示 Peek 條」 on, a swipe
+        // there asks to unlock first and opens the panel afterwards (UnlockPanelActivity).
+        if (keyguardLocked()) {
+            val now = android.os.SystemClock.uptimeMillis()
+            if (!preview && Prefs.showOnLock(this) && now - unlockAskedAt > UNLOCK_RETRY_MS) {
+                unlockAskedAt = now
+                log("open while locked -> ask to unlock first")
+                try {
+                    startActivity(Intent(this, UnlockPanelActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    return
+                } catch (e: Exception) { log("unlock request failed: $e") }
+            }
+            log("open refused: device locked")
             Toast.makeText(this, "請先解鎖", Toast.LENGTH_SHORT).show()
             return
-        }   // showOnLock on: panel may open over the lock screen
+        }
         val (sw, sh) = screenSize()
         val textScale = Prefs.panelTextScale(this)
         log("open requested (animate=$animate)")
@@ -842,8 +863,8 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
             overlayType,
+            // No FLAG_SHOW_WHEN_LOCKED: the panel (message contents) is never shown over the keyguard.
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                (if (Prefs.showOnLock(this)) WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED else 0) or
                 // Preview: look only. Touches go through to the settings page underneath.
                 (if (preview) WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE else 0),
             PixelFormat.TRANSLUCENT

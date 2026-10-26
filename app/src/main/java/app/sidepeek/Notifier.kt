@@ -48,6 +48,27 @@ object Notifier {
         }
     }
 
+    /**
+     * Can our stacked LINE notification actually reach the user right now? LINE's original may only
+     * be hidden when this is true; otherwise the message would vanish with no alert at all.
+     * False when: app notifications are off (Android 13+ permission denied / switched off), the
+     * 「LINE 訊息預覽」 channel is turned off, or its channel group is blocked.
+     */
+    fun canRepost(ctx: Context): Boolean {
+        if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) return false
+        return try {
+            val nm = ctx.getSystemService(NotificationManager::class.java) ?: return true
+            // Not created yet: postChat() creates it with IMPORTANCE_HIGH before posting.
+            val ch = nm.getNotificationChannel(CHANNEL_MSG) ?: return true
+            if (ch.importance == NotificationManager.IMPORTANCE_NONE) return false
+            if (Build.VERSION.SDK_INT >= 28) {
+                val g = ch.group
+                if (g != null && nm.getNotificationChannelGroup(g)?.isBlocked == true) return false
+            }
+            true
+        } catch (_: Exception) { true }
+    }
+
     internal fun titleOf(a: NotificationCompat.Action) = a.title?.toString().orEmpty()
     internal fun isReply(a: NotificationCompat.Action) =
         a.remoteInputs?.isNotEmpty() == true || titleOf(a).contains("回覆") || titleOf(a).contains("Reply", true)

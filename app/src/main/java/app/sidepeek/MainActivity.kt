@@ -120,6 +120,7 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.btnRebind).setOnClickListener { rebindListener() }
         findViewById<Button>(R.id.btnPost).setOnClickListener { requestPostNotifications() }
+        findViewById<Button>(R.id.btnRepostFix).setOnClickListener { openRepostSettings() }
 
         wizardStep = savedInstanceState?.getInt(STATE_WIZARD_STEP, 0) ?: 0
         setupCollapsibles(savedInstanceState)
@@ -359,6 +360,13 @@ class MainActivity : AppCompatActivity() {
             advanceWizardIfNeeded(access, linked, post)
             bindWizardStep()
         } else wizardVideo.setVideo(0)
+
+        // LINE take-over is paused while Sidepeek cannot post (LINE's own notifications are kept).
+        // During the wizard's 「允許顯示通知」 step the wizard itself asks, so only warn once past it.
+        val repostBlocked = access && Prefs.enabled(this) && !Notifier.canRepost(this) &&
+            (!wizardActive || post)
+        findViewById<View>(R.id.statusRepost).visibility = vis(repostBlocked)
+        findViewById<View>(R.id.btnRepostFix).visibility = vis(repostBlocked)
 
         statusSummary.text = when {
             wizardActive -> "第 ${wizardStep + 1}／$WIZARD_STEPS 步"
@@ -609,6 +617,23 @@ class MainActivity : AppCompatActivity() {
             safeStart(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
         statusListener.postDelayed({ refresh() }, 800)
+    }
+
+    /** 「打開通知設定」 on the warning shown while Sidepeek cannot post (see Notifier.canRepost). */
+    private fun openRepostSettings() {
+        val appSettings = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) {
+            // The settings page works even after the permission dialog was denied twice
+            // (the system then stops showing the dialog).
+            safeStart(appSettings)
+            return
+        }
+        // App notifications are on, so the 「LINE 訊息預覽」 channel itself is off.
+        Notifier.ensureChannels(this)
+        val ok = safeStart(Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            .putExtra(Settings.EXTRA_CHANNEL_ID, Notifier.CHANNEL_MSG))
+        if (!ok) safeStart(appSettings)
     }
 
     private fun requestPostNotifications() {

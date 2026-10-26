@@ -5,7 +5,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## 基本
 - 套件名 `app.sidepeek`，minSdk 26，compileSdk/targetSdk 36，AGP 8.11.2、Gradle 8.13、Kotlin 1.9.24。
-- 顯示版本固定 **1.0**（使用者要求）；versionCode 目前 2，之後發新版要遞增。
+- 顯示版本固定 **1.0**（使用者要求）；versionCode 目前 3，之後發新版要遞增。
 - 正式版：根目錄放 `keystore.properties`（不進版控，簽章金鑰在使用者手上）→ `./gradlew :app:assembleRelease` / `:app:bundleRelease`。R8 開啟。
 - 聯絡信箱 sidepeek.app@gmail.com（App 內「意見回饋」會自動帶手機資訊）。
 - 測試：`./gradlew :app:testDebugUnitTest`（LinkExtractorTest、ProfileLinksTest）。
@@ -33,8 +33,17 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 - Peek 條自己消失：協助工具模式下只用 getWindows() 判斷鍵盤（handle 視窗 insets 會殘留「鍵盤開著」）。
 - 群組通知的標題頭貼原本用最新發言者的照片 → 改成綠底白字的群組字首圖示。
 
+## 10/27 修的（v1.0.2，versionCode 3，尚未實機測試）
+- 不能發通知時不再藏 LINE 通知：`Notifier.canRepost()`（App 通知、「LINE 訊息預覽」類別、類別群組都要開著）不成立時，
+  `hideWanted()` 回傳 false，LINE 原通知保留；主畫面狀態卡顯示警告＋「打開通知設定」。恢復後由 30 秒健康檢查補發。
+- 鎖定畫面：「鎖定畫面也顯示 Peek 條」預設改為關閉；側邊欄在鎖定時一律不開，開著此選項時往內滑會開
+  `UnlockPanelActivity` 要求解鎖，解鎖後才走 `OpenPanelActivity` 打開側邊欄。側邊欄視窗拿掉 FLAG_SHOW_WHEN_LOCKED，
+  開著時若變成鎖定會自動關閉。
+- 貼圖下載：只連 `*.line-scdn.net`、`*.line-cdn.net`、`*.line.naver.jp` 的 https；不掃訊息文字／名稱欄位；
+  轉址最多 3 次且必須仍是 LINE 網域；單張上限 2 MB；解碼超過 1024px 會縮小；User-Agent 改為 Sidepeek。
+  隱私權政策同步更新（10/27）。
+
 ## 待確認 / 可做
 - 上述三項尚未在實機長時間驗證；若有問題請使用者匯出「遇到問題 → 匯出診斷記錄」。
 - 群組通知「有點擠」是 One UI 的 MessagingStyle 排版，App 無法調整行距；可考慮減少顯示則數。
-- 尚未 push 到 GitHub 的提交（從 e4e47b5 之後）：重複計數、Peek 條消失、群組頭貼。
 - 之後：Google Play 上架（12 人 14 天封閉測試；招募表單已在 README）、GitHub Actions 自動發版、App 內檢查更新。

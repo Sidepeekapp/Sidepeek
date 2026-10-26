@@ -25,7 +25,9 @@ object LinkExtractor {
     private const val URL_CHARS = "[A-Za-z0-9\\-._~:/?#\\[\\]@!$&'()*+,;=%]"
     private const val HOST = "(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,24}"
 
-    private val SCHEME_RE = Regex("(?i)\\bhttps?://$URL_CHARS+")
+    // Not `\b`: on Android (ICU) and Java 17 a CJK character counts as a word character, so
+    // 「看這個https://…」 had no word boundary before "https" and the link was missed.
+    private val SCHEME_RE = Regex("(?i)(?<![A-Za-z0-9])https?://$URL_CHARS+")
     private val WWW_RE = Regex("(?i)(?<![A-Za-z0-9@._/_-])www\\.$HOST(?::\\d{1,5})?(?:/$URL_CHARS*)?")
     private val BARE_RE = Regex("(?<![A-Za-z0-9@._/:_-])($HOST)(?::\\d{1,5})?(/$URL_CHARS*)?")
 

@@ -27,17 +27,30 @@ class PanelAccessibilityService : AccessibilityService() {
     private val activityCache = HashMap<String, Boolean>()
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     val panelRunning get() = controller?.started == true
-    /** Keep home-only detection fresh; Samsung sometimes skips WINDOW_STATE_CHANGED for YouTube/PiP. */
+    /**
+     * Keep home-only detection fresh; Samsung sometimes skips WINDOW_STATE_CHANGED for YouTube/PiP.
+     * Runs only while it is useful: 「只在桌面顯示 Peek 條」 on and the screen on. It stops itself
+     * otherwise and is re-armed by the next accessibility event (screen on / app switch).
+     */
+    private var polling = false
     private val fgPoll = object : Runnable {
         override fun run() {
             val c = controller
-            if (c == null || !c.started) return
-            if (Prefs.homeOnly(this@PanelAccessibilityService)) {
-                activeAppPackage()?.let { c.onForegroundApp(it) }
-                c.recheckVisibility()
-            }
+            if (c == null || !c.started || !pollWanted()) { polling = false; return }
+            activeAppPackage()?.let { c.onForegroundApp(it) }
+            c.recheckVisibility()
             mainHandler.postDelayed(this, 1000L)
         }
+    }
+
+    private fun pollWanted(): Boolean =
+        Prefs.homeOnly(this) && getSystemService(android.os.PowerManager::class.java)?.isInteractive != false
+
+    private fun ensurePolling() {
+        if (polling || controller?.started != true || !pollWanted()) return
+        polling = true
+        mainHandler.removeCallbacks(fgPoll)
+        mainHandler.postDelayed(fgPoll, 1000L)
     }
 
     override fun onServiceConnected() {
@@ -57,12 +70,13 @@ class PanelAccessibilityService : AccessibilityService() {
             try { activeAppPackage()?.let { c.onForegroundApp(it) } } catch (_: Exception) {}
             checkImeWindow()
         }
-        mainHandler.removeCallbacks(fgPoll)
-        mainHandler.post(fgPoll)
+        polling = false
+        ensurePolling()
     }
 
     fun disablePanel() {
         mainHandler.removeCallbacks(fgPoll)
+        polling = false
         controller?.stop()
         controller = null
     }
@@ -80,6 +94,7 @@ class PanelAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val c = controller ?: return
         val e = event ?: return
+        ensurePolling()
         when (e.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 val pkg = e.packageName?.toString()

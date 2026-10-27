@@ -5,7 +5,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## 基本
 - 套件名 `app.sidepeek`，minSdk 26，compileSdk/targetSdk 36，AGP 8.11.2、Gradle 8.13、Kotlin 1.9.24。
-- 顯示版本固定 **1.0**（使用者要求）；versionCode 目前 4，之後發新版要遞增。
+- 顯示版本固定 **1.0**（使用者要求）；versionCode 目前 5，之後發新版要遞增。
 - 正式版：根目錄放 `keystore.properties`（不進版控，簽章金鑰在使用者手上）→ `./gradlew :app:assembleRelease` / `:app:bundleRelease`。R8 開啟。
 - 聯絡信箱 sidepeek.app@gmail.com（App 內「意見回饋」會自動帶手機資訊）。
 - 測試：`./gradlew :app:testDebugUnitTest`（LinkExtractorTest、ProfileLinksTest）。
@@ -53,6 +53,14 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
   加鎖；意見回饋與診斷記錄顯示「1.0 (versionCode)」。
 - CI：`.github/workflows/build.yml` 每次推 main 建置未簽名 APK＋單元測試，放草稿 Release「CI build <sha>」，
   附 apksigner.jar；舊的 CI 草稿會自動刪除。失敗時記錄放「CI failed <sha>」草稿。
+
+## 10/27 versionCode 5
+- 效能：`MessageStore.loadBitmap` 加 LruCache（鍵含路徑＋修改時間＋大小，檔案改寫或刪除不會用到舊圖）；
+  側邊欄收到連續的訊息更新時，120ms 內只重建一次列表。
+- 省電：無障礙模式每秒一次的前景檢查只在「只在桌面顯示 Peek 條」開著且螢幕亮著時才跑，否則自己停，
+  下一個無障礙事件（亮螢幕、切 App）再接上。
+- 簽名：GitHub Secrets 已設好（SIGNING_KEYSTORE_BASE64 分三段＋密碼＋別名），CI 會直接產出簽好的
+  sidepeek-1.0-buildN.apk，並核對憑證指紋。
 
 ## 待確認 / 可做
 - 上述三項尚未在實機長時間驗證；若有問題請使用者匯出「遇到問題 → 匯出診斷記錄」。

@@ -65,7 +65,18 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     private var listContainer: LinearLayout? = null
     private var suppressListRefresh = 0
     private val dismissingViews = mutableSetOf<View>()
-    private val storeListener: () -> Unit = { if (suppressListRefresh == 0) refreshList() }
+    /**
+     * Store changes arrive in bursts (a group chat posting several messages, sticker downloads
+     * finishing): rebuild the open list at most once per [REFRESH_COALESCE_MS].
+     */
+    private val storeListener: () -> Unit = {
+        if (panelRoot != null) {
+            mainHandler.removeCallbacks(coalescedRefresh)
+            mainHandler.postDelayed(coalescedRefresh, REFRESH_COALESCE_MS)
+        }
+    }
+    private val coalescedRefresh = Runnable { if (suppressListRefresh == 0) refreshList() }
+    private val REFRESH_COALESCE_MS = 120L
     var started = false
         private set
 

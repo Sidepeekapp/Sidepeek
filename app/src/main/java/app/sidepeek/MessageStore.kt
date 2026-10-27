@@ -369,8 +369,26 @@ object MessageStore {
         "a_" + System.nanoTime()
     }
 
+    /**
+     * Decoded avatars / images, so the side panel and notifications do not decode the same files
+     * from disk again on every refresh. Keyed by path + modification time + size, so a file that
+     * is rewritten (sticker downloaded later) or deleted is never served stale.
+     */
+    private val bitmapCache = object : android.util.LruCache<String, Bitmap>(
+        (Runtime.getRuntime().maxMemory() / 16).coerceIn(4L * 1024 * 1024, 32L * 1024 * 1024).toInt()
+    ) {
+        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+    }
+
     fun loadBitmap(path: String?): Bitmap? = try {
-        if (path == null) null else BitmapFactory.decodeFile(path)
+        if (path == null) null else {
+            val f = File(path)
+            val modified = f.lastModified()          // 0 when the file does not exist
+            if (modified == 0L) null else {
+                val key = "$path|$modified|${f.length()}"
+                bitmapCache.get(key) ?: BitmapFactory.decodeFile(path)?.also { bitmapCache.put(key, it) }
+            }
+        }
     } catch (_: Exception) {
         null
     }

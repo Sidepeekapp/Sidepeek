@@ -207,6 +207,25 @@ object MessageStore {
         notifyListeners()
     }
 
+    /** Apply a newly discovered authoritative conversation title to existing cards. */
+    fun updateChatTitle(ctx: Context, chatKey: String, title: String) {
+        if (title.isBlank()) return
+        val changed = synchronized(this) {
+            ensureLoaded(ctx)
+            var any = false
+            for (i in messages.indices) {
+                val old = messages[i]
+                if (old.chatKey == chatKey && old.chatTitle != title) {
+                    messages[i] = old.copy(chatTitle = title)
+                    any = true
+                }
+            }
+            if (any) save(ctx)
+            any
+        }
+        if (changed) notifyListeners()
+    }
+
     /** Put a removed message back (undo). Skips dedupe. */
     fun restore(ctx: Context, msg: LineMessage) {
         synchronized(this) {

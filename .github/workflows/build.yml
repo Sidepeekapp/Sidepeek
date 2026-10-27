@@ -4,6 +4,7 @@
 # Sidepeek certificate fingerprint; otherwise an unsigned APK (plus apksigner.jar) is attached.
 #   SIGNING_KEYSTORE_BASE64  base64 of sidepeek-release.jks
 #   SIGNING_STORE_PASSWORD   SIGNING_KEY_ALIAS   SIGNING_KEY_PASSWORD
+# (Settings → Secrets and variables → Actions → New repository secret)
 name: Build APK
 
 on:

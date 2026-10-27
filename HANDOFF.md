@@ -5,7 +5,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## 基本
 - 套件名 `app.sidepeek`，minSdk 26，compileSdk/targetSdk 36，AGP 8.11.2、Gradle 8.13、Kotlin 1.9.24。
-- 顯示版本固定 **1.0**（使用者要求）；versionCode 目前 6，之後發新版要遞增。
+- 版本名稱跟著發布版本走（目前 1.0.2，前一版 1.0.1）；versionCode 目前 8，每次發新版都要遞增。發版時 Run workflow 填的版本號要和 versionName 一致。
 - 正式版：根目錄放 `keystore.properties`（不進版控，簽章金鑰在使用者手上）→ `./gradlew :app:assembleRelease` / `:app:bundleRelease`。R8 開啟。
 - 聯絡信箱 sidepeek.app@gmail.com（App 內「意見回饋」會自動帶手機資訊）。
 - 測試：`./gradlew :app:testDebugUnitTest`（LinkExtractorTest、ProfileLinksTest）。

@@ -136,8 +136,13 @@ jobs:
             echo "下載下面的 **$(basename "$FINAL")** 安裝，可以直接覆蓋舊版，設定和訊息都會保留（需要 Android 8.0 以上）。"
             echo
             echo "### 這版的變更"
-            if [ -n "$PREV" ] && git merge-base --is-ancestor "$PREV" HEAD; then git log --no-merges --pretty='- %s' "$PREV"..HEAD | grep -v -E '^- (CI|加上 GitHub Actions)' || true
+            # Prefer the hand-written "### v$VERSION" section of README's 更新紀錄; fall back to commit titles.
+            CHANGES=$(awk -v h="### v$VERSION" '$0==h{f=1;next} f&&/^#/{exit} f' README.md \
+              | sed "s#](\.\./\.\./#](https://github.com/$GITHUB_REPOSITORY/#g" | sed '/^[[:space:]]*$/d')
+            if [ -n "$CHANGES" ]; then echo "$CHANGES"
+            elif [ -n "$PREV" ] && git merge-base --is-ancestor "$PREV" HEAD; then git log --no-merges --pretty='- %s' "$PREV"..HEAD | grep -v -E '^- (CI|加上 GitHub Actions)' || true
             else git log --no-merges --pretty='- %s' -20 | grep -v -E '^- (CI|加上 GitHub Actions)' || true; fi
+            if [ -n "$PREV" ]; then echo; echo "完整的程式碼變更：https://github.com/$GITHUB_REPOSITORY/compare/$PREV...$TAG"; fi
             echo
             echo "非官方 App，與 LINE、LY Corporation 無關。程式碼以 GPL-3.0 授權。"
             echo

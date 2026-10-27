@@ -85,3 +85,4 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
   subText 與 title 不同就視為群組；MessageStore.updateChatTitle 會把同一 chatKey 的舊紀錄改成正確名稱。
   使用者實際遇到的是 LINE 社群（OpenChat）：一般群組有 conversationTitle，社群沒有，側邊欄顯示成發言者。
 - 待實機確認：一對一聊天含自己傳的訊息時會不會被判成群組；LINE 錢包等一般通知若有 subText 會不會被當成名稱。
+- 發版說明改成取 README「### v版本號」那一段（相對連結換成完整網址），找不到才列 commit 標題；發新版前先在 README 寫好這段。

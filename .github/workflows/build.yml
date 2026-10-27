@@ -129,8 +129,6 @@ jobs:
           if [ "$VN" != "$VERSION" ]; then echo "::error::App 裡的版本名稱是 $VN，但填的是 $VERSION；兩個要一樣（改 app/build.gradle.kts 的 versionName，或填 $VN）"; exit 1; fi
           FINAL="out/sidepeek-$TAG.apk"
           mv "$APK" "$FINAL"
-          # Same APK under a fixed name, so ".../releases/latest/download/sidepeek.apk" always downloads the newest one.
-          cp "$FINAL" out/sidepeek.apk
           PREV=$(git tag --list 'v*' --sort=-v:refname | head -1 || true)
           {
             echo "## Sidepeek $VERSION"
@@ -145,7 +143,7 @@ jobs:
             echo
             echo "📣 為了讓大家之後能更方便地安裝和更新，安卓測試勇士招募中！ 填表報名：https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform"
           } > "$RUNNER_TEMP/notes.md"
-          gh release create "$TAG" "$FINAL" out/sidepeek.apk --target "$GITHUB_SHA" --title "Sidepeek $VERSION" \
+          gh release create "$TAG" "$FINAL" --target "$GITHUB_SHA" --title "Sidepeek $VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md" --latest
           echo "::notice::Published $TAG with $(basename "$FINAL")"
           # Drop CI drafts; the release replaces them.

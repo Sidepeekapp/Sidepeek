@@ -509,8 +509,8 @@ class LineListenerService : NotificationListenerService() {
                 if (text.isEmpty() && image != null) text = "（圖片）"
                 if (stickerish) {
                     if (candidates.isEmpty()) {
-                        Diagnostics.note(this, "sticker-candidate EMPTY id=$id text=${text.take(20)} keys=${msgDisc?.stickerKeys ?: notifSticker.stickerKeys}")
-                        Diagnostics.note(this, "sticker-dump " + StickerLoader.dumpStickerExtras(m.extras, if (isLast) ex else null))
+                        Diagnostics.note(this, "sticker-candidate EMPTY id=$id" + Diagnostics.sensitive(this, " text=${text.take(20)}") + " keys=${msgDisc?.stickerKeys ?: notifSticker.stickerKeys}")
+                        if (Diagnostics.full(this)) Diagnostics.note(this, "sticker-dump " + StickerLoader.dumpStickerExtras(m.extras, if (isLast) ex else null))
                     }
                     // Always queue when sticker-like; empty list still logged in enrich.
                     pendingStickerByMsgId[id] = candidates
@@ -542,7 +542,7 @@ class LineListenerService : NotificationListenerService() {
             if (stickerish) {
                 pendingStickerByMsgId[id] = notifSticker.candidates
                 if (notifSticker.candidates.isEmpty()) {
-                    Diagnostics.note(this, "sticker-dump " + StickerLoader.dumpStickerExtras(ex))
+                    if (Diagnostics.full(this)) Diagnostics.note(this, "sticker-dump " + StickerLoader.dumpStickerExtras(ex))
                 }
             }
             newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender,
@@ -567,7 +567,7 @@ class LineListenerService : NotificationListenerService() {
         }
         val added = newMessages.filter { m ->
             val why = MessageStore.add(this, m)
-            if (why != null) dedupeLog("skip store duplicate ($why) chat=${m.chatKey} text=${m.text.take(40)}")
+            if (why != null) dedupeLog("skip store duplicate ($why) chat=${m.chatKey}" + Diagnostics.sensitive(this, " text=${m.text.take(40)}"))
             else dedupeLog("added id=${m.id} chat=${m.chatKey}")
             why == null
         }

@@ -1322,7 +1322,8 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             setPadding(dp(12f), dp(9f), dp(12f), dp(10f))
         }
         bubble.addView(TextView(this).apply {
-            text = m.text; setTextColor(0xFFF2F2F7.toInt()); textSize = 14.5f * ts
+            // Long links shown short; the link chips below open / copy the full URL.
+            text = LinkExtractor.shortenInText(m.text); setTextColor(0xFFF2F2F7.toInt()); textSize = 14.5f * ts
             maxLines = Prefs.panelMaxLines(this@PanelController); ellipsize = TextUtils.TruncateAt.END
             setLineSpacing(dp(2f).toFloat(), 1f)
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))

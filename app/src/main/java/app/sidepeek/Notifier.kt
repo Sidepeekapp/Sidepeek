@@ -144,6 +144,9 @@ object Notifier {
         }
     }
 
+    /** Message text as displayed: long links shortened ("instagram.com/reel/…"); 「開啟連結」 keeps the full URL. */
+    private fun shown(m: LineMessage): String = LinkExtractor.shortenInText(m.text)
+
     fun notificationIdFor(chatKey: String): Int = ("chat:$chatKey").hashCode().let { if (it in 0..10) it + 1000 else it }
 
     fun fallbackIntent(ctx: Context, pkg: String): PendingIntent? {
@@ -230,9 +233,9 @@ object Notifier {
         /** Text for a message line; image-only rows use 「[圖片]」 when not shown as BigPicture. */
         fun textOf(m: LineMessage, bigPictureMode: Boolean): String {
             if (!m.imagePath.isNullOrBlank() && !messaging && !bigPictureMode) {
-                return m.text.ifBlank { "[圖片]" }
+                return shown(m).ifBlank { "[圖片]" }
             }
-            return m.text
+            return shown(m)
         }
 
         fun body(m: LineMessage, bigPictureMode: Boolean = false): CharSequence {
@@ -374,8 +377,8 @@ object Notifier {
                 val plain = NotificationCompat.Builder(ctx, CHANNEL_MSG)
                     .setSmallIcon(R.drawable.ic_stat_msg)
                     .setContentTitle(title)
-                    .setContentText(latest.text)
-                    .setStyle(NotificationCompat.BigTextStyle().bigText(latest.text))
+                    .setContentText(shown(latest))
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(shown(latest)))
                     .setContentIntent(MessageStore.intentFor(latest.chatKey) ?: fallbackIntent(ctx, latest.pkg))
                     .setDeleteIntent(ownPi(ctx, ACTION_DISMISS, latest.chatKey, mutable = false))
                     .setAutoCancel(true)
@@ -394,7 +397,7 @@ object Notifier {
         val last = unread.takeLast(2)
         if (last.isEmpty()) return ""
         fun one(m: LineMessage): CharSequence {
-            val t = if (!m.imagePath.isNullOrBlank()) m.text.ifBlank { "[圖片]" } else m.text
+            val t = if (!m.imagePath.isNullOrBlank()) shown(m).ifBlank { "[圖片]" } else shown(m)
             if (!(isGroupChat && m.sender.isNotBlank() && m.sender != m.chatTitle)) return t
             val sb = android.text.SpannableStringBuilder()
             sb.append(m.sender, android.text.style.StyleSpan(android.graphics.Typeface.BOLD), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -435,7 +438,7 @@ object Notifier {
                 }.build()
             }
             if (!isGroupChat) chatPerson = p
-            val msg = NotificationCompat.MessagingStyle.Message(m.text, m.time, p)
+            val msg = NotificationCompat.MessagingStyle.Message(shown(m), m.time, p)
             imageUri(ctx, m.imagePath)?.let { uri ->
                 msg.setData(imageMime(m.imagePath!!), uri)
             }

@@ -121,6 +121,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnRebind).setOnClickListener { rebindListener() }
         findViewById<Button>(R.id.btnPost).setOnClickListener { requestPostNotifications() }
         findViewById<Button>(R.id.btnRepostFix).setOnClickListener { openRepostSettings() }
+        findViewById<Button>(R.id.btnResumeA11y).setOnClickListener { resumeA11ySetup() }
+        findViewById<Button>(R.id.btnUpdate).setOnClickListener {
+            UpdateChecker.available(this)?.let { safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(it.url))) }
+        }
 
         wizardStep = savedInstanceState?.getInt(STATE_WIZARD_STEP, 0) ?: 0
         setupCollapsibles(savedInstanceState)
@@ -255,6 +259,20 @@ class MainActivity : AppCompatActivity() {
             Diagnostics.clear(this)
             Toast.makeText(this, "已清除診斷記錄", Toast.LENGTH_SHORT).show()
         }
+        findViewById<Button>(R.id.btnDiagFull).setOnClickListener {
+            if (Diagnostics.full(this)) {
+                Diagnostics.stopFull(this)
+                Toast.makeText(this, "已停止收集完整記錄", Toast.LENGTH_SHORT).show()
+            } else {
+                Diagnostics.startFull(this)
+                Toast.makeText(this, "開始收集，${Diagnostics.FULL_HOURS} 小時後自動停止", Toast.LENGTH_LONG).show()
+            }
+            refresh()
+        }
+        findViewById<SwitchCompat>(R.id.swUpdateCheck).apply {
+            isChecked = UpdateChecker.enabled(this@MainActivity)
+            setOnCheckedChangeListener { _, on -> Prefs.set(this@MainActivity, UpdateChecker.KEY_ENABLED, on); refresh() }
+        }
 
         wizardPrimary.setOnClickListener { onWizardPrimary() }
         wizardSecondary.setOnClickListener { onWizardSecondary() }
@@ -277,6 +295,7 @@ class MainActivity : AppCompatActivity() {
         if (Prefs.edgePanel(this) && !PanelHost.running()) PanelHost.start(this)
         refresh()
         window.decorView.postDelayed({ if (!isFinishing) refresh() }, 1200)
+        UpdateChecker.checkIfDue(this) { if (!isFinishing) refresh() }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -368,6 +387,28 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.statusRepost).visibility = vis(repostBlocked)
         findViewById<View>(R.id.btnRepostFix).visibility = vis(repostBlocked)
 
+        // Side panel set-up postponed in the wizard (e.g. during a phone call): keep a to-do here.
+        val a11ySet = PanelHost.a11yActive || PanelHost.a11yEnabledInSettings(this)
+        if (a11ySet && Prefs.a11yLater(this)) Prefs.set(this, Prefs.KEY_A11Y_LATER, false)
+        val showLater = !wizardActive && Prefs.a11yLater(this) && !a11ySet
+        findViewById<View>(R.id.statusA11yLater).visibility = vis(showLater)
+        findViewById<View>(R.id.btnResumeA11y).visibility = vis(showLater)
+
+        val upd = UpdateChecker.available(this)
+        findViewById<TextView>(R.id.statusUpdate).apply {
+            visibility = vis(upd != null)
+            if (upd != null) text = "有新版本 ${upd.tag.ifBlank { "build ${upd.build}" }}，下載後直接安裝即可更新，設定會保留。"
+        }
+        findViewById<View>(R.id.btnUpdate).visibility = vis(upd != null)
+
+        val full = Diagnostics.full(this)
+        findViewById<TextView>(R.id.statusDiag).text = if (full)
+            "完整診斷記錄：收集中（含訊息內容），到 " +
+                java.text.SimpleDateFormat("M/d HH:mm", java.util.Locale.TAIWAN).format(java.util.Date(Diagnostics.fullUntil(this))) +
+                " 自動停止"
+        else "完整診斷記錄：關閉。平常只記錄事件，不記訊息內容。"
+        findViewById<Button>(R.id.btnDiagFull).text = if (full) "停止收集完整記錄" else "開始收集完整記錄（${Diagnostics.FULL_HOURS} 小時）"
+
         statusSummary.text = when {
             wizardActive -> "第 ${wizardStep + 1}／$WIZARD_STEPS 步"
             !Prefs.enabled(this) -> "已關閉"
@@ -453,6 +494,8 @@ class MainActivity : AppCompatActivity() {
         wizardImage.visibility = View.GONE
         wizardImage.setImageDrawable(null)
         var video = 0   // screen-recording clip for steps done in system settings
+        val panelStep = wizardStep == STEP_EDGE || wizardStep == STEP_TRY_A11Y ||
+            wizardStep == STEP_RESTRICTED || wizardStep == STEP_REOPEN_A11Y
 
         when (wizardStep) {
             STEP_LISTENER -> {
@@ -473,7 +516,7 @@ class MainActivity : AppCompatActivity() {
             }
             STEP_EDGE -> {
                 wizardTitle.text = "打開側邊欄"
-                wizardHint.text = "螢幕邊緣會出現一條半透明的「Peek 條」，從 Peek 條往內滑就能看訊息（用法跟三星的側拉標籤類似）。接下來幾步會幫你把服務打開。"
+                wizardHint.text = "螢幕邊緣會出現一條半透明的「Peek 條」，從 Peek 條往內滑就能看訊息（用法跟三星的側拉標籤類似）。接下來幾步會幫你把服務打開；現在不方便的話，可以按「稍後再設定側邊欄」，通知整理一樣可以用。"
                 wizardPrimary.text = "打開側邊欄"
                 wizardImage.visibility = View.VISIBLE
                 wizardImage.setImageResource(R.drawable.img_step_sidebar)
@@ -531,7 +574,32 @@ class MainActivity : AppCompatActivity() {
                 wizardImage.setImageResource(R.drawable.img_steps_overview)
             }
         }
+        if (panelStep) {
+            // Android blocks turning on accessibility / restricted settings during a call (anti-scam).
+            if (wizardStep != STEP_EDGE && inCall()) {
+                wizardHint.text = "⚠️ 通話中：Android 為了防詐騙，講電話時不允許打開無障礙服務或受限設定。" +
+                    "請掛斷電話後再繼續，或先按下面「稍後再設定側邊欄」。\n\n" + wizardHint.text
+            }
+            wizardSkip.visibility = View.VISIBLE
+            wizardSkip.text = "稍後再設定側邊欄"
+        }
         wizardVideo.setVideo(video)
+    }
+
+    /** Phone or VoIP call in progress (no permission needed). */
+    private fun inCall(): Boolean = try {
+        val mode = getSystemService(android.media.AudioManager::class.java)?.mode
+        mode == android.media.AudioManager.MODE_IN_CALL || mode == android.media.AudioManager.MODE_IN_COMMUNICATION
+    } catch (_: Exception) { false }
+
+    /** From the status card: reopen the wizard at the side-panel steps. */
+    private fun resumeA11ySetup() {
+        Prefs.set(this, Prefs.KEY_WIZARD_DONE_V1, false)
+        wizardStep = if (Prefs.edgePanel(this)) STEP_TRY_A11Y else STEP_EDGE
+        refresh()
+        findViewById<View>(android.R.id.content).post {
+            (wizardCard.parent as? View)?.let { (it.parent as? android.widget.ScrollView)?.smoothScrollTo(0, wizardCard.top) }
+        }
     }
 
     private fun onWizardPrimary() {
@@ -590,12 +658,19 @@ class MainActivity : AppCompatActivity() {
                 wizardStep = STEP_DONE
                 refresh()
             }
+            STEP_EDGE, STEP_TRY_A11Y, STEP_RESTRICTED, STEP_REOPEN_A11Y -> {
+                // Notification tidying works without the side panel; come back to it from the status card.
+                Prefs.set(this, Prefs.KEY_A11Y_LATER, true)
+                wizardStep = STEP_BATTERY
+                Toast.makeText(this, "好，側邊欄之後可以在最上面的「繼續設定側邊欄」接著設定", Toast.LENGTH_LONG).show()
+                refresh()
+            }
         }
     }
 
     private fun finishWizard() {
         Prefs.set(this, Prefs.KEY_WIZARD_DONE_V1, true)
-        if (!Prefs.edgePanel(this)) {
+        if (!Prefs.edgePanel(this) && !Prefs.a11yLater(this)) {
             Prefs.set(this, Prefs.KEY_EDGE_PANEL, true)
             swEdge.isChecked = true
         }

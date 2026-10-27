@@ -41,6 +41,19 @@
             <Button android:id="@+id/btnRepostFix" style="@style/Btn"
                 android:visibility="gone"
                 android:text="打開通知設定" />
+            <!-- 側邊欄設定被延後時（例如通話中無法允許受限設定）：留一個待辦，隨時回來接著設定。 -->
+            <TextView android:id="@+id/statusA11yLater" style="@style/Status"
+                android:visibility="gone"
+                android:text="側邊欄還沒設定好。通知整理已經可以用了，有空再回來把側邊欄打開。" />
+            <Button android:id="@+id/btnResumeA11y" style="@style/Btn"
+                android:visibility="gone"
+                android:text="繼續設定側邊欄" />
+            <!-- GitHub Releases 有較新的版本時（UpdateChecker）。 -->
+            <TextView android:id="@+id/statusUpdate" style="@style/Status"
+                android:visibility="gone" />
+            <Button android:id="@+id/btnUpdate" style="@style/Btn"
+                android:visibility="gone"
+                android:text="前往下載新版" />
         </LinearLayout>
 
         <!-- ===================== 怎麼用（精簡總覽；精靈完成後才顯示） ===================== -->
@@ -557,10 +570,17 @@
             <TextView style="@style/Status" android:paddingTop="12dp" android:textStyle="bold"
                 android:text="還是不行？" />
             <TextView style="@style/Hint"
-                android:text="按「寄信給開發者」描述你遇到的狀況，手機型號等資訊會自動附上。需要的話，先讓那個 App 收幾則訊息（最好有貼圖或照片），再按「匯出診斷記錄」把檔案傳給開發者。記錄裡有訊息內容，分享前請留意隱私。" />
+                android:text="按「寄信給開發者」描述你遇到的狀況，手機型號等資訊會自動附上。開發者需要細節時，先按「開始收集完整記錄」，讓那個 App 收幾則訊息（最好有貼圖或照片），再按「匯出診斷記錄」把檔案傳給開發者。" />
             <Button android:id="@+id/btnFeedback" style="@style/Btn" android:text="寄信給開發者" />
+            <TextView android:id="@+id/statusDiag" style="@style/Status" android:paddingTop="12dp" />
+            <Button android:id="@+id/btnDiagFull" style="@style/Btn" android:text="開始收集完整記錄（24 小時）" />
             <Button android:id="@+id/btnExport" style="@style/Btn" android:text="匯出診斷記錄" />
             <Button android:id="@+id/btnClearDiag" style="@style/Btn" android:text="清除診斷記錄" />
+
+            <androidx.appcompat.widget.SwitchCompat android:id="@+id/swUpdateCheck" style="@style/Sw"
+                android:minHeight="52dp" android:text="自動檢查新版本" />
+            <TextView style="@style/Hint"
+                android:text="打開 Sidepeek 時，最多每天一次向 GitHub 查詢有沒有新版本（只會送出一般的網路請求，不含你的任何資料）。有新版時會在最上面提示。" />
         </LinearLayout>
 
         <!-- ===================== 頁尾：隱私權政策 ===================== -->

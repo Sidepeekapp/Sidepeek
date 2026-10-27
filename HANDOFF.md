@@ -5,7 +5,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## 基本
 - 套件名 `app.sidepeek`，minSdk 26，compileSdk/targetSdk 36，AGP 8.11.2、Gradle 8.13、Kotlin 1.9.24。
-- 顯示版本固定 **1.0**（使用者要求）；versionCode 目前 5，之後發新版要遞增。
+- 顯示版本固定 **1.0**（使用者要求）；versionCode 目前 6，之後發新版要遞增。
 - 正式版：根目錄放 `keystore.properties`（不進版控，簽章金鑰在使用者手上）→ `./gradlew :app:assembleRelease` / `:app:bundleRelease`。R8 開啟。
 - 聯絡信箱 sidepeek.app@gmail.com（App 內「意見回饋」會自動帶手機資訊）。
 - 測試：`./gradlew :app:testDebugUnitTest`（LinkExtractorTest、ProfileLinksTest）。
@@ -61,6 +61,19 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
   下一個無障礙事件（亮螢幕、切 App）再接上。
 - 簽名：GitHub Secrets 已設好（SIGNING_KEYSTORE_BASE64 分三段＋密碼＋別名），CI 會直接產出簽好的
   sidepeek-1.0-buildN.apk，並核對憑證指紋。
+
+## 10/27 versionCode 6
+- 設定精靈：側邊欄四步（打開側邊欄／試開服務／受限設定／再開一次）都有「稍後再設定側邊欄」→ 直接到電池那步。
+  `Prefs.KEY_A11Y_LATER` 記住，主畫面狀態卡顯示「繼續設定側邊欄」（`resumeA11ySetup` 重開精靈）；服務開好自動清掉。
+  通話中（AudioManager MODE_IN_CALL / IN_COMMUNICATION）在無障礙相關步驟顯示「Android 通話中不允許…」。
+- 診斷記錄：平常 `record()` 只寫一行事件；按「開始收集完整記錄」後 24 小時（`Diagnostics.full()`）才寫完整
+  extras 與含文字的細節（`Diagnostics.sensitive()`）。
+- 長網址顯示：`LinkExtractor.shortLabel` / `shortenInText`（instagram.com/reel/…），通知與側邊欄泡泡用短版；
+  連結按鈕與「開啟連結」仍開完整網址。單元測試已補。
+- 檢查更新：`UpdateChecker` 打開 App 時最多每 20 小時查一次 GitHub releases/latest，APK 檔名的 buildN 大於
+  versionCode 就在狀態卡提示；「遇到問題」裡可關閉。
+- 一鍵發版：Actions → Build APK → Run workflow，填版本號（例如 1.0.3）就會用簽好的 APK 發布正式 Release
+  `vX`，檔名 sidepeek-vX-buildN.apk（UpdateChecker 靠 buildN 判斷），更新說明取自上一個 v* tag 之後的 commit。
 
 ## 待確認 / 可做
 - 上述三項尚未在實機長時間驗證；若有問題請使用者匯出「遇到問題 → 匯出診斷記錄」。

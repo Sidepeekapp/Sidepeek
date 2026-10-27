@@ -47,4 +47,20 @@ class LinkExtractorTest {
         assertEquals(emptyList<String>(), ex("食譜可以參考 chef.lu.tw 的分享"))
         assertEquals(emptyList<String>(), ex("我負責買肉和飲料，總共 1,800 元，一人 450"))
     }
+
+    @Test fun shortLabels() {
+        assertEquals("instagram.com/reel/…", LinkExtractor.shortLabel("https://www.instagram.com/reel/De9i6bKSvQD/?psln=Zm9n"))
+        assertEquals("youtube.com/watch…", LinkExtractor.shortLabel("https://www.youtube.com/watch?v=abc"))
+        assertEquals("example.com", LinkExtractor.shortLabel("https://example.com/"))
+        assertEquals("example.com/bbq", LinkExtractor.shortLabel("https://example.com/bbq"))
+    }
+
+    @Test fun shortenInText() {
+        assertEquals("看 instagram.com/reel/… 好笑",
+            LinkExtractor.shortenInText("看 https://www.instagram.com/reel/De9i6bKSvQD/?psln=Zm9nMzR6czloaTVo 好笑"))
+        assertEquals("地點在這 example.com/bbq。", LinkExtractor.shortenInText("地點在這 https://example.com/bbq。"))
+        assertEquals("看這個github.com/x/…很好", LinkExtractor.shortenInText("看這個https://github.com/x/y很好"))
+        assertEquals("食譜可以參考 chef.lu.tw 的分享", LinkExtractor.shortenInText("食譜可以參考 chef.lu.tw 的分享"))
+        assertEquals("沒有連結", LinkExtractor.shortenInText("沒有連結"))
+    }
 }

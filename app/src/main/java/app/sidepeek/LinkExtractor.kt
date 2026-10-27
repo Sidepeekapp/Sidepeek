@@ -110,6 +110,49 @@ object LinkExtractor {
         }
     }
 
+    /**
+     * Short form of a link for display: "instagram.com/reel/…", "youtube.com/watch…", "example.com".
+     * Tapping still uses the full URL; this only changes what is shown.
+     */
+    fun shortLabel(url: String): String = try {
+        val u = URI(url)
+        val host = u.host?.lowercase()?.removePrefix("www.")?.ifBlank { null } ?: throw IllegalArgumentException()
+        val segs = u.rawPath.orEmpty().split('/').filter { it.isNotEmpty() }
+        val more = segs.size > 1 || !u.rawQuery.isNullOrEmpty() || !u.rawFragment.isNullOrEmpty()
+        val first = segs.firstOrNull()?.let { if (it.length > 20) it.take(18) + "…" else it }
+        when {
+            first == null -> if (more) "$host/…" else host
+            segs.size > 1 -> "$host/$first/…"
+            more -> "$host/$first…"
+            else -> "$host/$first"
+        }
+    } catch (_: Exception) {
+        url
+    }
+
+    /** [text] with every written-out link (https://…, www.…) replaced by its [shortLabel]. */
+    fun shortenInText(text: String): String {
+        if (!text.contains("://") && !text.contains("www.", ignoreCase = true)) return text
+        val found = ArrayList<Pair<IntRange, String>>()
+        fun overlaps(r: IntRange) = found.any { it.first.first <= r.last && r.first <= it.first.last }
+        for (m in SCHEME_RE.findAll(text)) found += m.range to m.value
+        for (m in WWW_RE.findAll(text)) if (!overlaps(m.range)) found += m.range to m.value
+        if (found.isEmpty()) return text
+        val sb = StringBuilder()
+        var pos = 0
+        for ((range, raw) in found.sortedBy { it.first.first }) {
+            val kept = trimTail(raw)                       // trailing punctuation stays as text
+            val url = normalize(kept)
+            val label = url?.let { shortLabel(it) }
+            sb.append(text, pos, range.first)
+            if (label != null && label.length < kept.length) sb.append(label) else sb.append(kept)
+            sb.append(raw, kept.length, raw.length)
+            pos = range.last + 1
+        }
+        sb.append(text, pos, text.length)
+        return sb.toString()
+    }
+
     fun hostLabel(url: String): String = try {
         URI(url).host?.removePrefix("www.")?.ifBlank { null } ?: url.take(28)
     } catch (_: Exception) {

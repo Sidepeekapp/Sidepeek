@@ -15,18 +15,49 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Records a full dump of every LINE notification (all extras, recursively) into a
- * rolling text file in filesDir so the user can export and share it for debugging.
+ * Rolling debug log in filesDir that the user can export and share.
+ *
+ * Normally only short events are written (what was posted / hidden / skipped), never message
+ * contents. Full dumps of every notification (all extras, recursively, including message text)
+ * are written only while the user has switched on 「收集完整診斷記錄」, for [FULL_HOURS] hours.
  */
 object Diagnostics {
     private const val FILE = "diag.txt"
     private const val MAX_BYTES = 600_000L
+    const val FULL_HOURS = 24
+    private const val KEY_FULL_UNTIL = "diag_full_until"
     private val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.TAIWAN)
 
     fun file(ctx: Context) = File(ctx.filesDir, FILE)
 
+    /** End of the full-dump window (0 = off). */
+    fun fullUntil(ctx: Context): Long = Prefs.sp(ctx).getLong(KEY_FULL_UNTIL, 0L)
+
+    /** True while full notification dumps (with message text) are being collected. */
+    fun full(ctx: Context): Boolean = System.currentTimeMillis() < fullUntil(ctx)
+
+    fun startFull(ctx: Context) {
+        Prefs.sp(ctx).edit().putLong(KEY_FULL_UNTIL, System.currentTimeMillis() + FULL_HOURS * 3600_000L).apply()
+        note(ctx, "DIAG full collection ON for ${FULL_HOURS}h")
+    }
+
+    fun stopFull(ctx: Context) {
+        Prefs.sp(ctx).edit().putLong(KEY_FULL_UNTIL, 0L).apply()
+        note(ctx, "DIAG full collection OFF")
+    }
+
+    /** [detail] (may contain message text) only while full collection is on, else "". */
+    fun sensitive(ctx: Context, detail: String): String = if (full(ctx)) detail else ""
+
     @Synchronized
     fun record(ctx: Context, sbn: StatusBarNotification, event: String = "POSTED") {
+        if (!full(ctx)) {
+            // Event only: which app / notification, no title, text or extras.
+            val n = sbn.notification
+            note(ctx, "$event pkg=${sbn.packageName} id=${sbn.id} category=${n.category} " +
+                "flags=0x${Integer.toHexString(n.flags)} summary=${n.flags and Notification.FLAG_GROUP_SUMMARY != 0}")
+            return
+        }
         try {
             val sb = StringBuilder()
             val n = sbn.notification
@@ -103,7 +134,8 @@ object Diagnostics {
                 } catch (_: Exception) {}
             }
             append("通知存取: ").append(isListenerEnabled(ctx)).append('\n')
-            append("※ 此檔包含訊息內容，分享前請留意隱私。\n\n")
+            append("完整記錄: ").append(if (full(ctx)) "收集中（含訊息內容）" else "關閉（只有事件，不含訊息內容）").append('\n')
+            append("※ 收集完整記錄期間的內容包含訊息文字，分享前請留意隱私。\n\n")
         }
         val body = if (file(ctx).exists()) file(ctx).readText() else "(尚無記錄，請先收到幾則 LINE/Messenger/IG/Threads/Teams 訊息/貼圖/照片後再匯出)\n"
         out.writeText(header + body)

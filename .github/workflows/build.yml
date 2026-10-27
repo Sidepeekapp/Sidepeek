@@ -12,7 +12,14 @@ on:
   push:
     branches: [main]
     paths-ignore: ["**.md", "docs/**"]
+  # One-click release: Actions → Build APK → Run workflow → enter a version such as 1.0.3.
+  # Leave it empty to only build a draft like a normal push.
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: "要發布的版本號（例如 1.0.3）；留空只建置草稿"
+        required: false
+        default: ""
 
 permissions:
   contents: write   # create the draft Release that holds the APK
@@ -27,6 +34,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # tags + history for the release notes
 
       - uses: actions/setup-java@v5
         with:
@@ -103,7 +112,44 @@ jobs:
           echo "::notice::Signed OK with the Sidepeek certificate -> $OUT"
           rm -f out/app-release-unsigned.apk out/apksigner.jar
 
+      - name: Publish release (Run workflow with a version)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_version != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          VERSION="${VERSION#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then echo "::error::版本號格式要像 1.0.3（收到：$VERSION）"; exit 1; fi
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "::error::$TAG 已經發布過了，請換一個版本號"; exit 1; fi
+          APK=$(ls out/sidepeek-*-build*.apk 2>/dev/null | head -1 || true)
+          if [ -z "$APK" ]; then echo "::error::沒有簽好名的 APK（簽名 Secret 沒設定？），不發布未簽名版本"; exit 1; fi
+          VC=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          FINAL="out/sidepeek-$TAG-build$VC.apk"
+          mv "$APK" "$FINAL"
+          PREV=$(git tag --list 'v*' --sort=-v:refname | head -1 || true)
+          {
+            echo "## Sidepeek $VERSION"
+            echo
+            echo "下載下面的 **$(basename "$FINAL")** 安裝，可以直接覆蓋舊版，設定和訊息都會保留（需要 Android 8.0 以上）。"
+            echo
+            echo "### 這版的變更"
+            if [ -n "$PREV" ] && git merge-base --is-ancestor "$PREV" HEAD; then git log --no-merges --pretty='- %s' "$PREV"..HEAD | grep -v -E '^- (CI|加上 GitHub Actions)' || true
+            else git log --no-merges --pretty='- %s' -20 | grep -v -E '^- (CI|加上 GitHub Actions)' || true; fi
+            echo
+            echo "非官方 App，與 LINE、LY Corporation 無關。程式碼以 GPL-3.0 授權。"
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" "$FINAL" --target "$GITHUB_SHA" --title "Sidepeek $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" --latest
+          echo "::notice::Published $TAG with $(basename "$FINAL")"
+          # Drop CI drafts; the release replaces them.
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq '.[] | select(.draft and (.tag_name | startswith("ci-"))) | .id' |
+            while read -r id; do gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$id" || true; done
+
       - name: Upload to draft Release
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.release_version != '') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -196,6 +196,10 @@ object Prefs {
     fun a11yTryOpened(ctx: Context) = sp(ctx).getBoolean(KEY_A11Y_TRY_OPENED_V1, false)
     fun wizardDone(ctx: Context) = sp(ctx).getBoolean(KEY_WIZARD_DONE_V1, false)
 
+    /** The user postponed the side-panel steps in the wizard; a to-do stays on the status card. */
+    const val KEY_A11Y_LATER = "a11y_setup_later"
+    fun a11yLater(ctx: Context) = sp(ctx).getBoolean(KEY_A11Y_LATER, false)
+
     /** Last observed LINE notification channel (from RankingMap). -1 = not seen yet. */
     const val KEY_LINE_CH_ID = "line_ch_id"
     const val KEY_LINE_CH_IMP = "line_ch_imp"

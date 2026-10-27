@@ -1,0 +1,387 @@
+<title>Sidepeek 設定示範動畫</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: four looping phone-screen guides (One UI–style settings redrawn, other apps as neutral placeholders) in a responsive grid. */
+:root {
+  --page: #0c0d10; --page-ink: #eceef2; --page-ink-2: #9aa0ad;
+  --black: #000; --card: #1a1a1b; --card-2: #232325; --line: #2c2c2f;
+  --ink: #f2f2f4; --ink-2: #a8a8ad; --ink-3: #6c6c72;
+  --blue: #3f8cff; --blue-ink: #7fb0ff;       /* system (One UI) accents */
+  --brand: #16a34a; --brand-soft: #4ade80;     /* Sidepeek */
+  --sans: "Noto Sans TC", "Noto Sans CJK TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  color-scheme: dark;
+}
+body { background: var(--page); color: var(--page-ink); font-family: var(--sans); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 32px; }
+.head { max-width: 1180px; margin: 0 auto 18px; }
+.head h1 { font-size: 22px; margin: 0; font-weight: 800; }
+.head p { margin: 6px 0 0; color: var(--page-ink-2); font-size: 14px; line-height: 1.6; }
+.grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .grid { grid-template-columns: 1fr; max-width: 360px; } }
+.cell { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cell h2 { font-size: 14px; margin: 0; font-weight: 700; color: var(--page-ink); }
+.cell h2 span { color: var(--brand-soft); margin-right: 6px; }
+.frame { width: 100%; aspect-ratio: 360 / 813; position: relative; border-radius: 22px; overflow: hidden; background: #000;
+  box-shadow: 0 0 0 1px #24262c, 0 20px 40px -20px rgba(0,0,0,.7); }
+
+/* ---------- the phone stage: 360×813 design px ---------- */
+.stage { position: absolute; left: 0; top: 0; width: 360px; height: 813px; transform-origin: 0 0; background: var(--black);
+  color: var(--ink); font-family: var(--sans); overflow: hidden; }
+.abs { position: absolute; }
+.sbar { left: 0; right: 0; top: 0; height: 30px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px;
+  font-size: 12.5px; color: #d6d6da; font-variant-numeric: tabular-nums; z-index: 6; }
+.sbar i { display: inline-block; width: 22px; height: 11px; border-radius: 3px; border: 1.5px solid #d6d6da; position: relative; margin-left: 6px; vertical-align: -1px; }
+.sbar i::after { content: ""; position: absolute; inset: 1.5px; right: 6px; background: #d6d6da; border-radius: 1px; }
+.cap { left: 0; right: 0; top: 30px; height: 92px; padding: 12px 18px 0; z-index: 5;
+  background: linear-gradient(#000 70%, rgba(0,0,0,0)); }
+.cap .chip { display: inline-block; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; color: #04140a; background: var(--brand-soft);
+  padding: 2px 8px; border-radius: 6px; }
+.cap .t { position: absolute; left: 18px; right: 18px; top: 40px; font-size: 18px; font-weight: 800; line-height: 1.35; }
+.scr { left: 0; top: 0; width: 360px; height: 813px; background: var(--black); }
+.bar { position: absolute; left: 0; right: 0; top: 122px; height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 14px; }
+.back { width: 10px; height: 10px; border-left: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: rotate(45deg); margin: 0 8px 0 6px; }
+.bar b { font-size: 19px; font-weight: 700; }
+.bar .more { margin-left: auto; width: 30px; height: 30px; display: grid; place-items: center; }
+.bar .more i { display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--ink); box-shadow: 0 -7px 0 var(--ink), 0 7px 0 var(--ink); }
+.body { position: absolute; left: 0; right: 0; top: 180px; bottom: 0; overflow: hidden; }
+.list { position: absolute; left: 0; right: 0; top: 0; display: flex; flex-direction: column; gap: 10px; padding: 0 12px 40px; }
+.group { background: var(--card); border-radius: 24px; padding: 4px 0; }
+.row { display: grid; grid-template-columns: 30px 1fr auto; gap: 14px; align-items: center; padding: 12px 18px; min-height: 58px; }
+.row.noic { grid-template-columns: 1fr auto; }
+.appic { border-radius: 32%; overflow: hidden; flex: none; }
+.appic svg { display: block; }
+.row .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; color: #fff; }
+.row .lb { font-size: 15.5px; line-height: 1.35; }
+.row .sub { font-size: 12.5px; color: var(--blue-ink); margin-top: 2px; }
+.row .sub.gray { color: var(--ink-3); }
+.sk { height: 11px; border-radius: 6px; background: #2b2b2e; }
+.sk.s { height: 8px; margin-top: 7px; background: #242427; }
+.skic { width: 30px; height: 30px; border-radius: 50%; background: #2a2a2d; }
+.hl { border-radius: 18px; }
+.tog { width: 44px; height: 24px; border-radius: 12px; position: relative; box-sizing: border-box; }
+.tog i { position: absolute; top: 4px; width: 16px; height: 16px; border-radius: 50%; }
+.sec { font-size: 12.5px; color: var(--ink-3); padding: 10px 22px 2px; }
+.desc { padding: 14px 22px; font-size: 13px; line-height: 1.7; color: var(--ink-2); }
+
+/* sheets, dialogs, menu, toast */
+.dim { left: 0; top: 0; width: 360px; height: 813px; background: rgba(0,0,0,.55); z-index: 7; }
+.sheet { left: 10px; right: 10px; bottom: 18px; background: var(--card-2); border-radius: 30px; padding: 24px 22px 10px; z-index: 8; }
+.sheet h3 { margin: 0; font-size: 18px; line-height: 1.4; font-weight: 700; }
+.sheet p { margin: 12px 0 0; font-size: 13.5px; line-height: 1.65; color: #c9c9ce; }
+.sheet .btns { display: flex; margin-top: 16px; border-top: 1px solid #333336; }
+.sheet .btns span { flex: 1; text-align: center; padding: 15px 0; font-size: 15.5px; font-weight: 700; color: var(--blue-ink); }
+.sheet .btns.plain span { color: var(--ink); font-weight: 600; }
+.sheet .btns span + span { border-left: 1px solid #333336; }
+.center { left: 10px; right: 10px; bottom: 18px; background: var(--card-2); border-radius: 30px; padding: 26px 22px 18px; z-index: 8; text-align: center; }
+.center .shield { width: 34px; height: 38px; margin: 0 auto 12px; border: 2.5px solid var(--blue-ink); border-radius: 16px 16px 18px 18px / 10px 10px 22px 22px; }
+.center h3 { margin: 0; font-size: 17.5px; font-weight: 700; }
+.center p { margin: 12px 0 0; font-size: 13.5px; line-height: 1.65; color: #c9c9ce; text-align: left; }
+.center a { color: var(--blue-ink); text-decoration: underline; }
+.pill { margin-top: 18px; background: #9cbcff; color: #10203f; font-weight: 700; font-size: 15px; border-radius: 22px; padding: 12px 0; }
+.menu { right: 14px; top: 160px; background: var(--card-2); border-radius: 22px; padding: 6px 0; z-index: 8; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.menu div { padding: 14px 22px; font-size: 15.5px; white-space: nowrap; }
+.verify { left: 10px; right: 10px; bottom: 18px; background: var(--card-2); border-radius: 30px; padding: 26px 22px 24px; z-index: 8; text-align: center; }
+.verify h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.verify p { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); }
+.fp { width: 58px; height: 58px; margin: 22px auto 4px; border-radius: 50%; border: 2.5px solid var(--blue-ink); position: relative; }
+.fp::before, .fp::after { content: ""; position: absolute; border: 2.5px solid var(--blue-ink); border-radius: 50%; }
+.fp::before { inset: 10px; } .fp::after { inset: 20px; }
+.toast { left: 50%; bottom: 96px; transform: translateX(-50%); background: #3a3a3d; color: #fff; font-size: 13.5px; padding: 10px 18px; border-radius: 20px;
+  white-space: nowrap; z-index: 9; }
+.perm .item { display: grid; grid-template-columns: 26px 1fr; gap: 10px; margin-top: 14px; text-align: left; }
+.perm .item i { width: 22px; height: 22px; border-radius: 50%; background: rgba(127,176,255,.18); position: relative; margin-top: 2px; }
+.perm .item i::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--blue-ink); }
+.perm .item b { display: block; font-size: 14.5px; } .perm .item span { display: block; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; margin-top: 2px; }
+.finger { width: 46px; height: 46px; border-radius: 50%; z-index: 10; pointer-events: none;
+  background: rgba(255,255,255,.22); border: 3px solid var(--brand-soft); box-sizing: border-box; box-shadow: 0 0 0 6px rgba(74,222,128,.18); }
+.home { left: 50%; bottom: 8px; width: 120px; height: 4px; border-radius: 2px; background: #8d8d92; transform: translateX(-50%); z-index: 6; }
+</style>
+
+<div class="head">
+  <h1>設定示範動畫</h1>
+  <p>App 設定引導第 1、4、5、6 步的示範，重畫成乾淨的 One UI 畫面；其他 App 以灰色區塊代替，只把要按的地方畫清楚。每段會自動循環播放。</p>
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+(() => {
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const seg = (t, a, b) => clamp((t - a) / (b - a));
+  const eo = (p) => 1 - Math.pow(1 - p, 3);
+  const eio = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+  const mix = (a, b, p) => a + (b - a) * p;
+  const h = (html) => { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; };
+  const show = (el, o, y = 0, x = 0, s = 1) => {
+    el.style.opacity = o.toFixed(3); el.style.visibility = o <= 0.002 ? "hidden" : "visible";
+    el.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) scale(${s.toFixed(4)})`;
+  };
+  const lerpColor = (c1, c2, p) => {
+    const a = c1.match(/\w\w/g).map((x) => parseInt(x, 16)), b = c2.match(/\w\w/g).map((x) => parseInt(x, 16));
+    return "rgb(" + a.map((v, i) => Math.round(mix(v, b[i], p))).join(",") + ")";
+  };
+  const setTog = (el, p) => {
+    el.style.background = p > 0 ? lerpColor("1a1a1b", "3f8cff", p) : "transparent";
+    el.style.border = `2px solid ${lerpColor("8a8a90", "3f8cff", p)}`;
+    const k = el.firstElementChild;
+    k.style.left = mix(2, 22, eo(p)).toFixed(1) + "px";
+    k.style.background = lerpColor("8a8a90", "ffffff", p);
+  };
+  const tog = () => `<div class="tog"><i></i></div>`;
+  // Sidepeek's real launcher icon (res/drawable/ic_launcher_*), cropped to the adaptive-icon visible area
+  const APPICON = '<svg viewBox="18 18 72 72" width="100%" height="100%" aria-hidden="true"><rect x="0" y="0" width="108" height="108" fill="#16A34A"/><path d="M40.67,34H60.67A12,12 0 0 1 72.67,46V55.33A12,12 0 0 1 60.67,67.33H40.67A12,12 0 0 1 28.67,55.33V46A12,12 0 0 1 40.67,34ZM35.33,63.33L46.00,66.00L34.67,74.00Z" fill="#FFFFFF"/><path d="M39.67,44.67H57.67A2.33,2.33 0 0 1 60,47V47A2.33,2.33 0 0 1 57.67,49.33H39.67A2.33,2.33 0 0 1 37.33,47V47A2.33,2.33 0 0 1 39.67,44.67Z" fill="#16A34A"/><path d="M39.67,53.33H51A2.33,2.33 0 0 1 53.33,55.67V55.67A2.33,2.33 0 0 1 51,58H39.67A2.33,2.33 0 0 1 37.33,55.67V55.67A2.33,2.33 0 0 1 39.67,53.33Z" fill="#86EFAC"/><path d="M81,38H81A3,3 0 0 1 84,41V65.67A3,3 0 0 1 81,68.67H81A3,3 0 0 1 78,65.67V41A3,3 0 0 1 81,38Z" fill="#DCFCE7"/><path d="M61.33,35.33A7.33,7.33 0 1 1 76.00,35.33A7.33,7.33 0 1 1 61.33,35.33Z" fill="#16A34A"/><path d="M63.33,35.33A5.33,5.33 0 1 1 74.00,35.33A5.33,5.33 0 1 1 63.33,35.33Z" fill="#FACC15"/></svg>';
+  const appIc = (px) => `<div class="appic" style="width:${px}px;height:${px}px">${APPICON}</div>`;
+  const skRow = (w1, w2, noIcon) => `<div class="row${noIcon ? " noic" : ""}">${noIcon ? "" : '<div class="skic"></div>'}<div><div class="sk" style="width:${w1}%"></div>${w2 ? `<div class="sk s" style="width:${w2}%"></div>` : ""}</div><div></div></div>`;
+
+  // ---- shared chrome: status bar, caption band, finger, gesture bar
+  function chrome(stage, captions) {
+    stage.appendChild(h(`<div class="abs sbar"><span>12:43</span><span>5G ▮▮▮<i></i></span></div>`));
+    const cap = h(`<div class="abs cap"></div>`); stage.appendChild(cap);
+    const caps = captions.map(([chip, text]) => {
+      const c = h(`<div><span class="chip">${chip}</span><div class="t">${text}</div></div>`); cap.appendChild(c);
+      c.style.position = "absolute"; c.style.inset = "12px 18px 0"; return c;
+    });
+    stage.appendChild(h(`<div class="abs home"></div>`));
+    const finger = h(`<div class="abs finger"></div>`); stage.appendChild(finger);
+    return { caps, finger };
+  }
+  function renderCaps(caps, t, times) {
+    caps.forEach((c, i) => {
+      const a = times[i], b = times[i + 1] ?? 1e9;
+      const o = Math.min(eo(seg(t, a, a + 0.3)), 1 - eo(seg(t, b - 0.15, b + 0.15)));
+      c.style.opacity = o.toFixed(3);
+      c.querySelector(".t").style.transform = `translateY(${((1 - eo(seg(t, a, a + 0.35))) * 6).toFixed(2)}px)`;
+    });
+  }
+  // finger: appears before each tap, presses at the tap time, leaves after
+  function renderFinger(stage, finger, t, taps) {
+    let o = 0, s = 1, pos = null;
+    for (const tp of taps) {
+      if (t < tp.t - 0.6 || t > tp.t + 0.45) continue;
+      const k = stage.__k || 1;
+      const r = tp.el().getBoundingClientRect(), st = stage.getBoundingClientRect();
+      const cx = (r.left - st.left + r.width * (tp.fx ?? 0.5)) / k, cy = (r.top - st.top + r.height / 2) / k;
+      pos = [cx - 23, cy - 23];
+      o = Math.min(eo(seg(t, tp.t - 0.6, tp.t - 0.3)), 1 - eo(seg(t, tp.t + 0.15, tp.t + 0.45)));
+      s = 1 - 0.2 * Math.sin(Math.PI * seg(t, tp.t - 0.08, tp.t + 0.14)) + 0.12 * (1 - eo(seg(t, tp.t - 0.6, tp.t - 0.3)));
+    }
+    if (pos) { finger.style.left = pos[0].toFixed(1) + "px"; finger.style.top = pos[1].toFixed(1) + "px"; }
+    show(finger, o, 0, 0, s);
+  }
+  // push navigation between full screens
+  function renderScreens(screens, t, sched) {
+    let cur = 0;
+    sched.forEach((s, i) => { if (t >= s.at) cur = i; });
+    screens.forEach((el) => show(el, 0));
+    const now = sched[cur], p = eio(seg(t, now.at, now.at + 0.38));
+    show(screens[now.i], 1, 0, cur === 0 ? 0 : (1 - p) * 360);
+    if (cur > 0 && p < 1) show(screens[sched[cur - 1].i], 1, 0, -p * 110);
+  }
+  const press = (el, t, at) => { el.style.background = `rgba(255,255,255,${(0.08 * Math.sin(Math.PI * seg(t, at - 0.05, at + 0.35))).toFixed(3)})`; };
+
+  // ---- the a11y list screens (used by steps 4 and 6)
+  const a11yMain = () => h(`<div class="abs scr">
+      <div class="bar"><div class="back"></div><b>協助工具</b></div>
+      <div class="body"><div class="list">
+        <div class="group">
+          <div class="row"><div class="ic" style="background:#3ba55c">✦</div><div class="lb">One UI 最新功能</div><div></div></div>
+        </div>
+        <div class="group">
+          <div class="row"><div class="ic" style="background:#6b5bd6">◉</div><div class="lb">視覺輔助</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#2f8f8a">♪</div><div class="lb">聽力輔助</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#d4566b">✋</div><div class="lb">互動與敏銳度</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#3f7fd6">⌁</div><div class="lb">協助工具捷徑</div><div></div></div>
+        </div>
+        <div class="group">
+          <div class="row hl" data-k="installed"><div class="ic" style="background:#3f7fd6">▦</div><div><div class="lb">已安裝的應用程式</div><div class="sub">3 個應用程式</div></div><div></div></div>
+        </div>
+        <div class="group">
+          <div class="row"><div class="ic" style="background:#55585f">i</div><div class="lb">關於協助工具</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#55585f">✉</div><div class="lb">與我們聯絡</div><div></div></div>
+        </div>
+      </div></div></div>`);
+  const a11yInstalled = (state) => h(`<div class="abs scr">
+      <div class="bar"><div class="back"></div><b>已安裝的應用程式</b></div>
+      <div class="body"><div class="list">
+        <div class="group">${skRow(52, 22)}${skRow(40, 28)}
+          <div class="row hl" data-k="sp">${appIc(30)}<div><div class="lb">Sidepeek 側邊欄</div><div class="sub gray" data-k="spsub">${state}</div></div><div></div></div>
+        </div>
+      </div></div></div>`);
+
+  // ======================= scenes =======================
+  const SCENES = [
+    { id: "step1", label: "第 1 步", title: "允許讀取通知", dur: 9.2, build: (stage) => {
+      const scr = h(`<div class="abs scr">
+        <div class="bar"><div class="back"></div><b>通知讀取、回覆和控制</b></div>
+        <div class="body"><div class="list" data-k="list">
+          <div class="desc" style="padding-top:2px">允許下列應用程式讀取通知、回覆訊息和使用通知上的按鈕。</div>
+          <div class="group">${[[46, 0], [38, 0], [55, 0], [42, 0], [50, 0], [36, 0], [48, 0], [40, 0], [58, 0]].map(([a]) => `<div class="row"><div class="skic"></div><div><div class="sk" style="width:${a}%"></div></div>${tog()}</div>`).join("")}
+            <div class="row hl" data-k="sp">${appIc(30)}<div class="lb">Sidepeek</div>${tog()}</div>
+            ${[[44, 0], [37, 0]].map(([a]) => `<div class="row"><div class="skic"></div><div><div class="sk" style="width:${a}%"></div></div>${tog()}</div>`).join("")}
+          </div>
+        </div></div></div>`);
+      stage.appendChild(scr);
+      const dim = h(`<div class="abs dim"></div>`), sheet = h(`<div class="abs sheet">
+        <h3>允許 Sidepeek 存取通知？</h3>
+        <p>Sidepeek 將可讀取所有通知，包含聯絡人姓名與收到的訊息內容等個人資訊。此應用程式也能將通知延遲或關閉或針對通知內容採取行動，包含接聽來電。</p>
+        <p>此設定可供應用程式開啟或關閉 [請勿打擾] 功能與變更相關設定。</p>
+        <div class="btns plain"><span>拒絕</span><span data-k="allow">允許</span></div></div>`);
+      stage.append(dim, sheet);
+      const { caps, finger } = chrome(stage, [["第 1 步", "往下找到 Sidepeek，打開開關"], ["第 1 步", "按「允許」"], ["第 1 步", "開好了，回到 Sidepeek"]]);
+      const q = (k) => stage.querySelector(`[data-k="${k}"]`);
+      const list = q("list"), sp = q("sp"), spTog = sp.querySelector(".tog"), allow = q("allow");
+      const otherTogs = [...stage.querySelectorAll(".tog")].filter((x) => x !== spTog);
+      otherTogs.forEach((tg, i) => setTog(tg, [1, 4, 7].includes(i) ? 1 : 0));
+      const back = stage.querySelector(".back");
+      return (t) => {
+        renderCaps(caps, t, [0, 4.1, 6.3]);
+        list.style.transform = `translateY(${(-440 * eio(seg(t, 0.7, 2.6))).toFixed(1)}px)`;
+        press(sp, t, 3.3);
+        const so = eo(seg(t, 3.55, 3.95)) * (1 - eo(seg(t, 5.55, 5.85)));
+        show(dim, so); show(sheet, so, (1 - eo(seg(t, 3.55, 3.95))) * 200 + eo(seg(t, 5.55, 5.85)) * 60);
+        setTog(spTog, seg(t, 5.75, 6.05));
+        renderFinger(stage, finger, t, [{ t: 3.3, el: () => spTog }, { t: 5.3, el: () => allow }, { t: 7.7, el: () => back }]);
+      };
+    }},
+    { id: "step4", label: "第 4 步", title: "試開側邊欄服務", dur: 8.8, build: (stage) => {
+      const s0 = a11yMain(), s1 = a11yInstalled("關閉");
+      stage.append(s0, s1);
+      const dim = h(`<div class="abs dim"></div>`), dlg = h(`<div class="abs center">
+        <div class="shield"></div><h3>應用程式存取權已遭拒絕</h3>
+        <p>如果授予這項權限，你的個人資訊和財務資訊可能會面臨風險。</p>
+        <p>如果未取得這項受限制權限，應用程式可能無法正常運作。<a>瞭解如何授予權限</a></p>
+        <div class="pill" data-k="close">關閉</div></div>`);
+      stage.append(dim, dlg);
+      const { caps, finger } = chrome(stage, [["第 4 步", "點「已安裝的應用程式」"], ["第 4 步", "點「Sidepeek 側邊欄」"], ["第 4 步", "被拒絕是正常的，按「關閉」"], ["第 4 步", "接著到 App 資訊，允許受限設定"]]);
+      const inst = s0.querySelector('[data-k="installed"]'), sp = s1.querySelector('[data-k="sp"]'), close = stage.querySelector('[data-k="close"]');
+      return (t) => {
+        renderCaps(caps, t, [0, 2.2, 4.1, 6.6]);
+        renderScreens([s0, s1], t, [{ at: 0, i: 0 }, { at: 2.0, i: 1 }]);
+        press(inst, t, 1.6); press(sp, t, 3.6);
+        const o = eo(seg(t, 3.85, 4.15)) * (1 - eo(seg(t, 6.2, 6.45)));
+        show(dim, o); show(dlg, o, 0, 0, 0.94 + 0.06 * eo(seg(t, 3.85, 4.2)));
+        renderFinger(stage, finger, t, [{ t: 1.6, el: () => inst, fx: 0.82 }, { t: 3.6, el: () => sp, fx: 0.82 }, { t: 6.0, el: () => close }]);
+      };
+    }},
+    { id: "step5", label: "第 5 步", title: "允許受限設定", dur: 8.6, build: (stage) => {
+      const scr = h(`<div class="abs scr">
+        <div class="bar"><div class="back"></div><b>應用程式資訊</b><div class="more" data-k="more"><i></i></div></div>
+        <div class="body"><div class="list">
+          <div style="display:flex;align-items:center;gap:14px;padding:4px 10px 10px">
+            ${appIc(38)}
+            <div><div style="font-size:16px;font-weight:600">Sidepeek</div><div style="font-size:12.5px;color:var(--ink-3)">已安裝</div></div>
+          </div>
+          <div class="sec">隱私設定</div>
+          <div class="group">
+            <div class="row noic"><div><div class="lb">通知</div><div class="sub">已允許</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">權限</div><div class="sub">通知、使用情況存取權</div></div><div></div></div>
+          </div>
+          <div class="group">
+            <div class="row noic"><div class="lb">管理未使用的應用程式</div>${tog()}</div>
+          </div>
+          <div class="sec">用量</div>
+          <div class="group">
+            <div class="row noic"><div><div class="lb">行動數據</div><div class="sub gray">未使用數據</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">電池</div><div class="sub gray">上次完全充電後已使用 0%</div></div><div></div></div>
+          </div>
+        </div></div></div>`);
+      stage.appendChild(scr);
+      setTog(scr.querySelector(".tog"), 1);
+      const menu = h(`<div class="abs menu"><div data-k="allow">允許受限設定</div><div style="color:var(--ink-2)">解除安裝</div></div>`);
+      const dim = h(`<div class="abs dim"></div>`), ver = h(`<div class="abs verify"><h3>驗證身分</h3><p>使用指紋或螢幕鎖定確認是你本人</p><div class="fp" data-k="fp"></div></div>`);
+      const toast = h(`<div class="abs toast">允許限制 Sidepeek 的設定。</div>`);
+      const actions = h(`<div class="abs" style="left:70px;right:70px;bottom:22px;background:var(--card-2);border-radius:26px;display:flex;justify-content:space-around;padding:10px 0;font-size:12px;z-index:4">
+        <div style="text-align:center"><div style="font-size:18px">🗑</div>解除安裝</div><div style="text-align:center"><div style="font-size:18px">⊘</div>強制停止</div></div>`);
+      stage.append(actions, menu, dim, ver, toast);
+      const { caps, finger } = chrome(stage, [["第 5 步", "點右上角的「⋮」"], ["第 5 步", "點「允許受限設定」"], ["第 5 步", "用指紋或密碼驗證"], ["第 5 步", "看到這行提示＝完成"]]);
+      const more = stage.querySelector('[data-k="more"]'), allow = stage.querySelector('[data-k="allow"]'), fp = stage.querySelector('[data-k="fp"]');
+      return (t) => {
+        renderCaps(caps, t, [0, 1.95, 3.7, 5.6]);
+        const mo = eo(seg(t, 1.75, 2.0)) * (1 - eo(seg(t, 3.45, 3.65)));
+        show(menu, mo, (1 - eo(seg(t, 1.75, 2.05))) * -8, 0, 0.92 + 0.08 * eo(seg(t, 1.75, 2.05)));
+        menu.style.transformOrigin = "100% 0";
+        press(allow, t, 3.3);
+        const vo = eo(seg(t, 3.7, 4.05)) * (1 - eo(seg(t, 5.2, 5.5)));
+        show(dim, vo); show(ver, vo, (1 - eo(seg(t, 3.7, 4.05))) * 180);
+        fp.style.borderColor = fp.style.color = seg(t, 4.7, 4.9) > 0 ? "#4ade80" : "";
+        const to = eo(seg(t, 5.5, 5.8)) * (1 - eo(seg(t, 8.0, 8.4)));
+        show(toast, to, (1 - eo(seg(t, 5.5, 5.85))) * 14, -0); toast.style.transform += " translateX(-50%)";
+        renderFinger(stage, finger, t, [{ t: 1.5, el: () => more }, { t: 3.3, el: () => allow }, { t: 4.7, el: () => fp }]);
+      };
+    }},
+    { id: "step6", label: "第 6 步", title: "再開一次側邊欄服務", dur: 10.6, build: (stage) => {
+      const s0 = a11yMain(), s1 = a11yInstalled("關閉"), s2 = h(`<div class="abs scr">
+        <div class="bar"><div class="back"></div><b>Sidepeek 側邊欄</b></div>
+        <div class="body"><div class="list">
+          <div class="group"><div class="row noic" data-k="main"><div class="lb" style="font-weight:700;color:var(--blue-ink)" data-k="mainlb">關</div>${tog()}</div></div>
+          <div class="group"><div class="row noic"><div class="lb">Sidepeek 側邊欄 捷徑</div>${tog()}</div><div class="row noic"><div class="lb">應用程式資訊</div><div></div></div></div>
+          <div class="desc">此無障礙服務只用來：<br>1. 在螢幕邊緣顯示 Peek 條（螢幕邊緣的小把手）與側邊欄（不需要常駐通知，也不會出現「正重疊顯示在其他應用程式上方」的系統通知）；<br>2. 判斷目前是否在桌面（主畫面），以便「只在桌面顯示側邊欄」；<br>3. 判斷鍵盤是否出現，以便暫時隱藏 Peek 條；<br>4. 側邊欄打開時接收「返回鍵」，用來關閉側邊欄。</div>
+        </div></div></div>`);
+      stage.append(s0, s1, s2);
+      const [mainTog, scTog] = s2.querySelectorAll(".tog"); setTog(scTog, 0);
+      const dim = h(`<div class="abs dim"></div>`), perm = h(`<div class="abs sheet perm">
+        <h3>要將裝置的完整控制權授予「Sidepeek 側邊欄」嗎？</h3>
+        <p style="margin-top:8px">如果你有無障礙服務需求，建議可將完整控制權授予具有相關功能的應用程式，但請勿將完整控制權授予大多數的應用程式。</p>
+        <div class="item"><i></i><div><b>查看及控制螢幕</b><span>可讀取螢幕上的所有內容，並在其他應用程式上顯示內容。</span></div></div>
+        <div class="item"><i></i><div><b>查看及執行動作</b><span>可追蹤你與應用程式或硬體感應器的互動，並代表你與應用程式進行互動。</span></div></div>
+        <div class="btns plain"><span>解除安裝</span><span>拒絕</span><span data-k="allow">允許</span></div></div>`);
+      stage.append(dim, perm);
+      const { caps, finger } = chrome(stage, [["第 6 步", "點「已安裝的應用程式」"], ["第 6 步", "點「Sidepeek 側邊欄」"], ["第 6 步", "打開開關"], ["第 6 步", "按「允許」"], ["第 6 步", "開好了，回到 Sidepeek"]]);
+      const inst = s0.querySelector('[data-k="installed"]'), sp = s1.querySelector('[data-k="sp"]'), allow = stage.querySelector('[data-k="allow"]'), lb = s2.querySelector('[data-k="mainlb"]');
+      return (t) => {
+        renderCaps(caps, t, [0, 1.9, 3.75, 5.3, 7.55]);
+        renderScreens([s0, s1, s2], t, [{ at: 0, i: 0 }, { at: 1.75, i: 1 }, { at: 3.55, i: 2 }]);
+        press(inst, t, 1.4); press(sp, t, 3.2);
+        const o = eo(seg(t, 4.95, 5.3)) * (1 - eo(seg(t, 7.1, 7.4)));
+        show(dim, o); show(perm, o, (1 - eo(seg(t, 4.95, 5.3))) * 220 + eo(seg(t, 7.1, 7.4)) * 60);
+        const on = seg(t, 7.3, 7.6);
+        setTog(mainTog, on); lb.textContent = on > 0.5 ? "開" : "關";
+        renderFinger(stage, finger, t, [{ t: 1.4, el: () => inst, fx: 0.82 }, { t: 3.2, el: () => sp, fx: 0.82 }, { t: 4.75, el: () => mainTog }, { t: 6.9, el: () => allow }]);
+      };
+    }},
+  ];
+
+  // ---- mount
+  const grid = document.getElementById("grid");
+  const players = SCENES.map((sc) => {
+    const cell = h(`<div class="cell"><h2><span>${sc.label}</span>${sc.title}</h2><div class="frame"><div class="stage" role="img" aria-label="${sc.label}：${sc.title} 的操作示範"></div></div></div>`);
+    grid.appendChild(cell);
+    const frame = cell.querySelector(".frame"), stage = cell.querySelector(".stage");
+    const render = sc.build(stage);
+    const fit = () => { const k = frame.clientWidth / 360; stage.__k = k; stage.style.transform = `scale(${k})`; };
+    return { sc, cell, frame, stage, render, fit, t: 0 };
+  });
+  const fitAll = () => players.forEach((p) => p.fit());
+  window.addEventListener("resize", () => { fitAll(); players.forEach((p) => p.render(p.t)); });
+
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let playing = !reduce, last = null;
+  const tick = (now) => {
+    if (playing) {
+      const dt = last == null ? 0 : (now - last) / 1000; last = now;
+      players.forEach((p) => { p.t = (p.t + dt) % p.sc.dur; p.render(p.t); });
+    } else last = null;
+    requestAnimationFrame(tick);
+  };
+
+  // hooks for exporting each guide as an MP4, frame by frame
+  window.__guide = {
+    scenes: SCENES.map((s) => ({ id: s.id, dur: s.dur })),
+    solo(id) {                       // show one guide alone at exactly 360×813, unscaled
+      playing = false;
+      document.body.style.padding = "0"; document.querySelector(".head").style.display = "none";
+      players.forEach((p) => { p.cell.style.display = p.sc.id === id ? "" : "none"; });
+      grid.style.display = "block"; grid.style.maxWidth = "none";
+      const p = players.find((x) => x.sc.id === id);
+      p.cell.querySelector("h2").style.display = "none";
+      p.frame.style.cssText = "width:360px;height:813px;border-radius:0;box-shadow:none;aspect-ratio:auto";
+      p.fit();
+      return p;
+    },
+    seek(id, t) { const p = players.find((x) => x.sc.id === id); p.t = t; p.render(t); },
+  };
+
+  const start = () => { fitAll(); players.forEach((p) => p.render(reduce ? p.sc.dur * 0.62 : 0)); requestAnimationFrame(tick); };
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(start);
+})();
+</script>

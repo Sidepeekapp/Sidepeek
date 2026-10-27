@@ -10,7 +10,7 @@
 
 - 支援 Android 8.0 以上
 - 主要以 Samsung One UI＋手勢導航、右手單手操作來設計
-- 最新版本：**v1.0.2**（[下載 APK](../../releases/latest)）；之後有新版，App 會自動提醒
+- 最新版本：**v1.0.3**（[下載 APK](../../releases/latest)）；之後有新版，App 會自動提醒
 
 > 📣 為了讓大家之後能更方便地安裝和更新，安卓測試勇士招募中！ [填這份表單](https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform)，測試開始時會寄邀請到你的 Gmail。
 
@@ -80,6 +80,9 @@ Android 13 以上，從 APK 安裝的 App 預設不能開協助工具。請照�
 - 完整內容見 [隱私權政策](docs/privacy.md)（App 內首頁最下方也有）。
 
 ## 更新紀錄
+
+### v1.0.3
+- **設定引導的示範影片全部重畫**：第 1、4、5、6 步改成清楚的動畫，用 App 真正的圖示，系統畫面的文字跟三星手機上一樣；其他 App 以灰色區塊代替，不會露出別人手機上的內容。
 
 ### v1.0.2
 - **不會漏掉提醒**：Sidepeek 不能發通知時（權限被關、「LINE 訊息預覽」類別被關），會先保留 LINE 原本的通知，並在 App 裡提醒你。

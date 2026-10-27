@@ -14,7 +14,7 @@ import java.net.URL
  * No data about the user is sent; it is a plain anonymous GET.
  */
 object UpdateChecker {
-    private const val LATEST = "https://api.github.com/repos/jaydenluuuu-sys/sidepeek/releases/latest"
+    private const val LATEST = "https://api.github.com/repos/jaydenluuuu/sidepeek/releases/latest"
     private const val INTERVAL_MS = 20 * 3600_000L
     private val BUILD_RE = Regex("""build(\d+)\.apk$""", RegexOption.IGNORE_CASE)
 

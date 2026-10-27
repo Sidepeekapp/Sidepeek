@@ -801,6 +801,10 @@ class MainActivity : AppCompatActivity() {
             paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
             setOnClickListener { startActivity(Intent(this@MainActivity, PrivacyActivity::class.java)) }
         }
+        findViewById<TextView>(R.id.linkWebsite).apply {
+            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+            setOnClickListener { safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(WEBSITE))) }
+        }
         findViewById<SwitchCompat>(R.id.swPanelScrim).apply {
             isChecked = Prefs.panelScrim(this@MainActivity)
             setOnCheckedChangeListener { _, on -> Prefs.set(this@MainActivity, Prefs.KEY_PANEL_SCRIM, on); previewPanel() }
@@ -1068,6 +1072,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val WEBSITE = "https://jaydenluuuu.github.io/Sidepeek/"
         private const val STATE_EXPANDED = "main.expanded"
         private const val STATE_SHOW_ALL = "main.showAll"
         private const val STATE_WIZARD_STEP = "main.wizardStep"

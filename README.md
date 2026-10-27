@@ -2,6 +2,8 @@
 
 **LINE 通知整理＋邊緣側邊欄，免費、開源。**
 
+🌐 官網：<https://jaydenluuuu.github.io/Sidepeek/>
+
 > 非官方的個人 Android App，與 LINE、LY Corporation、Samsung 無關。Sidepeek 原名「訊息預覽」。
 
 把 LINE 疊成一團的通知，依聊天室整理成對話預覽；從螢幕邊緣的 Peek 條一拉，就能在側邊欄看最近的訊息。所有處理都在手機上完成，沒有後端伺服器。

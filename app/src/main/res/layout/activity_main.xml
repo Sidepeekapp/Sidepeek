@@ -604,6 +604,15 @@
             android:background="?attr/selectableItemBackground"
             android:textColor="@color/section_text" android:textSize="15sp"
             android:text="隱私權政策" />
+        <TextView android:id="@+id/linkWebsite"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:minHeight="48dp" android:gravity="center"
+            android:paddingStart="16dp" android:paddingEnd="16dp"
+            android:clickable="true" android:focusable="true"
+            android:background="?attr/selectableItemBackground"
+            android:textColor="@color/section_text" android:textSize="15sp"
+            android:text="官網" />
         <TextView android:id="@+id/txtFooter"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"

@@ -451,9 +451,6 @@ class LineListenerService : NotificationListenerService() {
         // Images carried by the notification itself (BigPictureStyle) — local, no network.
         val notifPicture: Bitmap? = extractNotificationPicture(ex)
         val notifLargeIcon: Bitmap? = n.getLargeIcon()?.let { iconToBitmap(it) }
-        // What the notification carries (field names, image slots and sizes only, never values) so
-        // "the photo didn't show" can be answered from an events-only log.
-        try { Diagnostics.note(this, "SHAPE pkg=${sbn.packageName} " + shapeOf(ex, ms, notifPicture)) } catch (_: Throwable) {}
         // LINE stickers: defer CDN download until AFTER we post + hide (never block the shade).
         val notifSticker = if (isLine) StickerLoader.discover(ex) else StickerLoader.Discovery(emptyList(), emptyList(), null, null, null)
         if (isLine && (notifSticker.candidates.isNotEmpty() || notifSticker.stickerKeys.isNotEmpty())) {
@@ -707,13 +704,9 @@ class LineListenerService : NotificationListenerService() {
         try {
             (ex.get(Notification.EXTRA_PICTURE) as? Bitmap)?.let { return it }
             if (Build.VERSION.SDK_INT >= 31) {
-                (ex.get(Notification.EXTRA_PICTURE_ICON) as? Icon)?.let { icon ->
-                    iconToBitmap(icon)?.let { return it }
-                    Diagnostics.note(this, "IMG pictureIcon type=${iconType(icon)} could not be loaded")
-                }
+                (ex.get(Notification.EXTRA_PICTURE_ICON) as? Icon)?.let { icon -> iconToBitmap(icon)?.let { return it } }
             }
-        } catch (e: Exception) {
-            Diagnostics.note(this, "IMG picture read fail ${e.javaClass.simpleName}")
+        } catch (_: Exception) {
         }
         return null
     }
@@ -724,47 +717,11 @@ class LineListenerService : NotificationListenerService() {
         var sample = 1
         while (opts.outWidth / sample > 1440 || opts.outHeight / sample > 1440) sample *= 2
         val opts2 = BitmapFactory.Options().apply { inSampleSize = sample }
-        val bmp = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts2) }
-        // Only the scheme/authority is logged: the path can identify the chat or the file.
-        Diagnostics.note(this, "IMG dataUri ${uri.scheme}://${uri.authority} " +
-            (if (bmp != null) "ok ${bmp.width}x${bmp.height}" else "decode=null (bounds ${opts.outWidth}x${opts.outHeight})"))
-        bmp
+        contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts2) }
     } catch (e: Exception) {
-        // Usually SecurityException: the app did not grant us read access to its content URI.
+        // Usually SecurityException: LINE did not grant us read access to its content URI.
         Log.i(TAG, "cannot read image uri $uri: ${e.javaClass.simpleName}")
-        Diagnostics.note(this, "IMG dataUri ${uri.scheme}://${uri.authority} fail ${e.javaClass.simpleName}")
         null
-    }
-
-    /** Field names and image slots of a notification, without any of their values. */
-    private fun shapeOf(ex: Bundle, ms: NotificationCompat.MessagingStyle?, picture: Bitmap?): String {
-        val template = ex.getString(Notification.EXTRA_TEMPLATE)?.substringAfterLast('$') ?: "-"
-        val msInfo = ms?.messages?.let { list ->
-            val withData = list.filter { it.dataUri != null }
-            "ms=${list.size}" + if (withData.isEmpty()) "" else " msData=" +
-                withData.joinToString("|") { "${it.dataMimeType ?: "?"}@${it.dataUri?.scheme}://${it.dataUri?.authority}" }
-        } ?: "ms=none"
-        @Suppress("DEPRECATION")
-        val picSlot = ex.get(Notification.EXTRA_PICTURE)
-        val iconSlot = if (Build.VERSION.SDK_INT >= 31) {
-            @Suppress("DEPRECATION") ex.get(Notification.EXTRA_PICTURE_ICON)
-        } else null
-        fun slot(v: Any?): String = when (v) {
-            null -> "-"
-            is Bitmap -> "bitmap ${v.width}x${v.height}"
-            is Icon -> "icon type=${iconType(v)}"
-            else -> v.javaClass.simpleName
-        }
-        return "template=$template $msInfo picture=${slot(picSlot)} pictureIcon=${slot(iconSlot)}" +
-            " decoded=${picture?.let { "${it.width}x${it.height}" } ?: "none"}" +
-            // Key names are long; only while the full log is on (the log file is size-capped).
-            (if (Diagnostics.full(this)) " keys=${ex.keySet().sorted().joinToString(",")}" else "")
-    }
-
-    private fun iconType(i: Icon): String = when (i.type) {
-        Icon.TYPE_BITMAP -> "bitmap"; Icon.TYPE_RESOURCE -> "resource"; Icon.TYPE_DATA -> "data"
-        Icon.TYPE_URI -> "uri"; Icon.TYPE_ADAPTIVE_BITMAP -> "adaptive"
-        else -> if (Build.VERSION.SDK_INT >= 30 && i.type == Icon.TYPE_URI_ADAPTIVE_BITMAP) "uri-adaptive" else i.type.toString()
     }
 
     private fun personAvatar(p: Person): Bitmap? = try {

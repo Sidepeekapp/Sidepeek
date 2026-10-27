@@ -86,4 +86,3 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
   使用者實際遇到的是 LINE 社群（OpenChat）：一般群組有 conversationTitle，社群沒有，側邊欄顯示成發言者。
 - 待實機確認：一對一聊天含自己傳的訊息時會不會被判成群組；LINE 錢包等一般通知若有 subText 會不會被當成名稱。
 - 發版說明改成取 README「### v版本號」那一段（相對連結換成完整網址），找不到才列 commit 標題；發新版前先在 README 寫好這段。
-- 診斷：每則通知記一行 SHAPE（template、MessagingStyle 則數與 dataUri 類型、picture/pictureIcon 欄位型別、實際解出的尺寸；完整記錄開著時加 extras 鍵名），讀圖失敗記 IMG。起因：IG 私訊傳照片，側邊欄只有文字。

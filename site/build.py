@@ -1,6 +1,6 @@
 """Build the GitHub Pages site into _site/.
 
-- index.html is copied as is.
+- index.html and og.png (the link-preview image) are copied as is.
 - privacy.html is generated from docs/privacy.md, so the policy has one source of truth
   (the same text the app shows in PrivacyActivity).
 
@@ -63,6 +63,7 @@ def main() -> None:
         shutil.rmtree(OUT)
     OUT.mkdir()
     shutil.copy(SITE / "index.html", OUT / "index.html")
+    shutil.copy(SITE / "og.png", OUT / "og.png")  # link-preview image (og:image)
 
     md = (ROOT / "docs" / "privacy.md").read_text(encoding="utf-8")
     title = re.search(r"^#\s+(.+)$", md, re.M).group(1).replace("Sidepeek ", "").strip()

@@ -10,7 +10,7 @@
 
 - 支援 Android 8.0 以上
 - 主要以 Samsung One UI＋手勢導航、右手單手操作來設計
-- 最新版本：**v1.0.3**（[下載 APK](../../releases/latest)）；之後有新版，App 會自動提醒
+- 最新版本：**v1.0.3**（[直接下載 APK](https://github.com/Sidepeekapp/Sidepeek/releases/latest/download/sidepeek.apk)）；之後有新版，App 會自動提醒
 
 > 📣 為了讓大家之後能更方便地安裝和更新，安卓測試勇士招募中！ [填這份表單](https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform)，測試開始時會寄邀請到你的 Gmail。
 

@@ -68,18 +68,37 @@ jobs:
           set -euo pipefail
           if [ -z "${KS_B64:-}" ]; then echo "No signing secrets: leaving the APK unsigned."; exit 0; fi
           KS="$RUNNER_TEMP/release.jks"
-          echo "$KS_B64" | base64 -d > "$KS"
+          # Forgive stray spaces / line breaks picked up when pasting on a phone.
+          KS_PASS=$(printf '%s' "$KS_PASS" | tr -d ' \r\n\t'); KEY_PASS=$(printf '%s' "$KEY_PASS" | tr -d ' \r\n\t')
+          KS_B64=$(printf '%s' "$KS_B64" | tr -d ' \r\n\t')
+          export KS_PASS KEY_PASS
+          # Checks below print only lengths / hashes / yes-no, never the secret values.
+          echo "::notice::keystore text: ${#KS_B64} chars (expected 5764); alias: ${#KEY_ALIAS} chars (expected 11)"
+          echo "::notice::passwords: store ${#KS_PASS} chars, key ${#KEY_PASS} chars (expected 20 each)"
+          if ! printf '%s' "$KS_B64" | tr -d ' \r\n\t' | base64 -d > "$KS" 2>/dev/null; then
+            echo "::error::SIGNING_KEYSTORE_BASE64 is not valid base64 (cut off or extra text when pasting?)"; exit 1
+          fi
+          echo "::notice::keystore file: $(wc -c < "$KS") bytes, sha256 $(sha256sum "$KS" | cut -c1-16)… (expected 4322 bytes, df3fd5100422…)"
+          KEY_ALIAS=$(printf '%s' "$KEY_ALIAS" | tr -d ' \r\n\t')
+          if ! keytool -list -keystore "$KS" -storepass:env KS_PASS >/dev/null 2>&1; then
+            echo "::error::Cannot open the keystore with SIGNING_STORE_PASSWORD (wrong password, or the keystore text is damaged)"; exit 1
+          fi
+          if ! keytool -list -keystore "$KS" -storepass:env KS_PASS -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+            echo "::error::Alias '$KEY_ALIAS' not found in the keystore (SIGNING_KEY_ALIAS should be linepreview)"; exit 1
+          fi
           VC=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
           VN=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           OUT="out/sidepeek-$VN-build$VC.apk"
-          java -jar "$BT/lib/apksigner.jar" sign --ks "$KS" --ks-key-alias "$KEY_ALIAS" \
+          if ! java -jar "$BT/lib/apksigner.jar" sign --ks "$KS" --ks-key-alias "$KEY_ALIAS" \
             --ks-pass env:KS_PASS --key-pass env:KEY_PASS \
             --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true \
-            --out "$OUT" out/app-release-unsigned.apk
+            --out "$OUT" out/app-release-unsigned.apk 2> "$RUNNER_TEMP/sign.err"; then
+            echo "::error::apksigner failed: $(head -c 300 "$RUNNER_TEMP/sign.err" | tr '\n' ' ')"; exit 1
+          fi
           rm -f "$KS" "$OUT.idsig"
           CERT=$(java -jar "$BT/lib/apksigner.jar" verify --print-certs "$OUT" | grep -m1 'certificate SHA-256 digest' | awk '{print $NF}')
           if [ "$CERT" != "$EXPECTED_CERT" ]; then echo "::error::Signed with an unexpected certificate: $CERT"; exit 1; fi
-          echo "Signed OK with the Sidepeek certificate -> $OUT"
+          echo "::notice::Signed OK with the Sidepeek certificate -> $OUT"
           rm -f out/app-release-unsigned.apk out/apksigner.jar
 
       - name: Upload to draft Release

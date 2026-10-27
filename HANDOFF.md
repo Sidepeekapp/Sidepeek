@@ -5,7 +5,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## 基本
 - 套件名 `app.sidepeek`，minSdk 26，compileSdk/targetSdk 36，AGP 8.11.2、Gradle 8.13、Kotlin 1.9.24。
-- 顯示版本固定 **1.0**（使用者要求）；versionCode 目前 3，之後發新版要遞增。
+- 顯示版本固定 **1.0**（使用者要求）；versionCode 目前 4，之後發新版要遞增。
 - 正式版：根目錄放 `keystore.properties`（不進版控，簽章金鑰在使用者手上）→ `./gradlew :app:assembleRelease` / `:app:bundleRelease`。R8 開啟。
 - 聯絡信箱 sidepeek.app@gmail.com（App 內「意見回饋」會自動帶手機資訊）。
 - 測試：`./gradlew :app:testDebugUnitTest`（LinkExtractorTest、ProfileLinksTest）。
@@ -42,6 +42,17 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 - 貼圖下載：只連 `*.line-scdn.net`、`*.line-cdn.net`、`*.line.naver.jp` 的 https；不掃訊息文字／名稱欄位；
   轉址最多 3 次且必須仍是 LINE 網域；單張上限 2 MB；解碼超過 1024px 會縮小；User-Agent 改為 Sidepeek。
   隱私權政策同步更新（10/27）。
+
+## 10/27 下午（versionCode 4）
+- 側邊欄標題列：「最近訊息」後面接灰色則數，右邊只留低調的「清除」；拿掉「關閉」（往外滑、點外面、返回鍵、
+  標題列雙擊都能關）。
+- 「清除」不跳確認：卡片依序飛出後出現「已清除 N 則・復原」5 秒；期間按鈕隱藏。復原期結束（或側邊欄關閉）才
+  `finalizeClear`：刪圖片／頭像／聊天室頭貼（`MessageStore.purgeFiles`）、清診斷記錄、更新 LINE 整理通知。
+  單則滑掉也改用 `purgeFiles`（連頭像一起清）。
+- 小修：`OpenChatActivity` 改 exported=false（捷徑以本 App 身分啟動，應不受影響，需實機確認）；`hiddenAt`
+  加鎖；意見回饋與診斷記錄顯示「1.0 (versionCode)」。
+- CI：`.github/workflows/build.yml` 每次推 main 建置未簽名 APK＋單元測試，放草稿 Release「CI build <sha>」，
+  附 apksigner.jar；舊的 CI 草稿會自動刪除。失敗時記錄放「CI failed <sha>」草稿。
 
 ## 待確認 / 可做
 - 上述三項尚未在實機長時間驗證；若有問題請使用者匯出「遇到問題 → 匯出診斷記錄」。

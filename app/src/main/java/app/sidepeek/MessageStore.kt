@@ -182,7 +182,7 @@ object MessageStore {
     private const val LONG_TEXT = 20
     private const val LONG_WINDOW_MS = 30 * 60_000L
 
-    /** Remove one message (swipe-to-delete in the panel). Image file is kept until [purgeImage]. */
+    /** Remove one message (swipe-to-delete in the panel). Files are kept until [purgeFiles] (undo). */
     fun remove(ctx: Context, id: String): LineMessage? {
         val removed = synchronized(this) {
             ensureLoaded(ctx)
@@ -191,12 +191,6 @@ object MessageStore {
         }
         if (removed != null) notifyListeners()
         return removed
-    }
-
-    /** Delete a removed message's image if no stored message still uses it. */
-    @Synchronized
-    fun purgeImage(path: String?) {
-        if (path != null && messages.none { it.imagePath == path }) File(path).delete()
     }
 
     /** Attach a sticker/image downloaded after the initial post (silent refresh). */
@@ -274,13 +268,53 @@ object MessageStore {
     }
 
     fun clear(ctx: Context) {
-        synchronized(this) {
+        purgeFiles(ctx, removeAll(ctx))
+    }
+
+    /**
+     * 「清除」 step 1: drop every message but keep their files, so [restoreAll] can undo it.
+     * @return the removed messages
+     */
+    fun removeAll(ctx: Context): List<LineMessage> {
+        val removed = synchronized(this) {
             ensureLoaded(ctx)
+            val all = ArrayList(messages)
             messages.clear()
             save(ctx)
-            File(ctx.filesDir, "img").deleteRecursively()
+            all
+        }
+        if (removed.isNotEmpty()) notifyListeners()
+        return removed
+    }
+
+    /** Undo of [removeAll]: put the messages back (skipping any id that exists again). */
+    fun restoreAll(ctx: Context, msgs: List<LineMessage>) {
+        synchronized(this) {
+            ensureLoaded(ctx)
+            val ids = messages.mapTo(HashSet()) { it.id }
+            msgs.filterTo(messages) { it.id !in ids }
+            messages.sortBy { it.time }
+            while (messages.size > MAX) messages.removeAt(0)
+            save(ctx)
         }
         notifyListeners()
+    }
+
+    /**
+     * Delete the image / avatar files of [removed] messages that no stored message still uses,
+     * and the chat header pictures of chats that have no message left.
+     */
+    fun purgeFiles(ctx: Context, removed: List<LineMessage>) {
+        synchronized(this) {
+            val usedImg = messages.mapNotNullTo(HashSet()) { it.imagePath }
+            val usedAv = messages.mapNotNullTo(HashSet()) { it.avatarPath }
+            val chats = messages.mapTo(HashSet()) { it.chatKey }
+            for (m in removed) {
+                m.imagePath?.let { if (it !in usedImg) File(it).delete() }
+                m.avatarPath?.let { if (it !in usedAv) File(it).delete() }
+                if (m.chatKey !in chats) chatAvatarPath(ctx, m.chatKey)?.let { File(it).delete() }
+            }
+        }
     }
 
     private fun save(ctx: Context) {

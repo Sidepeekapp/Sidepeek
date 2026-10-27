@@ -772,7 +772,8 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         })
         card.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ -> updateExclusion(v) }
 
-        // Header (swipe here or tap 關閉 closes the panel — never deletes a message)
+        // Header: 「最近訊息」 + count on the left, a quiet 「清除」 on the right. No close button: the
+        // panel closes by swiping outward (also on the header), tapping outside or Back.
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(6f), 0, dp(2f), dp(10f))
@@ -785,34 +786,31 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                 if (now - lastTap < 350) closePanel() else lastTap = now
             }
         }
-        // Usable width inside the card, in dp. Narrow panels (or big text) get a stacked layout so
-        // nothing wraps one character per line.
+        // Usable width inside the card, in dp. Narrow panels (or big text) stack the message meta.
         val contentDp = (panelW - dp(28f)) / resources.displayMetrics.density
-        narrowHeader = contentDp < 236f * textScale
         narrowItems = contentDp < 250f * textScale
         val title = TextView(this).apply {
-            text = "最近訊息"; setTextColor(Color.WHITE); textSize = 19f * textScale
+            setTextColor(Color.WHITE); textSize = 19f * textScale
             typeface = Typeface.DEFAULT_BOLD
             maxLines = 1; ellipsize = TextUtils.TruncateAt.END
         }
-        if (!narrowHeader) {
-            header.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            header.addView(pill("全部清除") { clearAllOneUi() })
-            header.addView(pill("關閉") { closePanel() }, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { leftMargin = dp(8f) })
-        } else {
-            // Title on its own line, the two buttons share the line below.
-            header.orientation = LinearLayout.VERTICAL
-            header.gravity = Gravity.START
-            header.addView(title, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            val btns = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            btns.addView(pill("全部清除") { clearAllOneUi() }.apply { gravity = Gravity.CENTER },
-                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            btns.addView(pill("關閉") { closePanel() }.apply { gravity = Gravity.CENTER },
-                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = dp(8f) })
-            header.addView(btns, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                .apply { topMargin = dp(10f) })
+        titleView = title
+        header.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val clear = TextView(this).apply {
+            text = "清除"; setTextColor(0xFFB4B4BA.toInt()); textSize = 13.5f * textScale
+            maxLines = 1
+            background = GradientDrawable().apply {
+                cornerRadius = dp(14f).toFloat()
+                setColor(0x00000000)
+                setStroke(dp(1f).coerceAtLeast(1), 0x33FFFFFF)
+            }
+            setPadding(dp(12f), dp(5f), dp(12f), dp(5f))
+            contentDescription = "清除全部訊息（可以復原）"
+            setOnClickListener { clearAllOneUi() }
         }
+        clearButton = clear
+        header.addView(clear, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { leftMargin = dp(8f) })
         card.addView(header)
         headerBar = header
 
@@ -824,7 +822,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         panelCard = card
         root.target = card
 
-        // "已刪除・復原" undo bar (shown ~4s after a swipe-delete)
+        // "已刪除・復原" / "已清除 N 則・復原" undo bar (shown a few seconds after a delete / clear)
         val undo = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
             background = rounded(0xFF3A3A3E.toInt(), 14f)
@@ -832,6 +830,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             visibility = View.GONE
             addView(TextView(this@PanelController).apply {
                 text = "已刪除"; setTextColor(0xFFE8E8E8.toInt()); textSize = 14f * textScale
+                undoLabel = this
             }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             addView(TextView(this@PanelController).apply {
                 text = "・復原"; setTextColor(0xFF4ADE80.toInt()); textSize = 14f * textScale
@@ -846,7 +845,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         // One-time tip so the user knows where to close (cards take most of the panel).
         if (!Prefs.sp(this).getBoolean(Prefs.KEY_PANEL_HINT_SHOWN, false)) {
             val tip = TextView(this).apply {
-                text = "點外面或上方關閉・整片往右滑可收起・卡片往左滑可刪除"
+                text = "點外面、往外滑或按返回鍵關閉・卡片往左滑刪除"
                 setTextColor(0xFFB0B0B4.toInt()); textSize = 12f * textScale
                 gravity = Gravity.CENTER; setPadding(dp(8f), dp(8f), dp(8f), dp(4f))
                 tag = "close-zone"
@@ -909,9 +908,11 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
 
     // ---------------------------------------------------------------- swipe-to-delete / close zones
     private var undoBar: View? = null
+    private var undoLabel: TextView? = null
     private var headerBar: View? = null
+    private var titleView: TextView? = null
+    private var clearButton: View? = null
     /** Set when the panel opens: stack the header / message meta when the panel is narrow. */
-    private var narrowHeader = false
     private var narrowItems = false
 
     /** Screen points where a horizontal swipe must close the panel, never delete a card. */
@@ -971,6 +972,10 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     }
 
     private var lastDeleted: LineMessage? = null
+    /** Messages removed by 「清除」 that can still be restored from the undo bar. */
+    private var clearedAll: List<LineMessage>? = null
+    private val UNDO_SINGLE_MS = 4000L
+    private val UNDO_CLEAR_MS = 5000L
     private val hideUndo = Runnable { finishUndoWindow() }
 
     /** The message card under a screen point, if any (used by SwipeFrame). */
@@ -1037,15 +1042,33 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         if (!has) refreshList()
     }
 
-    /** Staggered One UI-like cascade for 「全部清除」. */
+    /** 「最近訊息  12」: count in smaller gray text; 「清除」 only when there is something to clear. */
+    private fun updateHeader(count: Int) {
+        val t = titleView ?: return
+        val sb = android.text.SpannableStringBuilder("最近訊息")
+        if (count > 0) {
+            val start = sb.length
+            sb.append("  ").append(count.toString())
+            sb.setSpan(android.text.style.RelativeSizeSpan(0.72f), start, sb.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(android.text.style.ForegroundColorSpan(0xFF8E8E93.toInt()), start, sb.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(android.text.style.StyleSpan(Typeface.NORMAL), start, sb.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        t.text = sb
+        // While a clear can still be undone, keep the button hidden too (the undo bar is the action).
+        clearButton?.visibility = if (count > 0 && clearedAll == null) View.VISIBLE else View.INVISIBLE
+    }
+
+    /**
+     * 「清除」: cards fly off in a staggered One UI-like cascade, then everything is removed from the
+     * store but can be restored from the undo bar for [UNDO_CLEAR_MS]. Only when that window ends
+     * (or the panel closes) are images / avatars / the diagnostics log deleted and our LINE
+     * notifications updated, so an accidental tap costs nothing.
+     */
     private fun clearAllOneUi() {
         val list = listContainer ?: return
+        if (clearedAll != null) return
+        finishUndoWindow()                      // a previous single delete becomes final
         val cards = (0 until list.childCount).map { list.getChildAt(it) }.filter { it.tag is LineMessage }
-        if (cards.isEmpty()) {
-            MessageStore.clear(this)
-            return
-        }
-        finishUndoWindow()
         suppressListRefresh++
         cards.forEach { dismissingViews.add(it); it.isClickable = false }
         cards.forEachIndexed { i, v ->
@@ -1057,14 +1080,21 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                     .setDuration(200).setInterpolator(DecelerateInterpolator()).start()
             }, i * 45L)
         }
-        val doneAt = (cards.size - 1) * 45L + 260L
+        val doneAt = if (cards.isEmpty()) 0L else (cards.size - 1) * 45L + 260L
         mainHandler.postDelayed({
-            // Collapse remaining space as a single smooth settle into empty state.
-            MessageStore.clear(this@PanelController)
+            val removed = MessageStore.removeAll(this@PanelController)
             dismissingViews.clear()
             suppressListRefresh = (suppressListRefresh - 1).coerceAtLeast(0)
+            if (removed.isEmpty()) { refreshList(); return@postDelayed }
+            if (panelRoot == null) {
+                // Panel closed during the animation: no undo bar to show, make it final now.
+                finalizeClear(removed); return@postDelayed
+            }
+            clearedAll = removed
+            val shown = removed.count { Sources.isSelected(this@PanelController, it.pkg) }
+            Diagnostics.note(this@PanelController, "PANEL cleared ${removed.size} message(s) (undo window open)")
             refreshList()
-            try { Notifier.refreshAllSilently(this@PanelController) } catch (_: Exception) {}
+            showUndo("已清除 $shown 則", UNDO_CLEAR_MS)
         }, doneAt)
     }
 
@@ -1079,26 +1109,49 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         lastDeleted = removed
         Diagnostics.note(this, "PANEL deleted message id=${m.id} chat=${m.chatKey}")
         updateChatNotification(removed)
+        showUndo("已刪除", UNDO_SINGLE_MS)
+    }
+
+    private fun showUndo(label: String, ms: Long) {
+        undoLabel?.text = label
         undoBar?.let { it.visibility = View.VISIBLE; it.alpha = 0f; it.animate().alpha(1f).setDuration(150).start() }
         mainHandler.removeCallbacks(hideUndo)
-        mainHandler.postDelayed(hideUndo, 4000)
+        mainHandler.postDelayed(hideUndo, ms)
     }
 
     private fun undoDelete() {
+        mainHandler.removeCallbacks(hideUndo)
+        undoBar?.visibility = View.GONE
+        clearedAll?.let { all ->
+            clearedAll = null
+            MessageStore.restoreAll(this, all)
+            Diagnostics.note(this, "PANEL undo clear (${all.size} message(s))")
+            refreshList()
+            return
+        }
         val m = lastDeleted ?: return
         lastDeleted = null
-        mainHandler.removeCallbacks(hideUndo)
         MessageStore.restore(this, m)
         Diagnostics.note(this, "PANEL undo delete id=${m.id}")
         updateChatNotification(m)
-        undoBar?.visibility = View.GONE
     }
 
+    /** The undo window ended (timeout, another delete, panel closed): make deletions final. */
     private fun finishUndoWindow() {
         mainHandler.removeCallbacks(hideUndo)
-        lastDeleted?.let { MessageStore.purgeImage(it.imagePath) }
+        lastDeleted?.let { MessageStore.purgeFiles(this, listOf(it)) }
         lastDeleted = null
+        clearedAll?.let { all -> clearedAll = null; finalizeClear(all) }
         undoBar?.visibility = View.GONE
+        if (listContainer != null) updateHeader(MessageStore.all(this).count { Sources.isSelected(this, it.pkg) })
+    }
+
+    /** After 「清除」: delete the cleared messages' files and the diagnostics log (it holds message text). */
+    private fun finalizeClear(all: List<LineMessage>) {
+        MessageStore.purgeFiles(this, all)
+        Diagnostics.clear(this)
+        Diagnostics.note(this, "PANEL clear final: ${all.size} message(s), images/avatars and diagnostics log deleted")
+        try { Notifier.refreshAllSilently(this) } catch (_: Exception) {}
     }
 
     /** Keep our stacked LINE notification in sync with the deleted / restored message. */
@@ -1128,7 +1181,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         panelRoot = null
         val card = panelCard
         panelCard = null; listContainer = null
-        finishUndoWindow(); undoBar = null; headerBar = null
+        finishUndoWindow(); undoBar = null; undoLabel = null; headerBar = null; titleView = null; clearButton = null
         dismissingViews.clear(); suppressListRefresh = 0
         unregisterBack()
         log("close (animate=$animate swiped=$swiped)")
@@ -1157,10 +1210,9 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     private fun refreshList() {
         val list = listContainer ?: return
         list.removeAllViews()
-        val msgs = MessageStore.all(this)
-            .filter { m -> Sources.isSelected(this, m.pkg) }
-            .sortedByDescending { it.time }
-            .take(50)
+        val visible = MessageStore.all(this).filter { m -> Sources.isSelected(this, m.pkg) }
+        val msgs = visible.sortedByDescending { it.time }.take(50)
+        updateHeader(visible.size)
         if (msgs.isEmpty()) {
             list.addView(TextView(this).apply {
                 text = "目前沒有訊息。\n收到 LINE、Messenger、IG 等訊息後會顯示在這裡。"

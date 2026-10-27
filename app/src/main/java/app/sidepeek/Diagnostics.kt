@@ -87,6 +87,7 @@ object Diagnostics {
         val header = buildString {
             append("Sidepeek 診斷記錄\n")
             append("匯出時間: ").append(fmt.format(Date())).append('\n')
+            append("Sidepeek 版本: ").append(BuildConfig.VERSION_NAME).append(" (").append(BuildConfig.VERSION_CODE).append(")\n")
             append("側邊欄模式: ").append(when {
                 PanelAccessibilityService.instance != null -> "無障礙服務 (TYPE_ACCESSIBILITY_OVERLAY, 無常駐通知)"
                 EdgePanelService.running -> "備用 (TYPE_APPLICATION_OVERLAY + 前景服務通知)"

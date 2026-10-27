@@ -10,8 +10,9 @@ import android.widget.Toast
 object Feedback {
     const val CONTACT = "sidepeek.app@gmail.com"
 
-    private fun version(act: Activity): String =
-        try { act.packageManager.getPackageInfo(act.packageName, 0).versionName ?: "" } catch (_: Exception) { "" }
+    /** "1.0 (3)": the shown version stays 1.0, the build number tells releases apart. */
+    private fun version(@Suppress("UNUSED_PARAMETER") act: Activity): String =
+        "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
 
     /** Phone / app facts that help with bug reports. No messages or personal data. */
     fun deviceInfo(act: Activity): String {

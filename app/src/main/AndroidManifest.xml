@@ -84,9 +84,11 @@
                 android:resource="@xml/panel_accessibility" />
         </service>
 
+        <!-- Only started by our own conversation shortcuts (launched as this app), so not exported:
+             other apps cannot use it to open LINE chats. -->
         <activity
             android:name=".OpenChatActivity"
-            android:exported="true"
+            android:exported="false"
             android:excludeFromRecents="true"
             android:noHistory="true"
             android:taskAffinity=""

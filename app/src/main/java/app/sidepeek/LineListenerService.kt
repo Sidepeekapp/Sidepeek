@@ -259,7 +259,9 @@ class LineListenerService : NotificationListenerService() {
 
     private fun hideOriginal(sbn: StatusBarNotification, why: String) {
         keepReason(sbn)?.let { Diagnostics.note(this, "HIDE skip ($why) key=${sbn.key} ${flagsOf(sbn)}: $it"); return }
-        val prev = hiddenAt[sbn.key]
+        // hiddenAt is touched from the main thread (asap hide) and the worker: access-ordered
+        // LinkedHashMap.get() also modifies it, so every access is synchronized.
+        val prev = synchronized(hiddenAt) { hiddenAt[sbn.key] }
         // Still active although we already removed this very post => cancel did not stick -> snooze.
         val stuck = prev != null && sbn.postTime <= prev
         if (stuck) {
@@ -273,7 +275,7 @@ class LineListenerService : NotificationListenerService() {
             try { cancelNotification(sbn.key); "cancel (snooze failed: ${e.javaClass.simpleName})" }
             catch (e2: Exception) { "FAILED: $e2" }
         }
-        hiddenAt[sbn.key] = System.currentTimeMillis()
+        synchronized(hiddenAt) { hiddenAt[sbn.key] = System.currentTimeMillis() }
         Diagnostics.note(this, "HIDE $method ($why) key=${sbn.key} ${flagsOf(sbn)}")
     }
 

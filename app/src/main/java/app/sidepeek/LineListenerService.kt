@@ -402,11 +402,29 @@ class LineListenerService : NotificationListenerService() {
         if (ex.containsKey(Notification.EXTRA_MEDIA_SESSION)) return
         val ms = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n)
         val chatKey = chatKeyOf(sbn, ms, ex)
+        val isLine = sbn.packageName == LINE_PKG || sbn.packageName == LINE_LITE_PKG
+        val conversationTitle = ms?.conversationTitle?.toString()
+            ?: ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)?.toString()
+        val notificationTitle = ex.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+        // Current LINE (Android 12+) posts the latest sender as EXTRA_TITLE and the actual chat
+        // name as EXTRA_SUB_TEXT. For 1:1 chats both are normally the same; for groups they differ.
+        val lineSubText = if (isLine) ex.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString() else null
+        val resolvedTitle = ConversationTitles.resolve(
+            conversationTitle = conversationTitle,
+            lineSubText = lineSubText,
+            notificationTitle = notificationTitle,
+            appName = Sources.displayName(this, sbn.packageName),
+        )
+        val chatTitle = resolvedTitle.title
+        var isGroup = (ms?.isGroupConversation == true) ||
+            !conversationTitle.isNullOrBlank() ||
+            (!lineSubText.isNullOrBlank() && lineSubText.trim() != notificationTitle?.trim())
 
         // Same notification key re-posted with identical content (LINE updates / re-alerts) -> skip.
         val fingerprint = listOf(
             ex.getCharSequence(Notification.EXTRA_TITLE), ex.getCharSequence(Notification.EXTRA_TEXT),
-            ex.getCharSequence(Notification.EXTRA_BIG_TEXT), ex.getString("line.message.id"),
+            ex.getCharSequence(Notification.EXTRA_BIG_TEXT), ex.getCharSequence(Notification.EXTRA_SUB_TEXT),
+            ex.getString("line.message.id"),
             ms?.messages?.joinToString("\u0001") { "${it.timestamp}|${it.person?.name}|${it.text}" }
         ).joinToString("\u0002") { it?.toString() ?: "" }.hashCode()
         // Non-LINE apps that re-post the SAME text for every new message (bubble: 「有新消息。」)
@@ -424,11 +442,6 @@ class LineListenerService : NotificationListenerService() {
         }
         lastContent[sbn.key] = fingerprint
         lastKeyPostTime[sbn.key] = sbn.postTime
-        val convTitle = ms?.conversationTitle?.toString()
-            ?: ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)?.toString()
-        val title = ex.getCharSequence(Notification.EXTRA_TITLE)?.toString()
-        val isGroup = (ms?.isGroupConversation == true) || !convTitle.isNullOrBlank()
-        val chatTitle = (convTitle ?: title ?: Sources.displayName(this, sbn.packageName)).trim()
 
         MessageStore.setIntent(chatKey, n.contentIntent)
         try { MessageStore.setLineActions(chatKey, extractLineActions(n)) } catch (e: Throwable) {
@@ -439,7 +452,6 @@ class LineListenerService : NotificationListenerService() {
         val notifPicture: Bitmap? = extractNotificationPicture(ex)
         val notifLargeIcon: Bitmap? = n.getLargeIcon()?.let { iconToBitmap(it) }
         // LINE stickers: defer CDN download until AFTER we post + hide (never block the shade).
-        val isLine = sbn.packageName == LINE_PKG || sbn.packageName == LINE_LITE_PKG
         val notifSticker = if (isLine) StickerLoader.discover(ex) else StickerLoader.Discovery(emptyList(), emptyList(), null, null, null)
         if (isLine && (notifSticker.candidates.isNotEmpty() || notifSticker.stickerKeys.isNotEmpty())) {
             Diagnostics.note(this, "sticker-discover notif keys=${notifSticker.stickerKeys} id=${notifSticker.stkId} pkg=${notifSticker.stkPkgId} ver=${notifSticker.stkVer} candidates=${notifSticker.candidates.size}")
@@ -531,7 +543,7 @@ class LineListenerService : NotificationListenerService() {
             )
             if (text.isEmpty() && picture == null && !stickerish) return
             if (text.isEmpty() && picture == null && stickerish) text = "傳送了貼圖"
-            val sender = title ?: chatTitle
+            val sender = notificationTitle ?: chatTitle
             val time = if (n.`when` > 0) n.`when` else sbn.postTime
             val id = if (lineMsgId != null) "$chatKey|mid:$lineMsgId" else idOf(chatKey, sender, text, time, null)
             if (MessageStore.contains(this, id) || isRecentDupe(id)) { dedupeLog("skip seen id=$id"); repeatIfReposted(); return }
@@ -547,6 +559,15 @@ class LineListenerService : NotificationListenerService() {
             }
             newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender,
                 text.ifEmpty { "（圖片）" }, time, picture, notifLargeIcon)
+        }
+
+        // Conversation metadata (including LINE's subText chat name) is authoritative. Apart from
+        // fixing the newest notification, repair cards stored before we learned the proper title.
+        if (isLine && resolvedTitle.isAuthoritativeConversationTitle) {
+            MessageStore.updateChatTitle(this, chatKey, chatTitle)
+            if (!isGroup && newMessages.any { it.sender.isNotBlank() && it.sender != chatTitle }) {
+                isGroup = true
+            }
         }
 
         // Final, store-level dedupe (line.message.id / id / chat+sender+text within 10s).

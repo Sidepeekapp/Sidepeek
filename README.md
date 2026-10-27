@@ -2,7 +2,7 @@
 
 **LINE 通知整理＋邊緣側邊欄，免費、開源。**
 
-🌐 官網：<https://jaydenluuuu.github.io/Sidepeek/>
+🌐 官網：<https://sidepeekapp.github.io/Sidepeek/>
 
 > 非官方的個人 Android App，與 LINE、LY Corporation、Samsung 無關。Sidepeek 原名「訊息預覽」。
 

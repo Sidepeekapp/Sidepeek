@@ -1,7 +1,7 @@
 # Sidepeek 交接筆記（給下一位協助者）
 
 Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），加上螢幕邊緣「Peek 條」往內滑打開的側邊欄（可收任何使用者勾選的 App）。
-全部在手機上處理，無伺服器。GitHub：github.com/jaydenluuuu/sidepeek（GPL-3.0；「Sidepeek」名稱與圖示不在授權內）。
+全部在手機上處理，無伺服器。GitHub：github.com/Sidepeekapp/sidepeek（GPL-3.0；「Sidepeek」名稱與圖示不在授權內）。
 
 ## 基本
 - 套件名 `app.sidepeek`，minSdk 26，compileSdk/targetSdk 36，AGP 8.11.2、Gradle 8.13、Kotlin 1.9.24。

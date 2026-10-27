@@ -1072,7 +1072,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val WEBSITE = "https://jaydenluuuu.github.io/Sidepeek/"
+        private const val WEBSITE = "https://sidepeekapp.github.io/Sidepeek/"
         private const val STATE_EXPANDED = "main.expanded"
         private const val STATE_SHOW_ALL = "main.showAll"
         private const val STATE_WIZARD_STEP = "main.wizardStep"

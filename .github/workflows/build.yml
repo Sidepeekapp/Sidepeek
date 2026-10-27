@@ -141,7 +141,7 @@ jobs:
             echo
             echo "非官方 App，與 LINE、LY Corporation 無關。程式碼以 GPL-3.0 授權。"
             echo
-            echo "📣 為了方便大家日後可以更便利的方式安裝更新，安卓測試勇士招募中 !：https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform"
+            echo "📣 為了讓大家之後能更方便地安裝和更新，安卓測試勇士招募中！ 填表報名：https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform"
           } > "$RUNNER_TEMP/notes.md"
           gh release create "$TAG" "$FINAL" --target "$GITHUB_SHA" --title "Sidepeek $VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md" --latest

@@ -12,7 +12,7 @@
 - 主要以 Samsung One UI＋手勢導航、右手單手操作來設計
 - 最新版本：**v1.0**（[下載 APK](../../releases/latest)）
 
-> 📣 為了方便大家日後可以更便利的方式安裝更新，安卓測試勇士招募中 !：[填這份表單](https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform)，測試開始時會寄邀請到你的 Gmail。
+> 📣 為了讓大家之後能更方便地安裝和更新，安卓測試勇士招募中！ [填這份表單](https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform)，測試開始時會寄邀請到你的 Gmail。
 
 ## 為什麼做這個 App
 

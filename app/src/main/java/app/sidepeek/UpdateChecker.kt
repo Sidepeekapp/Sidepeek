@@ -10,7 +10,8 @@ import java.net.URL
 /**
  * 「自動檢查新版本」: when the app is opened, at most once per [INTERVAL_MS], ask GitHub for the
  * latest published Release (drafts and pre-releases are ignored by this endpoint). A release is
- * newer when one of its APKs is named "…build<N>.apk" with N above our versionCode.
+ * newer when its tag (v1.0.3) is a higher version than ours (versionName), or, for releases made
+ * before tags were compared, when an APK is named "…build<N>.apk" with N above our versionCode.
  * No data about the user is sent; it is a plain anonymous GET.
  */
 object UpdateChecker {
@@ -26,16 +27,31 @@ object UpdateChecker {
 
     data class Update(val tag: String, val build: Int, val url: String)
 
+    /** -1 / 0 / 1 comparing dotted versions numerically ("1.0.10" > "1.0.9"; a leading "v" is ignored). */
+    fun compareVersions(a: String, b: String): Int {
+        fun parts(v: String) = v.trim().removePrefix("v").removePrefix("V").split('.', '-', ' ')
+            .map { it.takeWhile(Char::isDigit) }.takeWhile { it.isNotEmpty() }.map { it.toInt() }
+        val x = parts(a); val y = parts(b)
+        for (i in 0 until maxOf(x.size, y.size)) {
+            val c = (x.getOrElse(i) { 0 }).compareTo(y.getOrElse(i) { 0 })
+            if (c != 0) return c
+        }
+        return 0
+    }
+
+    private fun isNewer(u: Update): Boolean =
+        (u.tag.isNotBlank() && compareVersions(u.tag, BuildConfig.VERSION_NAME) > 0) ||
+            u.build > BuildConfig.VERSION_CODE
+
     fun enabled(ctx: Context) = Prefs.sp(ctx).getBoolean(KEY_ENABLED, true)
 
     /** The newer release found by the last check, or null if we are up to date. */
     fun available(ctx: Context): Update? {
         if (!enabled(ctx)) return null
         val sp = Prefs.sp(ctx)
-        val build = sp.getInt(KEY_BUILD, 0)
-        if (build <= BuildConfig.VERSION_CODE) return null
         val url = sp.getString(KEY_URL, null) ?: return null
-        return Update(sp.getString(KEY_TAG, "") ?: "", build, url)
+        val u = Update(sp.getString(KEY_TAG, "") ?: "", sp.getInt(KEY_BUILD, 0), url)
+        return if (isNewer(u)) u else null
     }
 
     /** Check in the background if due; [onDone] runs on the main thread when something changed. */
@@ -51,8 +67,8 @@ object UpdateChecker {
                 Diagnostics.note(app, "UPDATE check failed: ${e.javaClass.simpleName}"); null
             } ?: return@Thread
             sp.edit().putInt(KEY_BUILD, found.build).putString(KEY_TAG, found.tag).putString(KEY_URL, found.url).apply()
-            Diagnostics.note(app, "UPDATE latest=${found.tag} build=${found.build} (installed ${BuildConfig.VERSION_CODE})")
-            if (found.build > BuildConfig.VERSION_CODE) Handler(Looper.getMainLooper()).post(onDone)
+            Diagnostics.note(app, "UPDATE latest=${found.tag} build=${found.build} (installed ${BuildConfig.VERSION_NAME} / ${BuildConfig.VERSION_CODE})")
+            if (isNewer(found)) Handler(Looper.getMainLooper()).post(onDone)
         }.start()
     }
 
@@ -72,7 +88,7 @@ object UpdateChecker {
         }
     }
 
-    /** Parse a GitHub "latest release" response; null when no APK carries a build number. */
+    /** Parse a GitHub "latest release" response; null when it has no version tag and no build number. */
     fun parse(json: String): Update? {
         val o = JSONObject(json)
         val url = o.optString("html_url").takeIf { it.startsWith("https://github.com/") } ?: return null
@@ -82,7 +98,8 @@ object UpdateChecker {
             val name = assets.optJSONObject(i)?.optString("name").orEmpty()
             BUILD_RE.find(name)?.groupValues?.get(1)?.toIntOrNull()?.let { if (it > best) best = it }
         }
-        if (best == 0) return null
-        return Update(o.optString("tag_name"), best, url)
+        val tag = o.optString("tag_name")
+        if (best == 0 && compareVersions(tag, "0") == 0) return null
+        return Update(tag, best, url)
     }
 }

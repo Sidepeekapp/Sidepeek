@@ -99,7 +99,7 @@ jobs:
           fi
           VC=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
           VN=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
-          OUT="out/sidepeek-$VN-build$VC.apk"
+          OUT="out/sidepeek-$VN.apk"
           if ! java -jar "$BT/lib/apksigner.jar" sign --ks "$KS" --ks-key-alias "$KEY_ALIAS" \
             --ks-pass env:KS_PASS --key-pass env:KEY_PASS \
             --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true \
@@ -123,10 +123,11 @@ jobs:
           if ! [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then echo "::error::版本號格式要像 1.0.3（收到：$VERSION）"; exit 1; fi
           TAG="v$VERSION"
           if gh release view "$TAG" >/dev/null 2>&1; then echo "::error::$TAG 已經發布過了，請換一個版本號"; exit 1; fi
-          APK=$(ls out/sidepeek-*-build*.apk 2>/dev/null | head -1 || true)
+          APK=$(ls out/sidepeek-*.apk 2>/dev/null | head -1 || true)
           if [ -z "$APK" ]; then echo "::error::沒有簽好名的 APK（簽名 Secret 沒設定？），不發布未簽名版本"; exit 1; fi
-          VC=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
-          FINAL="out/sidepeek-$TAG-build$VC.apk"
+          VN=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          if [ "$VN" != "$VERSION" ]; then echo "::error::App 裡的版本名稱是 $VN，但填的是 $VERSION；兩個要一樣（改 app/build.gradle.kts 的 versionName，或填 $VN）"; exit 1; fi
+          FINAL="out/sidepeek-$TAG.apk"
           mv "$APK" "$FINAL"
           PREV=$(git tag --list 'v*' --sort=-v:refname | head -1 || true)
           {

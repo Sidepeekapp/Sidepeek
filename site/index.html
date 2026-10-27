@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Sidepeek：把 LINE 疊成一團的通知依聊天室整理成對話預覽，再從螢幕邊緣的 Peek 條拉出側邊欄看最近訊息。免費、開源的 Android App。">
+<meta property="og:title" content="Sidepeek — LINE 通知依聊天室整理">
+<meta property="og:description" content="通知整理＋邊緣側邊欄，免費、開源的 Android App。所有處理都在手機上完成。">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#16a34a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2316a34a'/%3E%3Cpath d='M16 20h32a6 6 0 0 1 6 6v14a6 6 0 0 1-6 6H30l-10 8v-8h-4a6 6 0 0 1-6-6V26a6 6 0 0 1 6-6z' fill='%23fff'/%3E%3C/svg%3E">
+<!--ARTIFACT-START-->
+<title>Sidepeek 官網</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: a single scrolling page; each feature pairs a live, looping phone demo with plain copy. Phone screens stay dark like a real notification shade. */
+:root {
+  --bg: #f6f7f4;            /* paper with a faint green bias */
+  --bg-2: #ecefe9;          /* sunken bands */
+  --fg: #16181d;
+  --fg-2: #4a4f5a;
+  --fg-3: #7b8190;
+  --line: #dde1d8;
+  --brand: #16a34a;         /* Sidepeek green (not LINE's) */
+  --brand-ink: #0f7a37;     /* brand text on light */
+  --brand-tint: #dcf3e3;
+  --screen: #10131c;        /* phone screens, both themes */
+  --screen-card: #1d2029;
+  --screen-ink: #eef0f5;
+  --screen-ink-2: #a3a8b6;
+  --round: "Huninn", "Noto Sans TC", "Noto Sans CJK TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --sans: "Noto Sans TC", "Noto Sans CJK TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0f12; --bg-2: #14171c; --fg: #eef0f3; --fg-2: #b4b9c4; --fg-3: #858b98; --line: #262b33;
+    --brand-ink: #4ade80; --brand-tint: rgba(22, 163, 74, 0.16); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0f12; --bg-2: #14171c; --fg: #eef0f3; --fg-2: #b4b9c4; --fg-3: #858b98; --line: #262b33;
+  --brand-ink: #4ade80; --brand-tint: rgba(22, 163, 74, 0.16); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.7 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: var(--brand-ink); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--round); font-weight: 400; text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(28px, 4.2vw, 40px); line-height: 1.25; }
+h3 { font-size: 21px; line-height: 1.35; }
+p { margin: 0; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand-ink); }
+
+/* top bar */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 21; background: var(--bg); }
+.top .wrap { display: flex; align-items: center; gap: 20px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--fg); font-family: var(--round); font-size: 22px; }
+.brand .ic { width: 30px; height: 30px; border-radius: 9px; background: var(--brand); display: grid; place-items: center; }
+.brand .ic svg { width: 18px; height: 18px; }
+.brand b { font-weight: 400; color: var(--brand-ink); }
+.nav { margin-left: auto; display: flex; gap: 18px; font-size: 14.5px; }
+.nav a { color: var(--fg-2); text-decoration: none; }
+.nav a:hover { color: var(--fg); }
+@media (max-width: 640px) { .nav a.opt { display: none; } }
+
+/* hero */
+.hero { padding-block: 64px 72px; }
+.hero .wrap { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
+.hero h1 { font-size: clamp(40px, 6.4vw, 68px); line-height: 1.12; }
+.hero h1 em { font-style: normal; color: var(--brand-ink); }
+.hero .lede { margin-top: 22px; font-size: 18px; color: var(--fg-2); max-width: 30em; }
+.cta { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 12px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 20px; border-radius: 14px; font-weight: 700; font-size: 15.5px; text-decoration: none; }
+.btn.primary { background: var(--brand); color: #fff; }
+.btn.primary:hover { background: #12873d; }
+.btn.ghost { color: var(--fg); border: 1.5px solid var(--line); background: transparent; }
+.btn.ghost:hover { border-color: var(--fg-3); }
+.facts { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--fg-3); }
+.facts span::before { content: "•"; margin-right: 8px; color: var(--brand); }
+.facts span:first-child::before { content: none; margin: 0; }
+@media (max-width: 860px) { .hero .wrap { grid-template-columns: 1fr; } .hero { padding-block: 40px 56px; } }
+
+/* phone demos (always dark: they are phone screens) */
+.phone { width: min(100%, 340px); margin-inline: auto; aspect-ratio: 9 / 17; border-radius: 42px; padding: 10px; background: #050608;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 30px 60px -24px rgba(10, 30, 20, 0.45); position: relative; }
+.screen { position: absolute; inset: 10px; border-radius: 33px; overflow: hidden; color: var(--screen-ink); font-family: var(--sans);
+  background:
+    radial-gradient(120% 60% at 90% 0%, rgba(76, 96, 190, 0.55), transparent 60%),
+    radial-gradient(90% 60% at 0% 100%, rgba(140, 70, 150, 0.45), transparent 65%),
+    var(--screen); }
+.sbar { display: flex; justify-content: space-between; padding: 14px 22px 0; font-size: 12px; color: var(--screen-ink-2); font-variant-numeric: tabular-nums; }
+.shade-time { padding: 26px 18px 12px; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.shade-time span { font-size: 12.5px; font-weight: 500; color: var(--screen-ink-2); margin-left: 6px; }
+.ncard { margin: 0 10px; background: rgba(29, 32, 41, 0.94); border: 1px solid rgba(255,255,255,0.06); border-radius: 24px; overflow: hidden; }
+.nhead { display: grid; grid-template-columns: 40px 1fr 16px; gap: 11px; padding: 13px 14px 6px; align-items: center; }
+.av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 17px; position: relative; flex: none; }
+.av.sm { width: 30px; height: 30px; font-size: 13px; }
+.av .bd { position: absolute; right: -3px; bottom: -3px; width: 16px; height: 16px; border-radius: 5px; background: #1f9d55; border: 2px solid #1d2029; }
+.nmeta { font-size: 11px; color: var(--screen-ink-2); }
+.ntitle { font-size: 14.5px; font-weight: 800; line-height: 1.35; }
+.chev { width: 9px; height: 9px; border-right: 2px solid var(--screen-ink-2); border-bottom: 2px solid var(--screen-ink-2); transform: rotate(45deg); transition: transform .45s ease; }
+.nbody { position: relative; overflow: hidden; transition: height .6s cubic-bezier(.65,0,.35,1); }
+.ncol { padding: 0 14px 13px 65px; font-size: 13.5px; line-height: 1.5; transition: opacity .25s; }
+.nfull { position: absolute; left: 0; right: 0; top: 0; padding: 2px 14px 13px; display: flex; flex-direction: column; gap: 9px; }
+.nmsg { display: grid; grid-template-columns: 30px 1fr; gap: 11px; font-size: 13px; line-height: 1.5; opacity: 0; transform: translateY(8px); transition: opacity .35s, transform .35s; }
+.nmsg b { display: block; font-size: 13px; }
+.nmsg .lk { color: #8ab4ff; }
+.open .chev { transform: rotate(225deg); }
+.open .ncol { opacity: 0; }
+.open .nmsg { opacity: 1; transform: none; }
+.finger { position: absolute; width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.8);
+  opacity: 0; transform: scale(1.15); transition: opacity .2s, transform .2s; pointer-events: none; }
+.finger.on { opacity: 1; transform: scale(1); }
+.finger.press { transform: scale(0.82); }
+.other { margin: 10px 10px 0; background: rgba(29, 32, 41, 0.8); border-radius: 22px; padding: 12px 14px; display: grid; grid-template-columns: 40px 1fr; gap: 11px; align-items: center; opacity: 0.75; }
+.other .av { background: #3a3e4c; font-size: 12px; }
+
+/* home screen + Peek bar + panel */
+.home-clock { padding: 46px 22px 0; font-size: 54px; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
+.home-date { padding: 8px 24px 0; font-size: 14px; color: var(--screen-ink-2); }
+.apps { position: absolute; left: 22px; right: 22px; bottom: 96px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 14px; }
+.apps i { aspect-ratio: 1; border-radius: 30%; background: rgba(255,255,255,0.12); display: block; }
+.apps i:nth-child(3n) { background: rgba(120, 160, 255, 0.28); } .apps i:nth-child(4n+1) { background: rgba(255, 170, 120, 0.25); }
+.dock { position: absolute; left: 22px; right: 22px; bottom: 26px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.dock i { aspect-ratio: 1; border-radius: 30%; background: rgba(255,255,255,0.18); display: block; }
+.peek { position: absolute; right: 4px; top: 66%; width: 6px; height: 92px; border-radius: 6px; background: rgba(242, 244, 247, 0.55); border: 1px solid rgba(255,255,255,0.4); transition: opacity .25s; }
+.panel { position: absolute; right: 8px; top: 12%; bottom: 12%; width: 82%; border-radius: 22px; background: rgba(23, 23, 23, 0.96); padding: 14px 12px;
+  transform: translateX(110%); transition: transform .5s cubic-bezier(.2,.8,.2,1); box-shadow: -10px 0 30px rgba(0,0,0,0.4); }
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; transition: opacity .4s; }
+.panel-on .panel { transform: none; }
+.panel-on .scrim { opacity: 1; }
+.panel-on .peek { opacity: 0; }
+.ph { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 10px; }
+.ph b { font-size: 17px; }
+.ph b small { font-size: 12px; color: #8e8e93; font-weight: 500; margin-left: 6px; }
+.ph span { font-size: 11.5px; color: #b4b4ba; border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 2px 9px; }
+.pitem { display: grid; grid-template-columns: 30px 1fr; gap: 9px; padding: 7px 4px; opacity: 0; transform: translateX(16px); transition: opacity .35s, transform .35s; }
+.panel-on .pitem { opacity: 1; transform: none; }
+.pitem .tt { display: flex; gap: 6px; align-items: center; font-size: 12.5px; font-weight: 800; min-width: 0; }
+.pitem .tt em { font-style: normal; font-size: 9.5px; font-weight: 800; color: #fff; padding: 1px 6px; border-radius: 7px; flex: none; }
+.pitem .tm { font-size: 10.5px; color: #8e8e93; font-weight: 500; margin-left: auto; flex: none; }
+.bub { margin-top: 4px; background: #2e3136; border-radius: 4px 14px 14px 14px; padding: 7px 10px; font-size: 12px; line-height: 1.45; color: #f2f2f7; }
+.chip { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 700; color: #0a84ff; background: #1c3a5f; border-radius: 999px; padding: 2px 9px; }
+
+/* sections */
+section { padding-block: 72px; }
+.band { background: var(--bg-2); border-block: 1px solid var(--line); }
+.why .wrap { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 40px; }
+.why p { font-size: 17px; color: var(--fg-2); max-width: 36em; }
+.why p + p { margin-top: 14px; }
+.why strong { color: var(--fg); }
+@media (max-width: 760px) { .why .wrap { grid-template-columns: 1fr; gap: 16px; } }
+
+.feature .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+.feature.flip .text { order: 2; }
+.feature .text { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.feature .text > p { font-size: 17px; color: var(--fg-2); }
+.ticks { list-style: none; padding: 0; margin: 4px 0 0; display: flex; flex-direction: column; gap: 10px; }
+.ticks li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; font-size: 15.5px; color: var(--fg-2); }
+.ticks li::before { content: ""; width: 18px; height: 18px; margin-top: 5px; border-radius: 50%; background: var(--brand-tint)
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%2316a34a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat; }
+.ticks b { color: var(--fg); font-weight: 700; }
+@media (max-width: 860px) { .feature .wrap { grid-template-columns: 1fr; gap: 32px; } .feature.flip .text { order: 0; } }
+
+.grid { margin-top: 36px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 32px; }
+.grid div { display: flex; flex-direction: column; gap: 6px; padding-top: 16px; border-top: 2px solid var(--line); }
+.grid h3 { font-size: 18px; }
+.grid p { font-size: 15px; color: var(--fg-2); }
+@media (max-width: 860px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+
+.steps { margin-top: 36px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; counter-reset: s; }
+.step { display: flex; flex-direction: column; gap: 8px; }
+.step::before { counter-increment: s; content: counter(s); width: 38px; height: 38px; border-radius: 12px; background: var(--brand); color: #fff;
+  display: grid; place-items: center; font-family: var(--round); font-size: 20px; }
+.step p { font-size: 15px; color: var(--fg-2); }
+.note { margin-top: 32px; padding: 18px 20px; border-radius: 16px; border: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+.note p { font-size: 15px; color: var(--fg-2); }
+.note b { color: var(--fg); }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+
+.faq { margin-top: 28px; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary { cursor: pointer; list-style: none; padding: 18px 36px 18px 0; font-weight: 700; font-size: 16.5px; position: relative; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: ""; position: absolute; right: 8px; top: 25px; width: 9px; height: 9px; border-right: 2px solid var(--fg-3); border-bottom: 2px solid var(--fg-3); transform: rotate(45deg); transition: transform .2s; }
+.faq details[open] summary::after { transform: rotate(225deg); top: 29px; }
+.faq details p { padding: 0 0 20px; color: var(--fg-2); font-size: 15.5px; max-width: 46em; }
+
+footer { padding-block: 44px 56px; border-top: 1px solid var(--line); font-size: 14px; color: var(--fg-3); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px 40px; }
+footer .links { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+footer .links a { color: var(--fg-2); }
+footer p { max-width: 34em; }
+.mono { font-family: var(--mono); font-size: 0.92em; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#">
+      <span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-5 4v-4H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" fill="#fff"/></svg></span>
+      <span>Side<b>peek</b></span>
+    </a>
+    <nav class="nav" aria-label="頁面導覽">
+      <a href="#features" class="opt">功能</a>
+      <a href="#install">安裝</a>
+      <a href="#faq" class="opt">常見問題</a>
+      <a href="https://github.com/jaydenluuuu-sys/sidepeek">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <div class="eyebrow">Bring Notification Edge back</div>
+        <h1 style="margin-top:14px">LINE 通知，<br><em>依聊天室整理。</em></h1>
+        <p class="lede">群組再熱鬧，每個聊天室也只佔一則通知，展開就是整段對話。再從螢幕邊緣的 Peek 條往內一滑，最近的訊息都在側邊欄裡。</p>
+        <div class="cta">
+          <a class="btn primary" href="https://github.com/jaydenluuuu-sys/sidepeek/releases/latest">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 20h14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            下載 APK
+          </a>
+          <a class="btn ghost" href="https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform">加入 Google Play 測試</a>
+        </div>
+        <div class="facts"><span>Android 8.0 以上</span><span>免費、開源（GPL-3.0）</span><span>資料只在手機上</span></div>
+      </div>
+
+      <div class="phone" aria-label="示範：同一個群組的通知收成一則，展開後看到整段對話" role="img">
+        <div class="screen">
+          <div class="sbar"><span>下午 1:24</span><span>5G ▮▮▮ 96%</span></div>
+          <div class="shade-time">下午 1:24<span>10月27日 週二</span></div>
+          <div class="ncard" id="demoCard">
+            <div class="nhead">
+              <div class="av" style="background:#16a34a">測<span class="bd"></span></div>
+              <div><div class="nmeta">Sidepeek ・ 下午1:22</div><div class="ntitle">測試｜週末烤肉群組</div></div>
+              <div class="chev" id="demoChev"></div>
+            </div>
+            <div class="nbody" id="demoBody">
+              <div class="ncol" id="demoCol"><b>小明</b><br>收到 👌</div>
+              <div class="nfull" id="demoFull">
+                <div class="nmsg"><div class="av sm" style="background:#16a34a">小</div><div><b>小明</b>週六烤肉確定嗎？</div></div>
+                <div class="nmsg"><div class="av sm" style="background:#0e9f8e">阿</div><div><b>阿華</b>確定！地點在這 <span class="lk">example.com/bbq</span></div></div>
+                <div class="nmsg"><div class="av sm" style="background:#5f9e1a">小</div><div><b>小美</b>我負責買肉和飲料，總共 1,800 元，一人 450</div></div>
+                <div class="nmsg"><div class="av sm" style="background:#0e9f8e">阿</div><div><b>阿華</b>食譜可以參考 <span class="lk">chef.lu.tw</span> 的分享</div></div>
+                <div class="nmsg"><div class="av sm" style="background:#16a34a">小</div><div><b>小明</b>收到 👌</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="other"><div class="av">家人</div><div><div class="ntitle" style="font-size:13.5px">家族群組</div><div class="nmeta" style="font-size:12.5px">媽媽：晚上回來吃飯嗎？</div></div></div>
+          <div class="finger" id="demoFinger"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="why band">
+    <div class="wrap">
+      <div><div class="eyebrow">為什麼做這個 App</div><h2 style="margin-top:10px">該有的功能，<br>不該要付費。</h2></div>
+      <div>
+        <p>三星的 Notification Edge 從 2019 年之後就沒有再更新；LINE 的通知又只留下每個聊天室的最新一則，訊息一多，前面說了什麼就看不到了。</p>
+        <p>市面上有 App 能補上這些缺口，但不少要付費才能解鎖完整功能。Sidepeek 想做的事很簡單：<strong>把這些功能做好，完全免費，讓每個人都能用。</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature" id="features">
+    <div class="wrap">
+      <div class="text">
+        <div class="eyebrow">通知整理</div>
+        <h2>每個聊天室一則，<br>前面的話都還在。</h2>
+        <p>LINE 原本的通知，每來一則就蓋掉上一則。Sidepeek 把同一個聊天室的訊息收成一則對話預覽，收起來先看最新一句，展開就是整段。</p>
+        <ul class="ticks">
+          <li><span><b>群組和一對一各自一則</b>，通知欄不會被洗版。</span></li>
+          <li><span><b>每則新訊息照樣提醒</b>，來電不會被藏起來。</span></li>
+          <li><span><b>直接在通知上回覆、按已讀</b>，沿用 LINE 原本的按鈕。</span></li>
+          <li><span><b>長網址變短</b>，只有一個連結時會多一顆「開啟連結」。</span></li>
+        </ul>
+      </div>
+      <div class="phone" role="img" aria-label="通知欄示意：多個聊天室各自一則通知">
+        <div class="screen">
+          <div class="sbar"><span>下午 1:24</span><span>5G ▮▮▮ 96%</span></div>
+          <div class="shade-time">下午 1:24<span>10月27日 週二</span></div>
+          <div class="ncard"><div class="nhead"><div class="av" style="background:#16a34a">測<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 下午1:22</div><div class="ntitle">測試｜週末烤肉群組</div></div><div class="chev"></div></div><div class="ncol"><b>小明</b><br>收到 👌</div></div>
+          <div class="ncard" style="margin-top:10px"><div class="nhead"><div class="av" style="background:#0e9f8e">阿<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 下午1:10</div><div class="ntitle">阿華</div></div><div class="chev"></div></div><div class="ncol">那我先訂位，七點可以嗎？</div></div>
+          <div class="ncard" style="margin-top:10px"><div class="nhead"><div class="av" style="background:#5f9e1a">讀<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 上午9:47 ・ 6 則</div><div class="ntitle">讀書會</div></div><div class="chev"></div></div><div class="ncol"><b>小美</b><br>這週讀到第五章喔</div></div>
+          <div class="ncard" style="margin-top:10px"><div class="nhead"><div class="av" style="background:#3f7fd6">公<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 上午8:54 ・ 2 則</div><div class="ntitle">社區公告</div></div><div class="chev"></div></div><div class="ncol">本週六上午停水，請提前儲水</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature flip band">
+    <div class="wrap">
+      <div class="text">
+        <div class="eyebrow">Peek 條＋側邊欄</div>
+        <h2>從邊緣一滑，<br>最近的訊息都在這。</h2>
+        <p>螢幕右側、拇指剛好按得到的位置有一條半透明的 Peek 條。往內滑就打開側邊欄，輕點不會誤開；長按可以上下拖到順手的地方。</p>
+        <ul class="ticks">
+          <li><span><b>不只 LINE</b>：IG、Threads、Messenger、Teams，或手機上任何你挑的 App。</span></li>
+          <li><span><b>點訊息直接跳過去</b>：那則貼文、那個聊天室；在 Threads／IG 點頭像開對方的個人頁。</span></li>
+          <li><span><b>卡片往左滑刪除</b>，按「清除」全部清掉，5 秒內都能復原。</span></li>
+          <li><span><b>打字時自動淡出</b>，也可以設定只在桌面出現。</span></li>
+        </ul>
+      </div>
+      <div class="phone" role="img" aria-label="示範：從螢幕右側的 Peek 條往內滑，打開側邊欄">
+        <div class="screen" id="peekDemo">
+          <div class="sbar"><span>下午 1:24</span><span>5G ▮▮▮ 96%</span></div>
+          <div class="home-clock">13:24</div>
+          <div class="home-date">10月27日 週二</div>
+          <div class="apps"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="dock"><i></i><i></i><i></i><i></i></div>
+          <div class="peek"></div>
+          <div class="scrim"></div>
+          <div class="panel">
+            <div class="ph"><b>最近訊息<small>4</small></b><span>清除</span></div>
+            <div class="pitem" style="transition-delay:.12s"><div class="av sm" style="background:#16a34a">測</div><div style="min-width:0"><div class="tt">測試｜週末烤肉群組 <em style="background:#16a34a">LINE</em><span class="tm">13:22</span></div><div class="bub">收到 👌</div></div></div>
+            <div class="pitem" style="transition-delay:.2s"><div class="av sm" style="background:#e1306c">a</div><div style="min-width:0"><div class="tt">amy.lu <em style="background:#e1306c">IG</em><span class="tm">13:15</span></div><div class="bub">傳了一則限時動態給你</div></div></div>
+            <div class="pitem" style="transition-delay:.28s"><div class="av sm" style="background:#8e8e93">c</div><div style="min-width:0"><div class="tt">chen__.90 <em style="background:#6b6b70">Threads</em><span class="tm">13:02</span></div><div class="bub">說你的回覆讚</div></div></div>
+            <div class="pitem" style="transition-delay:.36s"><div class="av sm" style="background:#0e9f8e">阿</div><div style="min-width:0"><div class="tt">阿華 <em style="background:#16a34a">LINE</em><span class="tm">12:58</span></div><div class="bub">地點在這 <span class="lk" style="color:#8ab4ff">example.com/bbq</span><br><span class="chip">🔗 example.com</span></div></div></div>
+          </div>
+          <div class="finger" id="peekFinger"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="eyebrow">其他細節</div>
+      <h2 style="margin-top:10px">小地方也想好了</h2>
+      <div class="grid">
+        <div><h3>資料只在手機上</h3><p>沒有伺服器、沒有帳號、沒有廣告或分析工具。唯一的連網是下載 LINE 的公開貼圖，和每天檢查一次新版本。</p></div>
+        <div><h3>鎖定畫面不露內容</h3><p>可以選擇在鎖定畫面顯示 Peek 條，但往內滑會先要求解鎖；鎖著的時候，訊息內容不會出現。</p></div>
+        <div><h3>貼圖照樣看得到</h3><p>抓得到就顯示貼圖圖片，抓不到就先顯示佔位圖。只會連 LINE 自己的貼圖伺服器。</p></div>
+        <div><h3>不會漏掉提醒</h3><p>Sidepeek 沒辦法發通知的時候（例如通知權限被關掉），會先保留 LINE 原本的通知，並在 App 裡提醒你。</p></div>
+        <div><h3>為三星而設計</h3><p>以 One UI＋手勢導航、右手單手操作為主來設計，也附上小米、OPPO、vivo、華為、ASUS 的背景執行設定說明。</p></div>
+        <div><h3>開源，可以檢查</h3><p>程式碼全部公開在 GitHub，以 GPL-3.0 授權。好奇它做了什麼，都可以直接看。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="install">
+    <div class="wrap">
+      <div class="eyebrow">安裝</div>
+      <h2 style="margin-top:10px">三步開始用</h2>
+      <div class="steps">
+        <div class="step"><h3>下載並安裝</h3><p>到 <a href="https://github.com/jaydenluuuu-sys/sidepeek/releases/latest">GitHub Releases</a> 下載最新的 APK 安裝。第一次可能要先允許「安裝未知應用程式」。之後有新版，App 會提醒你。</p></div>
+        <div class="step"><h3>照著設定引導</h3><p>打開 App，每一步都會帶你到系統裡正確的那一頁：通知存取、顯示通知、側邊欄服務、電池設定。</p></div>
+        <div class="step"><h3>側邊欄可以晚點開</h3><p>現在不方便的話，按「稍後再設定側邊欄」。通知整理先能用，之後從 App 最上面的「繼續設定側邊欄」接著做。</p></div>
+      </div>
+      <div class="note">
+        <p><b>開側邊欄服務時跳出「受限設定」？</b> Android 13 以上，從 APK 安裝的 App 預設不能開無障礙服務。先到「設定 → 協助工具」試著打開「Sidepeek 側邊欄」，被擋住後再到「設定 → 應用程式 → Sidepeek」，按右上角 ⋮ →「允許受限設定」，回去重新打開就可以了。</p>
+        <p><b>講電話的時候不能開。</b> 這是 Android 的防詐騙保護，通話中一律不准打開無障礙服務或受限設定。掛斷電話再設定就好。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="eyebrow">常見問題</div>
+      <h2 style="margin-top:10px">你可能想知道</h2>
+      <div class="faq">
+        <details><summary>側邊欄服務（無障礙）會讀我的畫面嗎？</summary><p>不會。它只用來判斷目前在前景的是哪個 App、是不是在桌面、鍵盤有沒有打開，以及側邊欄開著時接收返回鍵。不讀取、不儲存、不傳送畫面上的任何文字，也不會代替你操作。開啟前 App 會先說明並請你同意。</p></details>
+        <details><summary>為什麼通知欄的整理只有 LINE？</summary><p>Messenger、IG、Threads 這些 App 本身已經會依對話分開通知，所以 Sidepeek 只把它們收進側邊欄，不動它們的通知。LINE 的通知會疊在一起、只剩最新一則，才需要整理。</p></details>
+        <details><summary>預覽只顯示「您有新訊息」？</summary><p>到 LINE →「設定」→「通知」，打開「顯示訊息內容」。LINE 關掉這個選項時，通知裡沒有文字，Sidepeek 也拿不到。</p></details>
+        <details><summary>同一則 LINE 訊息響兩次？</summary><p>到系統的 LINE 通知設定頁，把「聲音和震動」關掉，就只剩 Sidepeek 提醒。「允許通知」要保持開啟，不然 Sidepeek 收不到訊息。</p></details>
+        <details><summary>背景常常被關掉、漏訊息？</summary><p>把 Sidepeek 的電池設成「不受限制」。三星可以再到「設定 → 電池 → 背景使用限制」，把 Sidepeek 加進「永不休眠的應用程式」。其他品牌的設定方式，App 裡有對應說明。</p></details>
+        <details><summary>這是 LINE 官方的 App 嗎？</summary><p>不是。Sidepeek 是個人開發的非官方 App，與 LINE、LY Corporation、Samsung 都無關。</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Sidepeek 是非官方 App，與 LINE、LY Corporation、Samsung 無關。程式碼以 GPL-3.0 授權；「Sidepeek」名稱與圖示不在授權範圍內。</p>
+    <div class="links">
+      <a href="privacy.html">隱私權政策</a>
+      <a href="https://github.com/jaydenluuuu-sys/sidepeek">GitHub</a>
+      <a href="https://github.com/jaydenluuuu-sys/sidepeek/releases">所有版本</a>
+      <span>聯絡：<span class="mono">sidepeek.app@gmail.com</span></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const $ = (id) => document.getElementById(id);
+
+  // Hero: the chat card expands into the whole conversation, then folds back.
+  const card = $("demoCard"), body = $("demoBody"), col = $("demoCol"), full = $("demoFull"), chev = $("demoChev"), fin = $("demoFinger");
+  const sizes = () => [col.offsetHeight, full.offsetHeight];
+  const setOpen = (open) => {
+    const [c, f] = sizes();
+    body.style.height = (open ? f : c) + "px";
+    card.classList.toggle("open", open);
+    full.querySelectorAll(".nmsg").forEach((m, i) => { m.style.transitionDelay = open ? (0.15 + i * 0.1) + "s" : "0s"; });
+  };
+  const placeFinger = (el, target, dx = 0, dy = 0) => {
+    const s = el.parentElement.getBoundingClientRect(), r = target.getBoundingClientRect();
+    el.style.left = (r.left - s.left + r.width / 2 - 21 + dx) + "px";
+    el.style.top = (r.top - s.top + r.height / 2 - 21 + dy) + "px";
+  };
+  async function heroLoop() {
+    setOpen(false);
+    if (reduce) { setOpen(true); return; }
+    for (;;) {
+      await wait(1600);
+      placeFinger(fin, chev); fin.classList.add("on"); await wait(380);
+      fin.classList.add("press"); await wait(180); fin.classList.remove("press");
+      setOpen(true); await wait(260); fin.classList.remove("on");
+      await wait(4200);
+      setOpen(false);
+      await wait(1200);
+    }
+  }
+
+  // Peek bar: finger slides in from the right edge and the side panel follows.
+  const peek = $("peekDemo"), pf = $("peekFinger"), bar = peek.querySelector(".peek");
+  async function peekLoop() {
+    if (reduce) { peek.classList.add("panel-on"); return; }
+    for (;;) {
+      peek.classList.remove("panel-on");
+      await wait(1500);
+      pf.style.transition = "none"; placeFinger(pf, bar, 6, 0);
+      pf.classList.add("on"); void pf.offsetWidth;
+      await wait(300);
+      pf.style.transition = "opacity .2s, transform .2s, left .45s cubic-bezier(.2,.8,.2,1)";
+      placeFinger(pf, bar, -70, 0);
+      await wait(260);
+      peek.classList.add("panel-on");
+      await wait(250); pf.classList.remove("on");
+      await wait(4200);
+    }
+  }
+
+  const go = () => { heroLoop(); peekLoop(); };
+  window.addEventListener("resize", () => setOpen(card.classList.contains("open")));
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(go);
+})();
+</script>
+<!--ARTIFACT-END-->
+</body>
+</html>

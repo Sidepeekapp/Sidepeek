@@ -22,3 +22,6 @@ out/
 keystore.properties
 *.jks
 *.keystore
+
+# website build output
+/_site/

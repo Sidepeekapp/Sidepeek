@@ -2,7 +2,7 @@
 # named "CI build <sha>".
 # Signing: if these repository secrets exist, the APK is signed here and checked against the
 # Sidepeek certificate fingerprint; otherwise an unsigned APK (plus apksigner.jar) is attached.
-#   SIGNING_KEYSTORE_BASE64  base64 of sidepeek-release.jks
+#   SIGNING_KEYSTORE_BASE64 (+ _2, _3)  base64 of sidepeek-release.jks, split into parts
 #   SIGNING_STORE_PASSWORD   SIGNING_KEY_ALIAS   SIGNING_KEY_PASSWORD
 # (Settings → Secrets and variables → Actions → New repository secret)
 name: Build APK
@@ -58,7 +58,8 @@ jobs:
 
       - name: Sign APK (when signing secrets are set)
         env:
-          KS_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          # The keystore text is split into parts: phones cut long pastes at 2000 characters.
+          KS_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}${{ secrets.SIGNING_KEYSTORE_BASE64_2 }}${{ secrets.SIGNING_KEYSTORE_BASE64_3 }}
           KS_PASS: ${{ secrets.SIGNING_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           KEY_PASS: ${{ secrets.SIGNING_KEY_PASSWORD }}

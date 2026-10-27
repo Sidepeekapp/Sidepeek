@@ -5,10 +5,10 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## 基本
 - 套件名 `app.sidepeek`，minSdk 26，compileSdk/targetSdk 36，AGP 8.11.2、Gradle 8.13、Kotlin 1.9.24。
-- 版本名稱跟著發布版本走（目前 1.0.3，前一版 1.0.2）；versionCode 目前 10，每次發新版都要遞增。發版時 Run workflow 填的版本號要和 versionName 一致。
+- 版本名稱跟著發布版本走（目前 1.0.4，前一版 1.0.3）；versionCode 目前 11，每次發新版都要遞增。發版時 Run workflow 填的版本號要和 versionName 一致。
 - 正式版：根目錄放 `keystore.properties`（不進版控，簽章金鑰在使用者手上）→ `./gradlew :app:assembleRelease` / `:app:bundleRelease`。R8 開啟。
 - 聯絡信箱 sidepeek.app@gmail.com（App 內「意見回饋」會自動帶手機資訊）。
-- 測試：`./gradlew :app:testDebugUnitTest`（LinkExtractorTest、ProfileLinksTest）。
+- 測試：`./gradlew :app:testDebugUnitTest`（LinkExtractorTest、ProfileLinksTest、ConversationTitlesTest、UpdateCheckerTest）。
 
 ## 主要檔案
 - `LineListenerService.kt`：讀通知、去重、LINE 接管（重發整理後通知並隱藏原通知）。
@@ -79,3 +79,9 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 - 上述三項尚未在實機長時間驗證；若有問題請使用者匯出「遇到問題 → 匯出診斷記錄」。
 - 群組通知「有點擠」是 One UI 的 MessagingStyle 排版，App 無法調整行距；可考慮減少顯示則數。
 - 之後：Google Play 上架（12 人 14 天封閉測試；招募表單已在 README）、GitHub Actions 自動發版、App 內檢查更新。
+
+## 10/27 晚上 v1.0.4（versionCode 11）
+- 合併外部 PR #1（bingxyz）：LINE 通知沒有 conversationTitle 時，改用 android.subText 當聊天室名稱（ConversationTitles.kt），
+  subText 與 title 不同就視為群組；MessageStore.updateChatTitle 會把同一 chatKey 的舊紀錄改成正確名稱。
+  使用者實際遇到的是 LINE 社群（OpenChat）：一般群組有 conversationTitle，社群沒有，側邊欄顯示成發言者。
+- 待實機確認：一對一聊天含自己傳的訊息時會不會被判成群組；LINE 錢包等一般通知若有 subText 會不會被當成名稱。

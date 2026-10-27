@@ -22,8 +22,8 @@ android {
         applicationId = "app.sidepeek"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.0.3"
+        versionCode = 11
+        versionName = "1.0.4"
     }
     signingConfigs {
         if (keystoreProps.getProperty("storeFile") != null) {

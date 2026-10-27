@@ -10,7 +10,7 @@
 
 - 支援 Android 8.0 以上
 - 主要以 Samsung One UI＋手勢導航、右手單手操作來設計
-- 最新版本：**v1.0.3**（[下載 APK](../../releases/latest)）；之後有新版，App 會自動提醒
+- 最新版本：**v1.0.4**（[下載 APK](../../releases/latest)）；之後有新版，App 會自動提醒
 
 > 📣 為了讓大家之後能更方便地安裝和更新，安卓測試勇士招募中！ [填這份表單](https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform)，測試開始時會寄邀請到你的 Gmail。
 
@@ -81,6 +81,9 @@ Android 13 以上，從 APK 安裝的 App 預設不能開協助工具。請照�
 
 ## 更新紀錄
 
+### v1.0.4
+- **LINE 社群顯示正確名稱**：LINE 社群（OpenChat）等通知沒有帶聊天室名稱時，原本會把最新發言者當成聊天室名稱；現在會顯示社群或群組的名稱，每則訊息另外標出發言者，之前存錯名字的訊息也會自動改正。感謝 [@bingxyz](https://github.com/bingxyz) 回報並修正（[#1](../../pull/1)）。
+
 ### v1.0.3
 - **設定引導的示範影片全部重畫**：第 1、4、5、6 步改成清楚的動畫，用 App 真正的圖示，系統畫面的文字跟三星手機上一樣；其他 App 以灰色區塊代替，不會露出別人手機上的內容。
 
@@ -140,6 +143,12 @@ keyPassword=…
 Sidepeek 是非官方 App，與 LINE、LY Corporation 無關。
 
 Copyright (C) 2026 Sidepeek developers
+
+## 貢獻者
+
+感謝每一位幫忙改善 Sidepeek 的人：
+
+- [@bingxyz](https://github.com/bingxyz)：修正 LINE 社群名稱顯示（[#1](../../pull/1)）
 
 ---
 

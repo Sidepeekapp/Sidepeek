@@ -140,6 +140,8 @@ jobs:
             else git log --no-merges --pretty='- %s' -20 | grep -v -E '^- (CI|加上 GitHub Actions)' || true; fi
             echo
             echo "非官方 App，與 LINE、LY Corporation 無關。程式碼以 GPL-3.0 授權。"
+            echo
+            echo "📣 想從 Google Play 安裝、自動更新？填表加入測試：https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform"
           } > "$RUNNER_TEMP/notes.md"
           gh release create "$TAG" "$FINAL" --target "$GITHUB_SHA" --title "Sidepeek $VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md" --latest

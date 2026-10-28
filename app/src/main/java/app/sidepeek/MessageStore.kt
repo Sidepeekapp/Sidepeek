@@ -118,6 +118,17 @@ object MessageStore {
     fun chatAvatarPath(ctx: Context, chatKey: String): String? =
         File(File(ctx.filesDir, "chatav"), chatKey.hashCode().toUInt().toString() + ".png").takeIf { it.exists() }?.absolutePath
 
+    /**
+     * Load a message's own avatar. Old Sidepeek builds saved LINE's group largeIcon as every
+     * member's avatar, so suppress it when its pixels match the separately stored chat picture.
+     */
+    fun messageAvatar(ctx: Context, m: LineMessage, suppressChatPicture: Boolean): Bitmap? {
+        val avatar = loadBitmap(m.avatarPath) ?: return null
+        if (!suppressChatPicture) return avatar
+        val chat = loadBitmap(chatAvatarPath(ctx, m.chatKey)) ?: return avatar
+        return avatar.takeUnless { bitmapFingerprint(it) == bitmapFingerprint(chat) }
+    }
+
     @Synchronized
     fun contains(ctx: Context, id: String): Boolean {
         ensureLoaded(ctx); return messages.any { it.id == id }
@@ -391,14 +402,18 @@ object MessageStore {
     }
 
     /** Stable file name from a bitmap's content (same picture → same name, different → different). */
-    fun bitmapKey(bmp: Bitmap): String = try {
+    private fun bitmapFingerprint(bmp: Bitmap): Long {
         val small = Bitmap.createScaledBitmap(bmp, 24, 24, true)
         val px = IntArray(24 * 24)
         small.getPixels(px, 0, 24, 0, 0, 24, 24)
         if (small !== bmp) small.recycle()
         val crc = java.util.zip.CRC32()
         for (p in px) { crc.update(p ushr 24); crc.update(p ushr 16); crc.update(p ushr 8); crc.update(p) }
-        "a_" + java.lang.Long.toHexString(crc.value) + "_" + bmp.width + "x" + bmp.height
+        return crc.value
+    }
+
+    fun bitmapKey(bmp: Bitmap): String = try {
+        "a_" + java.lang.Long.toHexString(bitmapFingerprint(bmp)) + "_" + bmp.width + "x" + bmp.height
     } catch (_: Exception) {
         "a_" + System.nanoTime()
     }

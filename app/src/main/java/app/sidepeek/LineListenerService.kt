@@ -528,7 +528,11 @@ class LineListenerService : NotificationListenerService() {
                     pendingStickerByMsgId[id] = candidates
                 }
 
-                val avatar = m.person?.let { personAvatar(it) } ?: notifLargeIcon
+                // LINE group notifications currently expose the group picture as largeIcon, not
+                // the sender's picture. Only a MessagingStyle Person icon is a trustworthy member
+                // avatar; otherwise the UI renders a deterministic initial badge for that sender.
+                val avatar = m.person?.let { personAvatar(it) }
+                    ?: notifLargeIcon.takeUnless { isLine && isGroup }
                 newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender, text,
                     if (m.timestamp > 0) m.timestamp else sbn.postTime, image, avatar)
             }
@@ -558,7 +562,8 @@ class LineListenerService : NotificationListenerService() {
                 }
             }
             newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender,
-                text.ifEmpty { "（圖片）" }, time, picture, notifLargeIcon)
+                text.ifEmpty { "（圖片）" }, time, picture,
+                notifLargeIcon.takeUnless { isLine && isGroup })
         }
 
         // Conversation metadata (including LINE's subText chat name) is authoritative. Apart from

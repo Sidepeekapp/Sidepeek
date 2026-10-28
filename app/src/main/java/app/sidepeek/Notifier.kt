@@ -287,12 +287,11 @@ object Notifier {
             Diagnostics.fail(ctx, "POST add actions", e)
         }
 
-        // Header avatar: the chat's own picture (LINE's large icon), else the sender's. Group chats:
-        // LINE's large icon is the latest SENDER, so a member's photo would sit next to the group
-        // name; use a neutral group badge there instead (members keep their own avatars per line).
-        if (isGroupChat) builder.setLargeIcon(groupIcon(ctx, latest.chatTitle))
-        else (MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
-            ?: MessageStore.loadBitmap(latest.avatarPath))?.let { builder.setLargeIcon(circle(it)) }
+        // LINE 26.x group notifications expose the GROUP picture as largeIcon. Keep it in the
+        // header; individual rows use Person.icon when supplied, otherwise a sender initial badge.
+        val chatAvatar = MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
+        if (isGroupChat) builder.setLargeIcon(circle(chatAvatar ?: groupIcon(ctx, latest.chatTitle)))
+        else (chatAvatar ?: MessageStore.loadBitmap(latest.avatarPath))?.let { builder.setLargeIcon(circle(it)) }
 
         // P1-6: BigPicture only when a single unread has an image; else text list with 「[圖片]」.
         val useBigPicture = !messaging && unread.size == 1 && !latest.imagePath.isNullOrBlank()
@@ -446,9 +445,9 @@ object Notifier {
         }
         builder.setStyle(style)
         try {
-            val chatIcon = if (isGroupChat) groupIcon(ctx, title)
-                else MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
-                    ?: MessageStore.loadBitmap(latest.avatarPath)
+            val savedChatIcon = MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
+            val chatIcon = if (isGroupChat) savedChatIcon ?: groupIcon(ctx, title)
+                else savedChatIcon ?: MessageStore.loadBitmap(latest.avatarPath)
             val id = "chat_" + latest.chatKey.hashCode().toUInt().toString(16)
             val avatarFile = MessageStore.chatAvatarPath(ctx, latest.chatKey)?.let { java.io.File(it) }
                 ?: latest.avatarPath?.let { java.io.File(it) }

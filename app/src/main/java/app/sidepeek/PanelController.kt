@@ -1250,6 +1250,9 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             setOnClickListener { openMessage(m) }
         }
         row.tag = m
+        val av = if (narrowItems) 32f else 38f
+        val isLineGroup = (m.pkg == LineListenerService.LINE_PKG || m.pkg == LineListenerService.LINE_LITE_PKG) &&
+            m.sender.isNotBlank() && m.sender != m.chatTitle
         val avatar = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             setOnClickListener { openProfile(m) }
@@ -1258,11 +1261,12 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                 override fun getOutline(view: View, outline: Outline) = outline.setOval(0, 0, view.width, view.height)
             }
             clipToOutline = true
-            val bmp = MessageStore.loadBitmap(m.avatarPath)
+            val bmp = MessageStore.messageAvatar(this@PanelController, m, suppressChatPicture = isLineGroup)
             val appIcon = if (bmp == null && Sources.known(m.pkg) == null)
                 try { packageManager.getApplicationIcon(m.pkg) } catch (_: Exception) { null } else null
             when {
                 bmp != null -> setImageBitmap(bmp)
+                isLineGroup -> setImageBitmap(AvatarBadge.bitmap(m.sender, dp(av * ts)))
                 appIcon != null -> setImageDrawable(appIcon)   // user-picked app without an avatar
                 else -> setImageDrawable(GradientDrawable().apply {
                     shape = GradientDrawable.OVAL
@@ -1270,7 +1274,6 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                 })
             }
         }
-        val av = if (narrowItems) 32f else 38f
         row.addView(avatar, LinearLayout.LayoutParams(dp(av * ts), dp(av * ts)).apply {
             rightMargin = dp(if (narrowItems) 8f else 10f); topMargin = dp(2f)
         })

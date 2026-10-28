@@ -537,6 +537,9 @@ object Notifier {
 
     fun postTest(ctx: Context) {
         val chatKey = "test|demo"
+        // The demo deliberately repeats the same five texts. Remove its previous run first so the
+        // production duplicate filter (10 seconds, or 30 minutes for long text) cannot hide rows.
+        MessageStore.purgeFiles(ctx, MessageStore.removeChat(ctx, chatKey))
         MessageStore.markRead(ctx, chatKey)   // start a fresh stack
         MessageStore.setNotifWatermark(ctx, chatKey, 0L)
         val now = System.currentTimeMillis() + 5

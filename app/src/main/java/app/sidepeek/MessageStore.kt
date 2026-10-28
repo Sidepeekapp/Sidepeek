@@ -193,6 +193,21 @@ object MessageStore {
         return removed
     }
 
+    /** Remove one chat in a single update (used to reset the repeatable demo notification). */
+    fun removeChat(ctx: Context, chatKey: String): List<LineMessage> {
+        val removed = synchronized(this) {
+            ensureLoaded(ctx)
+            val found = messages.filter { it.chatKey == chatKey }
+            if (found.isNotEmpty()) {
+                messages.removeAll { it.chatKey == chatKey }
+                save(ctx)
+            }
+            found
+        }
+        if (removed.isNotEmpty()) notifyListeners()
+        return removed
+    }
+
     /** Attach a sticker/image downloaded after the initial post (silent refresh). */
     fun updateImagePath(ctx: Context, id: String, path: String) {
         synchronized(this) {

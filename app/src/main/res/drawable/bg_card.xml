@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 首頁卡片底色：半透明灰，淺色／深色主題都看得清楚 -->
+<!-- 首頁卡片底色：半透明灰加一條細框，淺色／深色主題都看得清楚 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#1F888888" />
-    <corners android:radius="16dp" />
+    <solid android:color="#1A888888" />
+    <stroke android:width="1dp" android:color="#22888888" />
+    <corners android:radius="20dp" />
 </shape>
-

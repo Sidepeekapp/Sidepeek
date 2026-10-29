@@ -143,7 +143,8 @@ class LineListenerService : NotificationListenerService() {
         if (imp < NotificationManager.IMPORTANCE_DEFAULT && Prefs.lineMuteDone(applicationContext).not()) {
             // leave manual flag alone; health page prefers live Ranking when known
         }
-        Diagnostics.note(applicationContext, "LINE ch=$chId imp=$imp headsUp=${imp >= NotificationManager.IMPORTANCE_DEFAULT}")
+        val vib = ranking.channel?.let { if (it.shouldVibrate()) it.vibrationPattern?.joinToString(",") ?: "default" else "off" }
+        Diagnostics.note(applicationContext, "LINE ch=$chId imp=$imp headsUp=${imp >= NotificationManager.IMPORTANCE_DEFAULT} vib=$vib")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -326,7 +327,10 @@ class LineListenerService : NotificationListenerService() {
             for ((chatKey, msgs) in unreadChats) {
                 if (chatKey in ourKeys) continue
                 // Only recover chats that still have unread (not mark-read).
-                val unread = MessageStore.unreadForChat(this, chatKey, 50)
+                // Nothing newer than the user's last swipe (dismiss watermark) => they already saw
+                // these; re-posting would bring dismissed chats back every 30s.
+                val wm = MessageStore.notifWatermark(this, chatKey)
+                val unread = MessageStore.unreadForChat(this, chatKey, 50).filter { it.time > wm }
                 if (unread.isEmpty()) continue
                 val latest = unread.maxBy { it.time }
                 val group = unread.any { it.sender.isNotBlank() && it.sender != it.chatTitle }
@@ -347,9 +351,12 @@ class LineListenerService : NotificationListenerService() {
         // Our own stacked notification was tapped or swiped away -> that chat counts as read.
         if (sbn.packageName == packageName) {
             val key = sbn.notification.extras.getString(Notifier.EXTRA_CHAT_KEY) ?: return
-            if (reason == REASON_CLICK || reason == REASON_CANCEL || reason == REASON_CANCEL_ALL) {
-                MessageStore.markRead(this, key)
-            }
+            // Android 16+ folds our one-per-chat groups into one stack; swiping that stack removes
+            // each child with REASON_GROUP_SUMMARY_CANCELED, not REASON_CANCEL. Still the user's swipe.
+            val byUser = reason == REASON_CLICK || reason == REASON_CANCEL ||
+                reason == REASON_CANCEL_ALL || reason == REASON_GROUP_SUMMARY_CANCELED
+            if (byUser) MessageStore.markRead(this, key)
+            Diagnostics.note(this, "OWN removed reason=$reason read=$byUser chat=$key")
             return
         }
         if (!Sources.isTracked(this, sbn.packageName)) return
@@ -376,12 +383,26 @@ class LineListenerService : NotificationListenerService() {
         val raw = (if (sbn.packageName == LINE_PKG || sbn.packageName == LINE_LITE_PKG)
             n.extras.getString("line.chat.id")?.takeIf { it.isNotBlank() } else null)
             ?: n.shortcutId?.takeIf { it.isNotBlank() }
-            ?: ms?.conversationTitle?.toString()
-            ?: ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)?.toString()
+            ?: conversationTitleOf(sbn, ms, ex)
             ?: ex.getCharSequence(Notification.EXTRA_TITLE)?.toString()
             ?: sbn.tag
             ?: sbn.id.toString()
         return "${sbn.packageName}|$raw"
+    }
+
+    /**
+     * The conversation title, or null when there is none or it only names the receiving account:
+     * Threads signed in to several accounts titles a 1:1 DM with *our* receiving account, which
+     * would make every DM look like it came from that account. LINE is left as it is.
+     */
+    private fun conversationTitleOf(sbn: StatusBarNotification, ms: NotificationCompat.MessagingStyle?, ex: Bundle): String? {
+        val t = (ms?.conversationTitle ?: ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE))
+            ?.toString()?.takeIf { it.isNotBlank() } ?: return null
+        if (sbn.packageName == LINE_PKG || sbn.packageName == LINE_LITE_PKG) return t
+        val self = (ms?.user?.name ?: ex.getCharSequence(Notification.EXTRA_SELF_DISPLAY_NAME))?.toString()?.trim()
+        val notGroup = ex.containsKey(Notification.EXTRA_IS_GROUP_CONVERSATION) &&
+            !ex.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION)
+        return if (t.trim() == self || notGroup) null else t
     }
 
     private fun handle(sbn: StatusBarNotification, silent: Boolean = false) {
@@ -403,9 +424,16 @@ class LineListenerService : NotificationListenerService() {
         val ms = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n)
         val chatKey = chatKeyOf(sbn, ms, ex)
         val isLine = sbn.packageName == LINE_PKG || sbn.packageName == LINE_LITE_PKG
-        val conversationTitle = ms?.conversationTitle?.toString()
-            ?: ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)?.toString()
-        val notificationTitle = ex.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+        val conversationTitle = conversationTitleOf(sbn, ms, ex)
+        val rawConversationTitle = (ms?.conversationTitle ?: ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE))?.toString()
+        // Account-label title dropped: name the chat after the person writing (EXTRA_TITLE may
+        // carry the same account label).
+        val accountLabel = rawConversationTitle?.takeIf { it.isNotBlank() && conversationTitle == null }
+        val notificationTitle = (if (accountLabel != null)
+            ms?.messages?.lastOrNull()?.person?.name?.toString()?.takeIf { it.isNotBlank() } else null)
+            ?: ex.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.takeIf { it.trim() != accountLabel?.trim() }
+        if (accountLabel != null) Diagnostics.note(this, "account-label title dropped pkg=${sbn.packageName}" +
+            Diagnostics.sensitive(this, " label=$accountLabel title=$notificationTitle"))
         // Current LINE (Android 12+) posts the latest sender as EXTRA_TITLE and the actual chat
         // name as EXTRA_SUB_TEXT. For 1:1 chats both are normally the same; for groups they differ.
         val lineSubText = if (isLine) ex.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString() else null
@@ -474,6 +502,11 @@ class LineListenerService : NotificationListenerService() {
 
         val msgs = ms?.messages.orEmpty()
         val lineMsgId = if (isLine) ex.getString("line.message.id")?.takeIf { it.isNotBlank() } else null
+        // LINE groups: the large icon can be the community's picture rather than the sender's, so
+        // lend it to a member without a picture of their own only once we know it is the sender's.
+        val memberFallback = if (isLine && isGroup &&
+            judgeGroupPicture(chatKey, msgs, notificationTitle, notifLargeIcon) != GroupPicture.Verdict.SENDER) null
+            else notifLargeIcon
         if (msgs.isNotEmpty()) {
             // Only messages newer than what we've already processed for this chat.
             val seenUntil = lastMsTime[chatKey] ?: MessageStore.lastTimeForChat(this, chatKey)
@@ -489,7 +522,9 @@ class LineListenerService : NotificationListenerService() {
                 val id = if (isLast && lineMsgId != null) "$chatKey|mid:$lineMsgId"
                          else idOf(chatKey, sender, text, m.timestamp, m.dataUri)
                 if (MessageStore.contains(this, id) || isRecentDupe(id)) { dedupeLog("skip seen id=$id"); continue }
-                if (text.isNotEmpty() && seenOnKey(sbn.key, "$sender|$text")) { dedupeLog("skip re-post on same key=${sbn.key}"); continue }
+                // A LINE message id is authoritative: the same text under a new id is a new message.
+                val byMid = isLast && lineMsgId != null
+                if (!byMid && text.isNotEmpty() && seenOnKey(sbn.key, "$sender|$text")) { dedupeLog("skip re-post on same key=${sbn.key}"); continue }
 
                 var image: Bitmap? = null
                 val mime = m.dataMimeType
@@ -528,7 +563,7 @@ class LineListenerService : NotificationListenerService() {
                     pendingStickerByMsgId[id] = candidates
                 }
 
-                val avatar = m.person?.let { personAvatar(it) } ?: notifLargeIcon
+                val avatar = m.person?.let { personAvatar(it) } ?: memberFallback
                 newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender, text,
                     if (m.timestamp > 0) m.timestamp else sbn.postTime, image, avatar)
             }
@@ -547,10 +582,10 @@ class LineListenerService : NotificationListenerService() {
             val time = if (n.`when` > 0) n.`when` else sbn.postTime
             val id = if (lineMsgId != null) "$chatKey|mid:$lineMsgId" else idOf(chatKey, sender, text, time, null)
             if (MessageStore.contains(this, id) || isRecentDupe(id)) { dedupeLog("skip seen id=$id"); repeatIfReposted(); return }
-            if (text.isNotEmpty() && seenOnKey(sbn.key, "$sender|$text")) { dedupeLog("skip re-post on same key=${sbn.key}"); repeatIfReposted(); return }
+            if (lineMsgId == null && text.isNotEmpty() && seenOnKey(sbn.key, "$sender|$text")) { dedupeLog("skip re-post on same key=${sbn.key}"); repeatIfReposted(); return }
             // Same text re-posted in the same chat within a few seconds => treat as duplicate.
             val softId = idOf(chatKey, sender, text, 0, null)
-            if (isRecentDupe(softId, windowMs = 10_000)) { dedupeLog("skip same text <10s chat=$chatKey"); repeatIfReposted(); return }
+            if (lineMsgId == null && isRecentDupe(softId, windowMs = 10_000)) { dedupeLog("skip same text <10s chat=$chatKey"); repeatIfReposted(); return }
             if (stickerish) {
                 pendingStickerByMsgId[id] = notifSticker.candidates
                 if (notifSticker.candidates.isEmpty()) {
@@ -558,7 +593,7 @@ class LineListenerService : NotificationListenerService() {
                 }
             }
             newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender,
-                text.ifEmpty { "（圖片）" }, time, picture, notifLargeIcon)
+                text.ifEmpty { "（圖片）" }, time, picture, memberFallback)
         }
 
         // Conversation metadata (including LINE's subText chat name) is authoritative. Apart from
@@ -722,6 +757,39 @@ class LineListenerService : NotificationListenerService() {
         // Usually SecurityException: LINE did not grant us read access to its content URI.
         Log.i(TAG, "cannot read image uri $uri: ${e.javaClass.simpleName}")
         null
+    }
+
+    /** chatKey -> (sender, large-icon fingerprint) of the previous LINE group post. */
+    private val groupIconProbe = HashMap<String, Pair<String, Int>>()
+
+    /** Works out (and remembers) what a LINE group's large icon shows, see [GroupPicture]. */
+    private fun judgeGroupPicture(
+        chatKey: String, msgs: List<NotificationCompat.MessagingStyle.Message>, title: String?, large: Bitmap?,
+    ): GroupPicture.Verdict {
+        val stored = MessageStore.groupPicture(this, chatKey)
+        if (large == null) return stored
+        val last = msgs.lastOrNull()
+        val sender = last?.person?.name?.toString()?.takeIf { it.isNotBlank() } ?: title ?: return stored
+        val icon = fingerprint(large) ?: return stored
+        val own = last?.person?.let { personAvatar(it) }?.let { fingerprint(it) }
+        val prev = groupIconProbe.put(chatKey, sender to icon)
+        val v = GroupPicture.judge(prev?.first, prev?.second, sender, icon, own)
+        if (v == GroupPicture.Verdict.UNKNOWN) return stored
+        if (v != stored) {
+            MessageStore.setGroupPicture(this, chatKey, v)
+            Diagnostics.note(this, "AVATAR group large icon is the ${if (v == GroupPicture.Verdict.CHAT) "chat's" else "sender's"} chat=$chatKey")
+        }
+        return v
+    }
+
+    /** Cheap picture identity: the same image decoded twice gives the same value. */
+    private fun fingerprint(b: Bitmap): Int? = try {
+        val s = Bitmap.createScaledBitmap(b, 12, 12, true)
+        val px = IntArray(144); s.getPixels(px, 0, 12, 0, 0, 12, 12)
+        if (s !== b) s.recycle()
+        px.contentHashCode()
+    } catch (_: Exception) {
+        null  // e.g. a hardware bitmap cannot be read back
     }
 
     private fun personAvatar(p: Person): Bitmap? = try {

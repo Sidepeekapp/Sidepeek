@@ -15,6 +15,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RadioGroup
+import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -28,6 +29,30 @@ import androidx.core.content.FileProvider
 class MainActivity : AppCompatActivity() {
 
     private val requestPost = registerForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
+    /** 「通知鈴聲」: the system ringtone picker; its pick moves 「LINE 訊息預覽」 to that sound. */
+    private val pickSound = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        if (r.resultCode != RESULT_OK || r.data == null) return@registerForActivityResult
+        @Suppress("DEPRECATION")
+        val uri = r.data?.getParcelableExtra<Uri>(android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+        Notifier.setMessageSound(this, uri)
+        refresh()
+    }
+    /** 「從我的檔案選音檔」: copy the file where the system can play it, then use it. */
+    private val pickAudioFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { src ->
+        if (src == null) return@registerForActivityResult
+        Thread {
+            val sound = SoundFiles.importNotificationSound(this, src)
+            runOnUiThread {
+                if (sound == null) {
+                    Toast.makeText(this, "這個音檔沒辦法當鈴聲，換一個 mp3 或 m4a 試試", Toast.LENGTH_LONG).show()
+                } else {
+                    Notifier.setMessageSound(this, sound)
+                    Toast.makeText(this, "已換成這個鈴聲", Toast.LENGTH_SHORT).show()
+                    refresh()
+                }
+            }
+        }.start()
+    }
 
     private lateinit var statusSummary: TextView
     private lateinit var statusAccess: TextView
@@ -69,12 +94,19 @@ class MainActivity : AppCompatActivity() {
     /** 還沒設定好時，使用者按了「先看看其他設定」就把控制台也顯示出來。 */
     private var showAll = false
 
+    /** 底部分頁：目前在哪一頁（TAB_HOME／TAB_SETTINGS／TAB_HELP）。 */
+    private var tab = TAB_HOME
+    private lateinit var bottomNav: com.google.android.material.bottomnavigation.BottomNavigationView
+    private val pageIds = intArrayOf(R.id.pageHome, R.id.pageSettings, R.id.pageHelp)
+    private val tabIds = intArrayOf(R.id.tabHome, R.id.tabSettings, R.id.tabHelp)
+
     /** 進階設定的收合區塊：標題 id、內容 id、標題文字。 */
     private val sections = listOf(
         Triple(R.id.hdrLook, R.id.grpLook, "通知外觀"),
         Triple(R.id.hdrPanelMode, R.id.grpPanelMode, "側邊欄：顯示方式"),
         Triple(R.id.hdrSources, R.id.grpSources, "側邊欄：要收哪些 App"),
-        Triple(R.id.hdrHandle, R.id.grpHandle, "側邊欄：Peek 條與外觀"),
+        Triple(R.id.hdrHandle, R.id.grpHandle, "側邊欄：Peek 條"),
+        Triple(R.id.hdrPanelLook, R.id.grpPanelLook, "側邊欄：外觀"),
         Triple(R.id.hdrFaq, R.id.grpFaq, "常見問題"),
         Triple(R.id.hdrHelp, R.id.grpHelp, "遇到問題"),
     )
@@ -128,6 +160,7 @@ class MainActivity : AppCompatActivity() {
 
         wizardStep = savedInstanceState?.getInt(STATE_WIZARD_STEP, 0) ?: 0
         setupCollapsibles(savedInstanceState)
+        setupTabs(savedInstanceState)
 
         statusSummary = findViewById(R.id.statusSummary)
         statusAccess = findViewById(R.id.statusAccess)
@@ -207,9 +240,37 @@ class MainActivity : AppCompatActivity() {
             refresh()
         }
         findViewById<Button>(R.id.btnUsage).setOnClickListener { openUsageSettings() }
+        findViewById<Button>(R.id.btnSound).setOnClickListener {
+            // Android 9 and older cannot copy a file in without a storage permission: built-in sounds only.
+            if (Build.VERSION.SDK_INT < 29) { pickBuiltInSound(); return@setOnClickListener }
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("LINE 通知鈴聲")
+                .setItems(arrayOf("從我的檔案選音檔", "手機內建的通知音（或靜音）")) { _, which ->
+                    if (which == 0) {
+                        try { pickAudioFile.launch(arrayOf("audio/*")) } catch (_: android.content.ActivityNotFoundException) { pickBuiltInSound() }
+                    } else pickBuiltInSound()
+                }
+                .show()
+        }
         findViewById<SwitchCompat>(R.id.swHideIme).apply {
             isChecked = Prefs.hideOnIme(this@MainActivity)
             setOnCheckedChangeListener { _, on -> Prefs.set(this@MainActivity, Prefs.KEY_HIDE_ON_IME, on) }
+        }
+        findViewById<SwitchCompat>(R.id.swClearOnLine).apply {
+            isChecked = Prefs.clearOnLineOpen(this@MainActivity)
+            setOnCheckedChangeListener { _, on -> Prefs.set(this@MainActivity, Prefs.KEY_CLEAR_ON_LINE_OPEN, on); refresh() }
+        }
+        findViewById<SwitchCompat>(R.id.swSmartClear).apply {
+            isChecked = Prefs.smartClear(this@MainActivity)
+            setOnCheckedChangeListener { sw, on ->
+                if (!on) { Prefs.set(this@MainActivity, Prefs.KEY_SMART_CLEAR, false); refresh(); return@setOnCheckedChangeListener }
+                // Reading LINE's top bar needs its own consent, asked every time it is switched on.
+                A11yDisclosure.smartClear(this@MainActivity) { ok ->
+                    Prefs.set(this@MainActivity, Prefs.KEY_SMART_CLEAR, ok)
+                    if (!ok) sw.isChecked = false
+                    refresh()
+                }
+            }
         }
         findViewById<SwitchCompat>(R.id.swShowOnLock).apply {
             isChecked = Prefs.showOnLock(this@MainActivity)
@@ -303,18 +364,24 @@ class MainActivity : AppCompatActivity() {
         outState.putIntArray(STATE_EXPANDED, expanded.toIntArray())
         outState.putBoolean(STATE_SHOW_ALL, showAll)
         outState.putInt(STATE_WIZARD_STEP, wizardStep)
+        outState.putInt(STATE_TAB, tab)
     }
 
     private fun setupCollapsibles(saved: Bundle?) {
         saved?.getIntArray(STATE_EXPANDED)?.let { expanded.addAll(it.toList()) }
         showAll = saved?.getBoolean(STATE_SHOW_ALL, false) ?: false
+        // 說明分頁一打開就看到常見問題的題目清單。
+        if (saved == null) expanded.add(sections.indexOfFirst { it.first == R.id.hdrFaq })
         sections.forEachIndexed { index, (hdrId, grpId, title) ->
             val hdr = findViewById<TextView>(hdrId)
             val grp = findViewById<View>(grpId)
             val sync = {
                 val open = index in expanded
                 grp.visibility = if (open) View.VISIBLE else View.GONE
-                hdr.text = if (open) "$title　▴" else "$title　▾"
+                hdr.text = title
+                hdr.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0,
+                    if (open) R.drawable.ic_expand_less else R.drawable.ic_expand_more, 0)
+                androidx.core.view.ViewCompat.setStateDescription(hdr, if (open) "已展開" else "已收合")
             }
             sync()
             hdr.setOnClickListener {
@@ -322,6 +389,102 @@ class MainActivity : AppCompatActivity() {
                 sync()
             }
         }
+        setupFaqAccordion()
+    }
+
+    private fun setupTabs(saved: Bundle?) {
+        bottomNav = findViewById(R.id.bottomNav)
+        tab = (saved?.getInt(STATE_TAB, TAB_HOME) ?: TAB_HOME).coerceIn(0, pageIds.size - 1)
+        bottomNav.selectedItemId = tabIds[tab]
+        showPages()
+        bottomNav.setOnItemSelectedListener { item ->
+            val t = tabIds.indexOf(item.itemId)
+            if (t >= 0 && t != tab) {
+                tab = t
+                showPages()
+                findViewById<ScrollView>(R.id.scroll).scrollTo(0, 0)
+            }
+            true
+        }
+        bottomNav.setOnItemReselectedListener { findViewById<ScrollView>(R.id.scroll).smoothScrollTo(0, 0) }
+        keepTabsAboveNavBar()
+    }
+
+    /**
+     * The tab labels ended up under the gesture bar on a One UI phone even though the insets are
+     * handled above us. Measure the actual overlap with the navigation bar and pad by exactly that,
+     * so it is right whoever (AppCompat, our root padding) already took the insets.
+     */
+    private fun keepTabsAboveNavBar() {
+        val loc = IntArray(2)
+        bottomNav.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+            val ins = androidx.core.view.ViewCompat.getRootWindowInsets(v)
+            fun bottom(type: Int) = ins?.getInsets(type)?.bottom ?: 0
+            // One UI with gesture navigation still drew the handle over the labels when only the
+            // navigation-bar inset was used: also keep clear of the strip the handle swipe needs.
+            val navBar = bottom(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
+            val gestures = bottom(androidx.core.view.WindowInsetsCompat.Type.mandatorySystemGestures())
+            val nav = maxOf(navBar, gestures)
+            v.getLocationInWindow(loc)
+            // The bar's bottom edge stays put when it grows, so this does not change after padding.
+            val overlap = maxOf(0, loc[1] + v.height - (v.rootView.height - nav))
+            if (overlap != v.paddingBottom) {
+                Diagnostics.note(this, "TABS bottom inset nav=$navBar gestures=$gestures pad=$overlap")
+                v.post { v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, overlap) }
+            }
+        }
+    }
+
+    private fun showPages() {
+        pageIds.forEachIndexed { i, id -> findViewById<View>(id).visibility = vis(i == tab) }
+    }
+
+    /** 常見問題：預設只顯示題目，點一題才展開那一題的答案。 */
+    private fun setupFaqAccordion() {
+        val grp = findViewById<ViewGroup>(R.id.grpFaq)
+        for (i in 0 until grp.childCount) {
+            val card = grp.getChildAt(i) as? ViewGroup ?: continue
+            if (card.tag != "faq" || card.childCount < 2) continue
+            val q = (card.getChildAt(0) as? ViewGroup)?.getChildAt(1) as? TextView ?: continue
+            val a = card.getChildAt(1)
+            val sync = { open: Boolean ->
+                a.visibility = if (open) View.VISIBLE else View.GONE
+                q.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0,
+                    if (open) R.drawable.ic_expand_less else R.drawable.ic_expand_more, 0)
+                androidx.core.view.ViewCompat.setStateDescription(card, if (open) "已展開" else "已收合")
+            }
+            sync(false)
+            card.isClickable = true
+            card.isFocusable = true
+            card.foreground = obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackground)).run {
+                val d = getDrawable(0); recycle(); d
+            }
+            card.setOnClickListener { sync(a.visibility != View.VISIBLE) }
+        }
+    }
+
+    /** The system sound list (built-in sounds, default, silent). */
+    private fun pickBuiltInSound() {
+        val i = Intent(android.media.RingtoneManager.ACTION_RINGTONE_PICKER)
+            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TYPE, android.media.RingtoneManager.TYPE_NOTIFICATION)
+            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TITLE, "LINE 通知鈴聲")
+            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, Settings.System.DEFAULT_NOTIFICATION_URI)
+            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Notifier.messageSound(this))
+        // No picker on this phone: the system page for the channel can change the sound too.
+        try { pickSound.launch(i) } catch (_: android.content.ActivityNotFoundException) {
+            safeStart(Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                .putExtra(Settings.EXTRA_CHANNEL_ID, Notifier.msgChannel(this)))
+        }
+    }
+
+    /** A ringtone as the picker names it; a custom file it cannot read is just 「自訂」. */
+    private fun soundName(uri: Uri?): String {
+        if (uri == null) return "靜音"
+        if (uri == Settings.System.DEFAULT_NOTIFICATION_URI) return "預設通知音"
+        return try { android.media.RingtoneManager.getRingtone(this, uri)?.getTitle(this) } catch (_: Exception) { null } ?: "自訂"
     }
 
     private fun vis(show: Boolean) = if (show) View.VISIBLE else View.GONE
@@ -416,14 +579,37 @@ class MainActivity : AppCompatActivity() {
             else -> "一切正常"
         }
 
-        // Wizard: only status + one-step card. Dash after complete (or showAll escape).
+        val dashOn = !wizardActive || showAll
+        val dotColor = when {
+            wizardActive || !Prefs.enabled(this) -> 0xFF9CA3AF.toInt()
+            suggest > 0 -> 0xFFF59E0B.toInt()
+            else -> getColor(R.color.section_text)
+        }
+        findViewById<View>(R.id.statusDot).backgroundTintList = android.content.res.ColorStateList.valueOf(dotColor)
+        findViewById<TextView>(R.id.statusSub).apply {
+            val sub = when {
+                wizardActive -> "照著下面的步驟設定，完成後就會開始整理 LINE 通知。"
+                !Prefs.enabled(this@MainActivity) -> "打開下面的「用 Sidepeek 接管 LINE」就會開始整理。"
+                suggest > 0 -> "還有 $suggest 項建議設定，在下面的「讓它更穩定」。"
+                else -> null
+            }
+            visibility = vis(sub != null)
+            if (sub != null) text = sub
+        }
+
+        // Wizard: only the home page (status + one-step card). Tabs and dash after complete (or showAll escape).
+        bottomNav.visibility = vis(dashOn)
+        if (!dashOn && tab != TAB_HOME) { tab = TAB_HOME; bottomNav.selectedItemId = tabIds[TAB_HOME] }
+        showPages()
+        findViewById<View>(R.id.mainSwitches).visibility = vis(dashOn)
         wizardCard.visibility = vis(wizardActive)
         howtoCard.visibility = vis(!wizardActive)
-        dashGroup.visibility = vis(!wizardActive || showAll)
-        hdrFaq.visibility = vis(!wizardActive || showAll)
+        dashGroup.visibility = vis(dashOn)
+        findViewById<View>(R.id.lblSupport).visibility = vis(!wizardActive || showAll)
+        findViewById<View>(R.id.cardFaq).visibility = vis(!wizardActive || showAll)
         findViewById<View>(R.id.grpFaq).visibility =
             if ((!wizardActive || showAll) && sections.indexOfFirst { it.first == R.id.hdrFaq } in expanded) View.VISIBLE else View.GONE
-        hdrHelp.visibility = vis(!wizardActive || showAll)
+        findViewById<View>(R.id.cardHelp).visibility = vis(!wizardActive || showAll)
         findViewById<View>(R.id.grpHelp).visibility =
             if ((!wizardActive || showAll) && sections.indexOfFirst { it.first == R.id.hdrHelp } in expanded) View.VISIBLE else View.GONE
         cardSuggest.visibility = vis((!wizardActive || showAll) && suggest > 0)
@@ -436,9 +622,15 @@ class MainActivity : AppCompatActivity() {
         statusA11y.text = when {
             a11y -> "✅ 側邊欄服務運作正常"
             a11yOn -> "⚠️ 側邊欄服務已打開，但還沒連上\n到無障礙設定，把「Sidepeek 側邊欄」關掉再打開一次。"
-            else -> "⚠️ 還沒開側邊欄服務\n不開也能用，但通知欄會多出一直掛著的通知。開啟後就會消失。"
+            else -> "⚠️ 還沒開側邊欄服務\n不開也能用，但通知欄會多出一直掛著的通知，直接打開 LINE 也不會清掉通知欄的聊天室通知。開啟後就會恢復。"
         }
         a11yBox.visibility = vis((!wizardActive || showAll) && Prefs.edgePanel(this) && !a11y)
+
+        // LINE 通知清理: both "clear on open" modes come from the side-panel service.
+        val clearOn = Prefs.clearOnLineOpen(this)
+        findViewById<View>(R.id.statusLineClearA11y).visibility = vis(clearOn && !a11y)
+        findViewById<SwitchCompat>(R.id.swSmartClear).isEnabled = clearOn
+        findViewById<View>(R.id.hintSmartClear).alpha = if (clearOn) 0.75f else 0.4f
 
         val usage = hasUsageAccess(this)
         statusUsage.text = when {
@@ -447,6 +639,9 @@ class MainActivity : AppCompatActivity() {
             Prefs.homeOnly(this) -> "⚠️ 還沒允許讀取使用情況\n所以 Peek 條現在會一直顯示，不會只在桌面出現。"
             else -> "讀取使用情況：未允許（只有「只在桌面顯示 Peek 條」才需要）"
         }
+        // Only the backup overlay needs usage access to tell the home screen; the side-panel service does it itself.
+        findViewById<View>(R.id.btnUsage).visibility = vis(!a11y && !usage)
+        findViewById<Button>(R.id.btnSound).text = "鈴聲：${soundName(Notifier.messageSound(this))}"
 
         val overlay = Settings.canDrawOverlays(this)
         statusOverlay.text = when {
@@ -500,10 +695,21 @@ class MainActivity : AppCompatActivity() {
         when (wizardStep) {
             STEP_LISTENER -> {
                 wizardTitle.text = "允許讀取通知"
-                if (!access) {
+                if (!access && !Prefs.listenerTryOpened(this)) {
                     wizardHint.text = "點下面按鈕，在清單裡打開「Sidepeek」。回來後會自動進入下一步。"
                     wizardPrimary.text = "打開通知存取設定"
                     video = R.raw.guide_step1
+                } else if (!access) {
+                    // Came back without access: on stock Android the switch is greyed out by Restricted Settings.
+                    wizardTitle.text = "允許讀取通知：開關是灰的？"
+                    wizardHint.text = "華碩、Pixel 等手機會擋下不是從商店安裝的 App，開關變灰或跳出「應用程式存取權已遭拒絕」。" +
+                        "先按「關閉」，再點下面「到 App 資訊解除限制」→ 右上角 ⋮ →「允許受限制的設定」（有些手機叫「解除受限制的設定」），驗證後回來，再打開通知存取。" +
+                        "\n\n順便把 App 資訊裡的「暫停未使用的應用程式活動」關掉，免得太久沒開 App 時權限被收回。" +
+                        "\n只是還沒打開的話，直接按「打開通知存取設定」。"
+                    wizardPrimary.text = "打開通知存取設定"
+                    wizardSecondary.visibility = View.VISIBLE
+                    wizardSecondary.text = "到 App 資訊解除限制"
+                    video = R.raw.guide_step1r
                 } else {
                     wizardHint.text = "已允許，但還沒連上。按重新連線；若還是不行，到清單把「Sidepeek」關掉再打開。"
                     wizardPrimary.text = "重新連線"
@@ -523,7 +729,8 @@ class MainActivity : AppCompatActivity() {
             }
             STEP_TRY_A11Y -> {
                 wizardTitle.text = "試開側邊欄服務"
-                wizardHint.text = "點『已安裝的應用程式』→『Sidepeek 側邊欄』→打開。若跳出拒絕視窗，按關閉，再按下面下一步。"
+                wizardHint.text = "點『已安裝的應用程式』→『Sidepeek 側邊欄』→打開。若跳出拒絕視窗，按關閉，再按下面下一步。" +
+                    "（只要打開服務的開關；下面的「捷徑」不用開，開了畫面上會多一顆浮動按鈕。）"
                 wizardPrimary.text = "打開無障礙設定"
                 video = R.raw.guide_step4
                 if (Prefs.a11yTryOpened(this)) {
@@ -543,7 +750,8 @@ class MainActivity : AppCompatActivity() {
             }
             STEP_REOPEN_A11Y -> {
                 wizardTitle.text = "再開一次側邊欄服務"
-                wizardHint.text = "回到無障礙 → 已安裝的應用程式 →『Sidepeek 側邊欄』→ 打開。打開後會自動進入下一步。"
+                wizardHint.text = "回到無障礙 → 已安裝的應用程式 →『Sidepeek 側邊欄』→ 打開。打開後會自動進入下一步。" +
+                    "（下面的「捷徑」不用開，開了畫面上會多一顆浮動按鈕。）"
                 wizardPrimary.text = "打開無障礙設定"
                 video = R.raw.guide_step6
             }
@@ -568,7 +776,7 @@ class MainActivity : AppCompatActivity() {
             }
             STEP_DONE -> {
                 wizardTitle.text = "可以用了"
-                wizardHint.text = "必要設定都好了。接下來只用主開關就夠；細節收在「進階」。"
+                wizardHint.text = "必要設定都好了。平常只要用首頁上方的主開關；其他細節在下面的「設定」分頁。"
                 wizardPrimary.text = "完成，開始使用"
                 wizardImage.visibility = View.VISIBLE
                 wizardImage.setImageResource(R.drawable.img_steps_overview)
@@ -598,7 +806,7 @@ class MainActivity : AppCompatActivity() {
         wizardStep = if (Prefs.edgePanel(this)) STEP_TRY_A11Y else STEP_EDGE
         refresh()
         findViewById<View>(android.R.id.content).post {
-            (wizardCard.parent as? View)?.let { (it.parent as? android.widget.ScrollView)?.smoothScrollTo(0, wizardCard.top) }
+            findViewById<ScrollView>(R.id.scroll).smoothScrollTo(0, wizardCard.top)
         }
     }
 
@@ -606,6 +814,7 @@ class MainActivity : AppCompatActivity() {
         when (wizardStep) {
             STEP_LISTENER -> {
                 if (!isListenerEnabled(this)) {
+                    Prefs.set(this, Prefs.KEY_LISTENER_TRY_OPENED_V1, true)
                     safeStart(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                 } else {
                     rebindListener()
@@ -636,6 +845,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun onWizardSecondary() {
         when (wizardStep) {
+            STEP_LISTENER -> {
+                val ok = safeStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                if (!ok) safeStart(Intent(Settings.ACTION_SETTINGS))
+                Toast.makeText(this, "請點右上角 ⋮ →「允許受限制的設定」。做完回來再打開通知存取", Toast.LENGTH_LONG).show()
+            }
             STEP_BATTERY -> {
                 Prefs.set(this, Prefs.KEY_NEVER_SLEEP_DONE, true)
                 wizardStep = STEP_DONE
@@ -707,7 +921,7 @@ class MainActivity : AppCompatActivity() {
         Notifier.ensureChannels(this)
         val ok = safeStart(Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
             .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-            .putExtra(Settings.EXTRA_CHANNEL_ID, Notifier.CHANNEL_MSG))
+            .putExtra(Settings.EXTRA_CHANNEL_ID, Notifier.msgChannel(this)))
         if (!ok) safeStart(appSettings)
     }
 
@@ -950,7 +1164,13 @@ class MainActivity : AppCompatActivity() {
         bindSeek(R.id.sbInset, R.id.lblInset, Prefs.KEY_HANDLE_INSET, 0, Prefs.INSET_MAX, Prefs.handleInset(this)) { "距離邊緣：$it dp" }
         bindSeek(R.id.sbWidth, R.id.lblWidth, Prefs.KEY_HANDLE_WIDTH, Prefs.WIDTH_MIN, Prefs.WIDTH_MAX, Prefs.handleWidth(this)) { "Peek 條寬度：$it dp" }
         bindSeek(R.id.sbHeight, R.id.lblHeight, Prefs.KEY_HANDLE_HEIGHT, Prefs.HEIGHT_MIN, Prefs.HEIGHT_MAX, Prefs.handleHeight(this)) { "Peek 條高度：$it dp" }
-        bindSeek(R.id.sbOpacity, R.id.lblOpacity, Prefs.KEY_HANDLE_OPACITY, Prefs.OPACITY_MIN, Prefs.OPACITY_MAX, Prefs.handleOpacity(this)) { "不透明度：$it%" }
+        bindSeek(R.id.sbOpacity, R.id.lblOpacity, Prefs.KEY_HANDLE_OPACITY, Prefs.OPACITY_MIN, Prefs.OPACITY_MAX, Prefs.handleOpacity(this)) {
+            if (it == 0) "不透明度：0%（看不到）" else "不透明度：$it%"
+        }
+        val sensName = arrayOf("", "低", "偏低", "中", "偏高", "高")
+        bindSeek(R.id.sbSwipeSens, R.id.lblSwipeSens, Prefs.KEY_SWIPE_SENS, Prefs.SENS_MIN, Prefs.SENS_MAX, Prefs.swipeSensitivity(this)) {
+            "滑動靈敏度：${sensName[it]}・${Prefs.swipeOpenDp(it)}dp${if (it == Prefs.DEF_SWIPE_SENS) "（預設）" else ""}"
+        }
 
         findViewById<Button>(R.id.btnResetHandle).setOnClickListener {
             Prefs.writeHandleDefaults(this)
@@ -985,12 +1205,23 @@ class MainActivity : AppCompatActivity() {
                          livePreview: Boolean = false, label: (Int) -> String) {
         val sb = findViewById<SeekBar>(seekId)
         val lbl = findViewById<TextView>(labelId)
+        // 版面是「名稱｜數值」一列：label 文字以「：」切開，數值放到右邊那格。
+        val valueView = (lbl.parent as? ViewGroup)?.getChildAt(1) as? TextView
+        val show = { v: Int ->
+            val text = label(v)
+            val cut = text.indexOf('：')
+            if (valueView != null && cut > 0) {
+                lbl.text = text.substring(0, cut)
+                valueView.text = text.substring(cut + 1).trim()
+                sb.contentDescription = text
+            } else lbl.text = text
+        }
         sb.max = max - min
         sb.progress = value - min
-        lbl.text = label(value)
+        show(value)
         sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
-                lbl.text = label(p + min)
+                show(p + min)
                 if (fromUser) Prefs.setInt(this@MainActivity, key, p + min)
             }
             override fun onStartTrackingTouch(s: SeekBar) { if (livePreview) previewPanel(-1) }
@@ -1076,6 +1307,8 @@ class MainActivity : AppCompatActivity() {
         private const val STATE_EXPANDED = "main.expanded"
         private const val STATE_SHOW_ALL = "main.showAll"
         private const val STATE_WIZARD_STEP = "main.wizardStep"
+        private const val STATE_TAB = "main.tab"
+        private const val TAB_HOME = 0
 
         private const val WIZARD_STEPS = 8
         private const val STEP_LISTENER = 0

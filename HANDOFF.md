@@ -86,3 +86,57 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
   使用者實際遇到的是 LINE 社群（OpenChat）：一般群組有 conversationTitle，社群沒有，側邊欄顯示成發言者。
 - 待實機確認：一對一聊天含自己傳的訊息時會不會被判成群組；LINE 錢包等一般通知若有 subText 會不會被當成名稱。
 - 發版說明改成取 README「### v版本號」那一段（相對連結換成完整網址），找不到才列 commit 標題；發新版前先在 README 寫好這段。
+
+## 10/28 v1.0.5（versionCode 12）
+- Peek 條不透明度最低改成 0%（`Prefs.OPACITY_MIN`）：看不到、截圖不會拍到，但視窗仍可觸控，往內滑照樣打開；按下時 bar 會短暫變不透明當回饋。
+  Android 沒有讓 overlay 只在截圖時隱藏的 API（FLAG_SECURE 會變黑塊或擋截圖、截圖偵測只限 Activity 且是事後通知），所以用 0% 解決。
+- 本機可直接編簽好的正式版（不必等 CI）：根目錄 `keystore.properties` + `sidepeek-release.jks`，`./gradlew :app:testDebugUnitTest :app:assembleRelease`。
+- 側邊欄列表原本只建最新 50 則（標題卻顯示全部則數）：改成開啟時 50 則（`LIST_PAGE`），捲到離底部約一個畫面時
+  `loadMoreMessages()` 往後接 50 則，底部另有「再載入 N 則」可點；新訊息觸發的 refreshList 保留已載入數量。
+  「清除」的飛出動畫最多錯開 15 張（`CLEAR_STAGGER_MAX`），其餘一起飛出。
+- 設定精靈第 1 步：原生 Android（華碩 Zenfone 9 Android 14、Pixel）連通知存取也受「受限制的設定」管（三星只擋無障礙）。
+  開過通知存取設定（`Prefs.KEY_LISTENER_TRY_OPENED_V1`）回來仍未授權時，第 1 步改顯示受限設定說明＋「到 App 資訊解除限制」
+  （第二個按鈕）＋新動畫 `res/raw/guide_step1r.mp4`（tools/guide-video/animated 的 step1r，原生 Android 畫面）。
+  也提醒關掉「暫停未使用的應用程式活動」。無障礙步驟提示加上「捷徑不用開」（使用者開了會出現系統的協助工具浮動按鈕）。
+- 點頭像開個人頁：Threads 新寫法「handle 已追蹤你／已轉發」原本比不到，`ProfileLinks.LEADING` 允許動詞前的「已」；
+  Threads 連結改用 threads.com（threads.net 會轉址）。測試已補。
+- Peek 條觸控範圍：原本左右各加 18dp，inset 0 時 36dp 全在畫面內側，會擋到 LINE 貼圖面板。改成外側最多 18dp（只用 inset 的空間）、
+  內側 `innerTouchPad()` 10dp。
+- 音量下鍵（a11y onKeyEvent，不攔截）→ `PanelController.hideHandleForScreenshot()` 立刻隱藏 2.5 秒（`Prefs.KEY_HIDE_ON_VOLUME`，預設開）。
+  手掌滑動等截圖方式偵測不到，0% 不透明度是保底。
+- 打開 LINE 清通知：a11y 收到 LINE 的 Activity 切換（進 LINE、列表→聊天室）時 `Notifier.clearLineChats()`：
+  所有 LINE 整理通知 markRead + cancel（`Prefs.KEY_CLEAR_ON_LINE_OPEN`，預設開）。原因：LINE 原通知已被我們收掉，LINE 讀完時沒東西可取消，
+  我們收不到已讀訊號。只清通知，不讀 LINE 畫面內容；沒開側邊欄服務就不會動作。
+- 無障礙說明（strings a11y_description、A11yDisclosure）與隱私權政策（PrivacyActivity、docs/privacy.md，10/28）都加上音量鍵與打開 LINE 清通知。
+  已同意過的使用者不會再看到同意畫面（KEY_A11Y_CONSENT_V1 沒改）。
+- 滑掉的通知 30 秒後被補發回來（S26U Android 17 回報，診斷記錄證實 DISMISS 後 RECOVER health-30s 反覆出現）：
+  Android 16+ 把我們「一聊天室一組」的通知疊成一疊，整疊滑掉時子通知的 reason 應是 REASON_GROUP_SUMMARY_CANCELED（推論，新的 OWN removed 記錄可證實），
+  原本只認 CLICK/CANCEL/CANCEL_ALL 才 markRead，聊天室仍算未讀 → `recoverOrphans` 補發，而 `unreadAfterWatermark` 又 fallback 最後一則。
+  修正：GROUP_SUMMARY_CANCELED 也算使用者滑掉；`recoverOrphans` 只補 watermark 之後的未讀；自己通知被移除時記 `OWN removed reason=…`。
+- Threads 多帳號：私訊的 conversationTitle 是「收到訊息的帳號」，側邊欄標題變成自己的帳號、寄件人才是對方。
+  `conversationTitleOf` 在非 LINE 的通知中，conversationTitle 等於自己（MessagingStyle user / EXTRA_SELF_DISPLAY_NAME）
+  或明確標示 isGroupConversation=false 時忽略它，標題改用最後一則訊息的 person 名稱；chatKey 也不再用這個標題。
+  推論自截圖，尚無完整記錄；診斷記錄會記 `account-label title dropped`，請用「完整記錄」收一則確認。
+- 通知震動太弱（Threads 回報，想跟原生 LINE 一樣明顯；Samsung 類別頁只有震動開關、不能選模式）：
+  通知類別建立後震動模式就改不了，所以 `CHANNEL_MSG` 換成新 id `line_preview_messages_v4`，震動 `0,330,160,100,80,140`（一長兩短，從 LINE 26.16 類別讀到的數值，診斷記錄 `vib=`）。
+  v2、v3 只出現在測試版。第一次建立時複製舊類別（依序找 v3、v2、`line_preview_messages`）的重要性、震動開關、聲音、圖示標記、鎖定畫面設定，再刪掉舊類別（設定裡會顯示「已刪除 1 個類別」）。
+  LINE 自己的震動模式還不知道：`LINE ch=… vib=…` 會記下來，診斷記錄開頭也會印 Sidepeek 類別的震動狀態，之後可依實際記錄調整。
+
+## 10/29 進階清理（實驗性）＋版面整理（仍是 v1.0.5，versionCode 12，尚未實機測試）
+- `Prefs.KEY_SMART_CLEAR`＋`KEY_SMART_CLEAR_CONSENT_V1`：預設關閉；每次打開都跳 `A11yDisclosure.smartClear` 同意框。
+- `PanelAccessibilityService.smartClear`：LINE 畫面切換後 400／1000／2000ms 讀 active window 上方 15% 的 text／contentDescription（只限 LINE 套件），交給 `ChatTitleMatch.match` 跟 `Notifier.activeLineChatTitles` 比對，唯一符合才 `clearLineChat`；不符合就不清。記錄只寫 matched／no match，完整記錄才寫文字。
+- `ChatTitleMatch`：NFKC、空白、去掉「(5)」人數、「…」截斷用開頭比對（至少 4 字）；有單元測試。
+- 只在 `ChatHistoryActivity`（LINE 26.16 聊天室畫面，記錄確認）比對；其他畫面記 `smart clear skipped`。聊天室間若是同一個 activity 內直接切換，目前不會重新比對。
+- 截圖：三星 One UI（Android 17）會扣住音量下約 150ms 等電源鍵，截圖組合鍵時不會傳給無障礙服務（記錄只有單按那次 `KEY volume-down lag=152ms`），所以電源＋音量下截圖時藏不掉 Peek 條。
+  → 「按音量下鍵時暫時隱藏 Peek 條」整個拿掉（v1.0.5 還沒發布，沒有舊設定要處理）。要截圖不含 Peek 條，可以考慮快速設定按鈕＋`performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT)`，使用者先不要。
+- 版面：新增「LINE 通知清理」卡片（swClearOnLine 從「側邊欄：顯示方式」移過來）；進階／常見問題／遇到問題改成 `CollapseCard` 卡片，`lblSupport` 標題。
+- 隱私文字（A11yDisclosure、a11y_description、PrivacyActivity、docs/privacy.md、README）已改成「預設不讀取；進階清理例外」，最後更新 2026/10/29。上架前要更新 Play Console 無障礙聲明。
+- 滑動靈敏度：`Prefs.KEY_SWIPE_SENS` 1..5（預設 3），對應往內滑 48／36／24／16／10dp 才打開（原本固定 24dp）；`PanelController` 在 ACTION_DOWN 讀取。設定頁在「Peek 條外觀」不透明度下面，「Peek 條恢復預設」會一起重設。
+- **設定頁分頁**：activity_main.xml 根節點改成 LinearLayout（ScrollView `scroll` ＋ BottomNavigationView `bottomNav`）。內容分成 `pageHome`／`pageSettings`／`pageHelp`，由 MainActivity.setupTabs()/showPages() 切換，分頁存在 savedInstanceState（`main.tab`）。設定精靈進行中時（!wizardDone 且沒有 showAll）隱藏分頁列、固定在首頁。
+- **狀態卡＋主開關**：主開關（swEnabled、swEdge、a11yBox、測試按鈕）搬進狀態卡的 `mainSwitches`，精靈中隱藏。`statusDot` 顏色：灰＝已關閉或精靈中、橘＝還有建議設定、綠＝一切正常；`statusSub` 是一行補充說明。
+- **其他**：選項是 RadioGroup 套 `SegGroup`/`Seg` 樣式（程式不變）；滑桿標籤 `SeekRow`，bindSeek 把 label 文字以「：」切成名稱／數值兩格；常見問題卡片 `android:tag="faq"`，setupFaqAccordion() 逐題展開。
+
+
+## 10/29 版號改成 v1.1.0
+- 原本規劃的 v1.0.5 沒有發布，因為新功能和介面改版較多，改名為 **v1.1.0**（versionName 1.1.0，versionCode 仍是 12）。上面標成 v1.0.5 的內容都屬於 v1.1.0。
+- 更新檢查比對 tag 版號，舊版（1.0.3、1.0.4）會直接提示 v1.1.0。發版 tag 用 `v1.1.0`，檔名 `sidepeek-v1.1.0-build12.apk`。

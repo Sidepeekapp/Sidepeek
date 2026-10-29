@@ -100,7 +100,7 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
 
 <div class="head">
   <h1>設定示範動畫</h1>
-  <p>App 設定引導第 1、4、5、6 步的示範，重畫成乾淨的 One UI 畫面；其他 App 以灰色區塊代替，只把要按的地方畫清楚。每段會自動循環播放。</p>
+  <p>App 設定引導第 1、4、5、6 步的示範（另有第 1 步被「受限制的設定」擋住時的版本，畫成原生 Android 的畫面），重畫成乾淨的 One UI 畫面；其他 App 以灰色區塊代替，只把要按的地方畫清楚。每段會自動循環播放。</p>
 </div>
 <div class="grid" id="grid"></div>
 
@@ -241,6 +241,82 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
         show(dim, so); show(sheet, so, (1 - eo(seg(t, 3.55, 3.95))) * 200 + eo(seg(t, 5.55, 5.85)) * 60);
         setTog(spTog, seg(t, 5.75, 6.05));
         renderFinger(stage, finger, t, [{ t: 3.3, el: () => spTog }, { t: 5.3, el: () => allow }, { t: 7.7, el: () => back }]);
+      };
+    }},
+    // Stock Android (ASUS, Pixel…): sideloaded apps are blocked at notification access too.
+    { id: "step1r", label: "第 1 步", title: "通知存取被擋時", dur: 15.0, build: (stage) => {
+      const s0 = h(`<div class="abs scr">
+        <div class="bar"><div class="back"></div><b>閱讀、回覆及控制通知</b></div>
+        <div class="body"><div class="list" data-k="list">
+          <div class="sec">允許</div>
+          <div class="group">${[46, 38, 55, 42, 50].map((a) => skRow(a, 0)).join("")}</div>
+          <div class="sec">不允許</div>
+          <div class="group">${[40, 52, 36].map((a) => skRow(a, 0)).join("")}
+            <div class="row hl" data-k="sp">${appIc(30)}<div class="lb">Sidepeek</div><div></div></div>
+            ${skRow(44, 0)}
+          </div>
+        </div></div></div>`);
+      const detail = (blocked) => h(`<div class="abs scr">
+        <div class="bar"><div class="back"></div><b>閱讀、回覆及控制通知</b></div>
+        <div class="body"><div class="list">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0 14px">${appIc(44)}<div style="font-size:16px;font-weight:600">Sidepeek</div></div>
+          <div class="group"><div class="row noic" data-k="grant"><div><div class="lb"${blocked ? ' style="color:var(--ink-3)"' : ""}>授予通知存取權</div>${blocked ? '<div class="sub gray">由受限制的設定控管</div>' : ""}</div>${tog()}</div></div>
+          <div class="sec">允許的通知類型</div>
+          <div class="group">${["即時", "對話", "通知", "靜音"].map((x) => `<div class="row noic"><div class="lb" style="color:var(--ink-3)">${x}</div><div></div></div>`).join("")}</div>
+        </div></div></div>`);
+      const s1 = detail(true), s3 = detail(false);
+      const s2 = h(`<div class="abs scr">
+        <div class="bar"><div class="back"></div><b>應用程式資訊</b><div class="more" data-k="more"><i></i></div></div>
+        <div class="body"><div class="list">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0 14px">${appIc(44)}<div style="font-size:16px;font-weight:600">Sidepeek</div></div>
+          <div class="group" style="display:flex;justify-content:space-around;padding:12px 0;font-size:12px;color:var(--ink-2)"><div>開啟</div><div>解除安裝</div><div>強制停止</div></div>
+          <div class="group">
+            <div class="row noic"><div><div class="lb">通知</div><div class="sub gray">關閉</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">權限</div><div class="sub gray">未取得任何授權</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">應用程式電池用量</div><div class="sub gray">自上次充電完成後使用了 0%</div></div><div></div></div>
+          </div>
+        </div></div></div>`);
+      stage.append(s0, s1, s2, s3);
+      const blockedTog = s1.querySelector(".tog"), grantTog = s3.querySelector(".tog");
+      blockedTog.style.opacity = "0.4";
+      const dim = h(`<div class="abs dim"></div>`), dlg = h(`<div class="abs center">
+        <div class="shield"></div><h3>應用程式存取權已遭拒絕</h3>
+        <p>如果授予這項權限，你的個人資訊和財務資訊可能會面臨風險。</p>
+        <p>如果未取得這項受限制權限，應用程式可能無法正常運作。<a>瞭解如何授予權限</a></p>
+        <div class="pill" data-k="close">關閉</div></div>`);
+      const menu = h(`<div class="abs menu"><div data-k="allow">允許受限制的設定</div><div style="color:var(--ink-2)">解除安裝更新</div></div>`);
+      const ver = h(`<div class="abs verify"><h3>驗證身分</h3><p>使用指紋或螢幕鎖定確認是你本人</p><div class="fp" data-k="fp"></div></div>`);
+      const sheet = h(`<div class="abs sheet">
+        <h3>要允許 Sidepeek 存取通知嗎？</h3>
+        <p>Sidepeek 將可讀取所有通知，包括聯絡人名稱、相片和你收到的訊息內容等個人資訊。</p>
+        <div class="btns plain"><span>不允許</span><span data-k="ok">允許</span></div></div>`);
+      stage.append(menu, dim, dlg, ver, sheet);
+      const { caps, finger } = chrome(stage, [
+        ["第 1 步", "在「不允許」裡點 Sidepeek"], ["第 1 步", "開關是灰的，點一下"], ["第 1 步", "被拒絕是正常的，按「關閉」"],
+        ["第 1 步", "到 App 資訊，點右上角「⋮」"], ["第 1 步", "點「允許受限制的設定」"], ["第 1 步", "用指紋或密碼驗證"],
+        ["第 1 步", "回到通知存取，打開開關"], ["第 1 步", "開好了，回到 Sidepeek"]]);
+      const q = (k) => stage.querySelector(`[data-k="${k}"]`);
+      const list = q("list"), sp = q("sp"), close = q("close"), more = q("more"), allow = q("allow"), fp = q("fp"), ok = q("ok");
+      return (t) => {
+        renderCaps(caps, t, [0, 2.6, 4.1, 6.3, 7.6, 9.0, 10.7, 13.5]);
+        renderScreens([s0, s1, s2, s3], t, [{ at: 0, i: 0 }, { at: 2.45, i: 1 }, { at: 6.1, i: 2 }, { at: 10.5, i: 3 }]);
+        list.style.transform = `translateY(${(-340 * eio(seg(t, 0.5, 1.5))).toFixed(1)}px)`;
+        press(sp, t, 2.1);
+        const d = eo(seg(t, 3.85, 4.15)) * (1 - eo(seg(t, 5.75, 6.0)));
+        const v = eo(seg(t, 9.0, 9.35)) * (1 - eo(seg(t, 10.1, 10.4)));
+        const sh = eo(seg(t, 12.15, 12.5)) * (1 - eo(seg(t, 13.25, 13.5)));
+        show(dim, Math.max(d, v, sh));
+        show(dlg, d, 0, 0, 0.94 + 0.06 * eo(seg(t, 3.85, 4.2)));
+        const mo = eo(seg(t, 7.4, 7.65)) * (1 - eo(seg(t, 8.75, 8.95)));
+        show(menu, mo, (1 - eo(seg(t, 7.4, 7.7))) * -8, 0, 0.92 + 0.08 * eo(seg(t, 7.4, 7.7)));
+        menu.style.transformOrigin = "100% 0";
+        press(allow, t, 8.6);
+        show(ver, v, (1 - eo(seg(t, 9.0, 9.35))) * 180);
+        fp.style.borderColor = seg(t, 9.75, 9.9) > 0 ? "#4ade80" : "";
+        show(sheet, sh, (1 - eo(seg(t, 12.15, 12.5))) * 200 + eo(seg(t, 13.25, 13.5)) * 60);
+        setTog(grantTog, seg(t, 13.35, 13.6));
+        renderFinger(stage, finger, t, [{ t: 2.1, el: () => sp, fx: 0.4 }, { t: 3.6, el: () => blockedTog }, { t: 5.6, el: () => close },
+          { t: 7.2, el: () => more }, { t: 8.6, el: () => allow }, { t: 9.8, el: () => fp }, { t: 11.8, el: () => grantTog }, { t: 13.1, el: () => ok }]);
       };
     }},
     { id: "step4", label: "第 4 步", title: "試開側邊欄服務", dur: 8.8, build: (stage) => {

@@ -11,7 +11,14 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
 object Notifier {
-    const val CHANNEL_MSG = "line_preview_messages"
+    // v1.1.0: new id so the stronger vibration pattern applies (Android freezes a channel's
+    // vibration once created). The old channel's user settings are copied over in ensureChannels.
+    const val CHANNEL_MSG = "line_preview_messages_v4"
+    // Newest first: settings are copied from the first one that exists (v2/v3 only on test builds).
+    private val OLD_CHANNELS_MSG = listOf("line_preview_messages_v3", "line_preview_messages_v2", "line_preview_messages")
+    // LINE's own channel pattern (one long, two short; read from its channel, LINE 26.16); the
+    // system default single short buzz is easy to miss in a pocket.
+    private val MSG_VIBRATION = longArrayOf(0, 330, 160, 100, 80, 140)
     const val CHANNEL_PANEL = "panel_service_silent"
     private const val OLD_CHANNEL_PANEL = "edge_panel_service"
 
@@ -19,17 +26,25 @@ object Notifier {
     const val ACTION_MARK_READ = "app.sidepeek.MARK_READ"
     const val ACTION_DISMISS = "app.sidepeek.DISMISS"
 
+    // Android only lets the user change a channel's sound, so picking one in the app moves to a
+    // new channel id (CHANNEL_MSG_s1, _s2…) that carries the user's other settings over.
+    private const val KEY_MSG_CHANNEL_SEQ = "msg_channel_seq"
+    private fun msgChannelId(seq: Int) = if (seq == 0) CHANNEL_MSG else "${CHANNEL_MSG}_s$seq"
+
+    /** The 「LINE 訊息預覽」 channel now in use. */
+    fun msgChannel(ctx: Context): String = msgChannelId(Prefs.sp(ctx).getInt(KEY_MSG_CHANNEL_SEQ, 0))
+
     fun ensureChannels(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
         run {
-            nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_MSG, "LINE 訊息預覽", NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "每個 LINE 聊天室一則通知，未讀訊息逐行顯示（浮動通知）"
-                    enableVibration(true)
-                    setShowBadge(true)
-                    lockscreenVisibility = android.app.Notification.VISIBILITY_PRIVATE
-                }
-            )
+            // Settings only apply on first creation; later calls just refresh name/description.
+            val seq = Prefs.sp(ctx).getInt(KEY_MSG_CHANNEL_SEQ, 0)
+            val id = msgChannelId(seq)
+            val older = (seq - 1 downTo 0).map { msgChannelId(it) } + OLD_CHANNELS_MSG
+            val old = if (nm.getNotificationChannel(id) == null)
+                older.firstNotNullOfOrNull { nm.getNotificationChannel(it) } else null
+            createMsgChannel(nm, id, old)
+            if (old != null) older.forEach { try { nm.deleteNotificationChannel(it) } catch (_: Exception) {} }
         }
         // v2.5: own silent channel for the fallback foreground-service notification. Users can turn
         // this channel off (Android 13+ then hides the FGS notification). Old channel removed.
@@ -48,6 +63,48 @@ object Notifier {
         }
     }
 
+    /** [old]'s user settings carried over; [sound] replaces its sound when [changeSound]. */
+    private fun createMsgChannel(
+        nm: NotificationManager, id: String, old: NotificationChannel?,
+        changeSound: Boolean = false, sound: android.net.Uri? = null,
+    ) {
+        nm.createNotificationChannel(
+            NotificationChannel(id, "LINE 訊息預覽", old?.importance ?: NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "每個 LINE 聊天室一則通知，未讀訊息逐行顯示（浮動通知）"
+                enableVibration(old?.shouldVibrate() ?: true)
+                vibrationPattern = MSG_VIBRATION
+                setShowBadge(old?.canShowBadge() ?: true)
+                lockscreenVisibility = old?.lockscreenVisibility ?: android.app.Notification.VISIBILITY_PRIVATE
+                if (changeSound) setSound(sound, old?.audioAttributes ?: android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                else if (old != null) setSound(old.sound, old.audioAttributes)
+            }
+        )
+    }
+
+    /** The sound of 「LINE 訊息預覽」 now; null = silent. */
+    fun messageSound(ctx: Context): android.net.Uri? {
+        ensureChannels(ctx)
+        return ctx.getSystemService(NotificationManager::class.java).getNotificationChannel(msgChannel(ctx))?.sound
+    }
+
+    /**
+     * 「通知鈴聲」 picked in the app ([sound] null = silent). Deleting the old channel takes our LINE
+     * notifications off the shade; the orphan recovery puts unread chats back on the new one.
+     */
+    fun setMessageSound(ctx: Context, sound: android.net.Uri?) {
+        val nm = ctx.getSystemService(NotificationManager::class.java)
+        ensureChannels(ctx)
+        val sp = Prefs.sp(ctx)
+        val seq = sp.getInt(KEY_MSG_CHANNEL_SEQ, 0)
+        val old = nm.getNotificationChannel(msgChannelId(seq))
+        sp.edit().putInt(KEY_MSG_CHANNEL_SEQ, seq + 1).commit()
+        createMsgChannel(nm, msgChannelId(seq + 1), old, changeSound = true, sound = sound)
+        try { nm.deleteNotificationChannel(msgChannelId(seq)) } catch (_: Exception) {}
+        Diagnostics.note(ctx, "SOUND changed -> ${msgChannelId(seq + 1)} silent=${sound == null}")
+    }
+
     /**
      * Can our stacked LINE notification actually reach the user right now? LINE's original may only
      * be hidden when this is true; otherwise the message would vanish with no alert at all.
@@ -59,7 +116,7 @@ object Notifier {
         return try {
             val nm = ctx.getSystemService(NotificationManager::class.java) ?: return true
             // Not created yet: postChat() creates it with IMPORTANCE_HIGH before posting.
-            val ch = nm.getNotificationChannel(CHANNEL_MSG) ?: return true
+            val ch = nm.getNotificationChannel(msgChannel(ctx)) ?: return true
             if (ch.importance == NotificationManager.IMPORTANCE_NONE) return false
             if (Build.VERSION.SDK_INT >= 28) {
                 val g = ch.group
@@ -261,7 +318,7 @@ object Notifier {
             return sb
         }
         val title = latest.chatTitle.ifBlank { latest.sender.ifBlank { Sources.displayName(latest.pkg) } }
-        val builder = NotificationCompat.Builder(ctx, CHANNEL_MSG)
+        val builder = NotificationCompat.Builder(ctx, msgChannel(ctx))
             .setSmallIcon(R.drawable.ic_stat_msg)
             .setColor(Sources.forPackage(latest.pkg)?.color ?: 0xFF16A34A.toInt())
             .setContentTitle(title)
@@ -288,9 +345,9 @@ object Notifier {
         }
 
         // Header avatar: the chat's own picture (LINE's large icon), else the sender's. Group chats:
-        // LINE's large icon is the latest SENDER, so a member's photo would sit next to the group
-        // name; use a neutral group badge there instead (members keep their own avatars per line).
-        if (isGroupChat) builder.setLargeIcon(groupIcon(ctx, latest.chatTitle))
+        // LINE's large icon is usually the latest SENDER, so a member's photo would sit next to the group
+        // name; use a neutral group badge there, or the community's own picture once we know that is what it is.
+        if (isGroupChat) builder.setLargeIcon(groupPicture(ctx, latest.chatKey)?.let { circle(it) } ?: groupIcon(ctx, latest.chatTitle))
         else (MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
             ?: MessageStore.loadBitmap(latest.avatarPath))?.let { builder.setLargeIcon(circle(it)) }
 
@@ -350,7 +407,7 @@ object Notifier {
         // P1-1: lock-screen public version — app name + count only, no chat title.
         builder.setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
-                NotificationCompat.Builder(ctx, CHANNEL_MSG)
+                NotificationCompat.Builder(ctx, msgChannel(ctx))
                     .setSmallIcon(R.drawable.ic_stat_msg)
                     .setColor(Sources.forPackage(latest.pkg)?.color ?: 0xFF16A34A.toInt())
                     .setContentTitle(Sources.displayName(latest.pkg))
@@ -374,7 +431,7 @@ object Notifier {
             Diagnostics.fail(ctx, "POST notify chat=${latest.chatKey}", e)
             // Last-resort plain notification without a fancy style.
             try {
-                val plain = NotificationCompat.Builder(ctx, CHANNEL_MSG)
+                val plain = NotificationCompat.Builder(ctx, msgChannel(ctx))
                     .setSmallIcon(R.drawable.ic_stat_msg)
                     .setContentTitle(title)
                     .setContentText(shown(latest))
@@ -446,7 +503,7 @@ object Notifier {
         }
         builder.setStyle(style)
         try {
-            val chatIcon = if (isGroupChat) groupIcon(ctx, title)
+            val chatIcon = if (isGroupChat) groupPicture(ctx, latest.chatKey) ?: groupIcon(ctx, title)
                 else MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
                     ?: MessageStore.loadBitmap(latest.avatarPath)
             val id = "chat_" + latest.chatKey.hashCode().toUInt().toString(16)
@@ -503,6 +560,11 @@ object Notifier {
     }
 
     /** Always output a square [AVATAR_PX] circular bitmap (largeIcon / shortcut / Person). */
+    /** A LINE group's own picture, once we know its large icon shows the chat (communities), not a member. */
+    private fun groupPicture(ctx: Context, chatKey: String): android.graphics.Bitmap? =
+        if (MessageStore.groupPicture(ctx, chatKey) != GroupPicture.Verdict.CHAT) null
+        else MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, chatKey))
+
     /** Neutral round group badge: brand-green circle with the group name's first character. */
     private fun groupIcon(ctx: Context, name: String): android.graphics.Bitmap {
         val px = AVATAR_PX
@@ -533,6 +595,29 @@ object Notifier {
 
     fun cancelChat(ctx: Context, chatKey: String) {
         NotificationManagerCompat.from(ctx).cancel(notificationIdFor(chatKey))
+    }
+
+    /** Chat keys of the tidied LINE notifications now showing. */
+    private fun activeLineChatKeys(ctx: Context): List<String> = try {
+        ctx.getSystemService(android.app.NotificationManager::class.java).activeNotifications
+            .mapNotNull { it.notification.extras.getString(EXTRA_CHAT_KEY) }.distinct()
+            .filter { it.startsWith(LineListenerService.LINE_PKG + "|") || it.startsWith(LineListenerService.LINE_LITE_PKG + "|") }
+    } catch (_: Exception) { emptyList() }
+
+    /** Chat key -> chat name for the tidied LINE notifications now showing (進階清理 compares against these). */
+    fun activeLineChatTitles(ctx: Context): Map<String, String> =
+        activeLineChatKeys(ctx).mapNotNull { k -> MessageStore.latestInChat(ctx, k)?.chatTitle?.let { k to it } }.toMap()
+
+    /** The user is looking at LINE: count every LINE chat as read and remove our copies. Returns how many. */
+    fun clearLineChats(ctx: Context): Int {
+        val keys = activeLineChatKeys(ctx)
+        keys.forEach { MessageStore.markRead(ctx, it); cancelChat(ctx, it) }
+        return keys.size
+    }
+
+    /** The user opened this one LINE chat: count it as read and remove our copy. */
+    fun clearLineChat(ctx: Context, chatKey: String) {
+        MessageStore.markRead(ctx, chatKey); cancelChat(ctx, chatKey)
     }
 
     fun postTest(ctx: Context) {

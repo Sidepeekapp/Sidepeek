@@ -134,6 +134,11 @@ object Diagnostics {
                 } catch (_: Exception) {}
             }
             append("通知存取: ").append(isListenerEnabled(ctx)).append('\n')
+            val ch = try {
+                ctx.getSystemService(android.app.NotificationManager::class.java)?.getNotificationChannel(Notifier.msgChannel(ctx))
+            } catch (_: Exception) { null }
+            append("「LINE 訊息預覽」類別: ").append(if (ch == null) "尚未建立" else
+                "重要性=${ch.importance} 震動=${if (ch.shouldVibrate()) ch.vibrationPattern?.joinToString(",") ?: "預設" else "關閉"} 聲音=${ch.sound != null}").append('\n')
             append("完整記錄: ").append(if (full(ctx)) "收集中（含訊息內容）" else "關閉（只有事件，不含訊息內容）").append('\n')
             append("※ 收集完整記錄期間的內容包含訊息文字，分享前請留意隱私。\n\n")
         }

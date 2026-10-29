@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 
 /**
@@ -14,7 +15,8 @@ import android.view.accessibility.AccessibilityWindowInfo
  * windows do not trigger the system "『Sidepeek』正重疊顯示在其他應用程式上方" notification.
  *
  * Only window-level information is used: which app's activity is in front (to show the handle on
- * the home screen only) and whether a keyboard window exists. Screen text is never read.
+ * the home screen only) and whether a keyboard window exists. Screen text is not read, except the
+ * top bar of LINE screens when the user opts in to 進階清理 (see smartClear).
  */
 class PanelAccessibilityService : AccessibilityService() {
 
@@ -99,7 +101,10 @@ class PanelAccessibilityService : AccessibilityService() {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 val pkg = e.packageName?.toString()
                 val cls = e.className?.toString()
-                if (pkg != null && cls != null && isActivity(pkg, cls)) c.onForegroundApp(pkg)
+                if (pkg != null && cls != null && isActivity(pkg, cls)) {
+                    c.onForegroundApp(pkg)
+                    onLineScreen(pkg, cls)
+                }
                 checkImeWindow()
                 c.recheckVisibility()
             }
@@ -126,6 +131,94 @@ class PanelAccessibilityService : AccessibilityService() {
         val c = controller ?: return
         val ime = try { windows.any { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD } } catch (_: Exception) { return }
         c.onImeWindow(ime)
+    }
+
+    /** The LINE screen (activity class) last in front, or null when another app's screen is. */
+    private var lineScreen: String? = null
+
+    /**
+     * Opening a chat inside LINE gives us no signal: we already removed LINE's own notification,
+     * so LINE has nothing to cancel. Instead, whenever a LINE screen comes to the front (LINE opened,
+     * or chat list -> chat), clear our tidied LINE notifications. Messages stay in the side panel.
+     */
+    private fun onLineScreen(pkg: String, cls: String) {
+        val line = pkg == LineListenerService.LINE_PKG || pkg == LineListenerService.LINE_LITE_PKG
+        if (!line) { lineScreen = null; return }
+        if (cls == lineScreen) return
+        lineScreen = cls
+        val screen = cls.substringAfterLast('.')
+        if (Prefs.clearOnLineOpen(this) && Prefs.smartClear(this)) {
+            // Only the chat screen: the chat list's top rows can show other chats' names.
+            if (screen == LINE_CHAT_SCREEN) smartClear(cls, screen, 0)
+            else Diagnostics.note(this, "LINE screen $screen: smart clear skipped (not a chat)")
+            return
+        }
+        // Screen class name only (which kind of LINE screen); no screen text is read.
+        val n = if (Prefs.clearOnLineOpen(this)) Notifier.clearLineChats(this) else 0
+        Diagnostics.note(this, "LINE screen $screen: cleared $n tidied notification(s)")
+    }
+
+    /** LINE's chat screen (activity simple name, LINE 26.16; seen in the diagnostics log). */
+    private val LINE_CHAT_SCREEN = "ChatHistoryActivity"
+
+    /** Retry delays: the chat's top bar may not be drawn yet right after the screen switches. */
+    private val smartDelays = longArrayOf(400, 1000, 2000)
+
+    /**
+     * 進階清理 (opted in with its own consent): read only the top bar of this LINE screen and clear
+     * the one tidied chat it names. Compared in memory against chat names Sidepeek already has; the
+     * texts are not kept. No match, or more than one, clears nothing.
+     */
+    private fun smartClear(cls: String, screen: String, attempt: Int) {
+        mainHandler.postDelayed({
+            if (lineScreen != cls) return@postDelayed           // already left this screen
+            val chats = Notifier.activeLineChatTitles(this)
+            if (chats.isEmpty()) {
+                if (attempt == 0) Diagnostics.note(this, "LINE screen $screen: smart clear, nothing to clear")
+                return@postDelayed
+            }
+            val texts = topBarTexts()
+            val key = ChatTitleMatch.match(texts, chats)
+            when {
+                key != null -> {
+                    Notifier.clearLineChat(this, key)
+                    Diagnostics.note(this, "LINE screen $screen: smart clear matched (try ${attempt + 1})" +
+                        Diagnostics.sensitive(this, " name=${chats[key]}"))
+                }
+                attempt + 1 < smartDelays.size -> smartClear(cls, screen, attempt + 1)
+                else -> Diagnostics.note(this, "LINE screen $screen: smart clear no match " +
+                    "(texts=${texts.size} chats=${chats.size})" +
+                    Diagnostics.sensitive(this, " top=$texts names=${chats.values}"))
+            }
+        }, smartDelays[attempt])
+    }
+
+    /** Texts and content descriptions in the top bar (upper ~15%) of the active LINE window only. */
+    @Suppress("DEPRECATION")
+    private fun topBarTexts(): List<String> {
+        val root = try { rootInActiveWindow } catch (_: Exception) { null } ?: return emptyList()
+        val pkg = root.packageName?.toString()
+        if (pkg != LineListenerService.LINE_PKG && pkg != LineListenerService.LINE_LITE_PKG) { root.recycle(); return emptyList() }
+        val limit = (resources.displayMetrics.heightPixels * 0.15f).toInt()
+        val out = mutableListOf<String>()
+        val r = android.graphics.Rect()
+        val queue = ArrayDeque<AccessibilityNodeInfo>().apply { add(root) }
+        var seen = 0
+        while (queue.isNotEmpty()) {
+            val n = queue.removeFirst()
+            if (++seen <= 300) {
+                n.getBoundsInScreen(r)
+                if (r.top < limit) {
+                    if (r.bottom <= limit + limit / 3) {
+                        n.text?.toString()?.takeIf { it.isNotBlank() }?.let { out += it }
+                        n.contentDescription?.toString()?.takeIf { it.isNotBlank() }?.let { out += it }
+                    }
+                    for (i in 0 until n.childCount) n.getChild(i)?.let { queue.add(it) }
+                }
+            }
+            n.recycle()
+        }
+        return out
     }
 
     /** True if [cls] is an Activity of [pkg] (filters dialogs, popups, toasts, keyboards). */

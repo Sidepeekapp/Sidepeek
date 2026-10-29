@@ -14,7 +14,9 @@ object Prefs {
     const val KEY_HANDLE_WIDTH = "handle_width_dp"
     const val KEY_HANDLE_HEIGHT = "handle_height_dp"
     const val KEY_HANDLE_OPACITY = "handle_opacity_pct"
-    val HANDLE_KEYS = setOf(KEY_HANDLE_SIDE, KEY_HANDLE_INSET, KEY_HANDLE_WIDTH, KEY_HANDLE_HEIGHT, KEY_HANDLE_OPACITY, KEY_HANDLE_Y)
+    /** How far an inward swipe on the handle must travel to open the panel: level 1 (low) .. 5 (high). */
+    const val KEY_SWIPE_SENS = "handle_swipe_sensitivity"
+    val HANDLE_KEYS = setOf(KEY_HANDLE_SIDE, KEY_HANDLE_INSET, KEY_HANDLE_WIDTH, KEY_HANDLE_HEIGHT, KEY_HANDLE_OPACITY, KEY_HANDLE_Y, KEY_SWIPE_SENS)
 
     const val SIDE_RIGHT = "right"
     const val SIDE_LEFT = "left"
@@ -22,7 +24,7 @@ object Prefs {
     const val INSET_MAX = 40
     const val WIDTH_MIN = 4;  const val WIDTH_MAX = 24
     const val HEIGHT_MIN = 40; const val HEIGHT_MAX = 200   // Android caps gesture exclusion at 200dp/edge
-    const val OPACITY_MIN = 20; const val OPACITY_MAX = 100
+    const val OPACITY_MIN = 0; const val OPACITY_MAX = 100   // 0 = invisible (not in screenshots) but still swipeable
 
     // Samsung Edge Panel–like defaults (right edge, close, frosted readable)
     const val DEF_HANDLE_SIDE = SIDE_RIGHT
@@ -30,6 +32,11 @@ object Prefs {
     const val DEF_HANDLE_WIDTH = 6
     const val DEF_HANDLE_HEIGHT = 110
     const val DEF_HANDLE_OPACITY = 55
+    const val SENS_MIN = 1; const val SENS_MAX = 5; const val DEF_SWIPE_SENS = 3
+    /** Inward swipe distance (dp) per sensitivity level; level 3 = 24dp, the old fixed value. */
+    private val SWIPE_DP = intArrayOf(48, 36, 24, 16, 10)
+    fun swipeSensitivity(ctx: Context) = sp(ctx).getInt(KEY_SWIPE_SENS, DEF_SWIPE_SENS).coerceIn(SENS_MIN, SENS_MAX)
+    fun swipeOpenDp(level: Int) = SWIPE_DP[level.coerceIn(SENS_MIN, SENS_MAX) - 1]
 
     fun handleSide(ctx: Context) = sp(ctx).getString(KEY_HANDLE_SIDE, DEF_HANDLE_SIDE) ?: DEF_HANDLE_SIDE
     fun handleInset(ctx: Context) = sp(ctx).getInt(KEY_HANDLE_INSET, DEF_HANDLE_INSET).coerceIn(0, INSET_MAX)
@@ -96,11 +103,23 @@ object Prefs {
             .putInt(KEY_HANDLE_WIDTH, DEF_HANDLE_WIDTH)
             .putInt(KEY_HANDLE_HEIGHT, DEF_HANDLE_HEIGHT)
             .putInt(KEY_HANDLE_OPACITY, DEF_HANDLE_OPACITY)
+            .putInt(KEY_SWIPE_SENS, DEF_SWIPE_SENS)
             .putInt(KEY_HANDLE_Y, -1)
             .apply()
     }
     const val KEY_HIDE_ON_IME = "hide_on_ime"
     fun hideOnIme(ctx: Context) = sp(ctx).getBoolean(KEY_HIDE_ON_IME, true)
+    /** Clear our tidied LINE notifications when a LINE screen comes to the front (needs the a11y service). */
+    const val KEY_CLEAR_ON_LINE_OPEN = "clear_on_line_open"
+    fun clearOnLineOpen(ctx: Context) = sp(ctx).getBoolean(KEY_CLEAR_ON_LINE_OPEN, true)
+    /**
+     * 進階清理 (experimental, off by default): instead of clearing every LINE chat, read the top bar
+     * of the LINE screen and clear only the chat it names. Needs its own consent (SmartClearDisclosure).
+     */
+    const val KEY_SMART_CLEAR = "smart_clear_v1"
+    const val KEY_SMART_CLEAR_CONSENT_V1 = "smart_clear_consent_v1"
+    fun smartClear(ctx: Context) = sp(ctx).getBoolean(KEY_SMART_CLEAR, false) &&
+        sp(ctx).getBoolean(KEY_SMART_CLEAR_CONSENT_V1, false)
 
     /**
      * Show the edge handle on the lock screen. The panel itself never opens while locked: swiping
@@ -185,6 +204,12 @@ object Prefs {
     const val KEY_A11Y_APPINFO_OPENED_V1 = "a11y_appinfo_opened_v1"
     /** User opened Accessibility to try enabling the sidebar service (Samsung denial flow). */
     const val KEY_A11Y_TRY_OPENED_V1 = "a11y_try_opened_v1"
+    /**
+     * Wizard step 1 opened notification-access settings. Stock Android (ASUS, Pixel…) blocks
+     * notification access for sideloaded apps too, not just accessibility like Samsung.
+     */
+    const val KEY_LISTENER_TRY_OPENED_V1 = "listener_try_opened_v1"
+    fun listenerTryOpened(ctx: Context) = sp(ctx).getBoolean(KEY_LISTENER_TRY_OPENED_V1, false)
     /** User agreed to the accessibility prominent disclosure (A11yDisclosure). */
     const val KEY_A11Y_CONSENT_V1 = "a11y_consent_v1"
     fun a11yConsent(ctx: Context) = sp(ctx).getBoolean(KEY_A11Y_CONSENT_V1, false)

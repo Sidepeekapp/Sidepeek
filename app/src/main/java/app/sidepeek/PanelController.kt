@@ -63,6 +63,10 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     private var panelRoot: SwipeFrame? = null
     private var panelCard: LinearLayout? = null
     private var listContainer: LinearLayout? = null
+    /** Cards built so far: the newest [LIST_PAGE] on open, more as the list is scrolled down. */
+    private val LIST_PAGE = 50
+    private var listShown = LIST_PAGE
+    private var listFooter: View? = null
     private var suppressListRefresh = 0
     private val dismissingViews = mutableSetOf<View>()
     /**
@@ -532,8 +536,14 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
 
     private val isLeft get() = Prefs.handleSide(this) == Prefs.SIDE_LEFT
 
-    /** Touch padding added around the visible bar so it is easy to hit. */
+    /** Touch padding between the screen edge and the bar (only as much as the inset leaves room for). */
     private fun touchPad() = dp(18f)
+    /**
+     * Touch padding on the inner (screen-content) side. Smaller than the old 18dp so the handle does
+     * not cover buttons near the edge (LINE's sticker panel once the keyboard has closed), but 10dp
+     * (a 16dp strip by default) proved too hard to hit.
+     */
+    private fun innerTouchPad() = dp(20f)
 
     /**
      * Ask the system not to treat touches on the handle as a back gesture (API 29+).
@@ -554,14 +564,14 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         val barW = dp(Prefs.handleWidth(this).toFloat())
         val h = dp(Prefs.handleHeight(this).toFloat())
         val inset = dp(Prefs.handleInset(this).toFloat())
-        val pad = touchPad()
+        val outer = min(touchPad(), inset)
 
-        lp.width = barW + pad * 2
+        lp.width = outer + barW + innerTouchPad()
         lp.height = h
         lp.gravity = Gravity.TOP or (if (isLeft) Gravity.START else Gravity.END)
-        // Window starts `pad` before the bar so the bar itself sits exactly `inset` from the edge.
-        lp.x = (inset - pad).coerceAtLeast(0)
-        val barOffset = if (inset - pad < 0) inset else pad
+        // Window starts `outer` before the bar so the bar itself sits exactly `inset` from the edge.
+        lp.x = inset - outer
+        val barOffset = outer
         (bar.layoutParams as FrameLayout.LayoutParams).apply {
             width = barW; height = h
             gravity = (if (isLeft) Gravity.START else Gravity.END) or Gravity.CENTER_VERTICAL
@@ -631,6 +641,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         var downX = 0f; var downY = 0f; var startY = 0
         var dragMode = false; var consumed = false; var moved = false
         var downAt = 0L
+        var openDist = dp(24f)
         fun restoreBarVisual(duration: Long = 120L) {
             handleBar?.animate()?.scaleX(1f)?.alpha(Prefs.handleOpacity(this) / 100f)?.setDuration(duration)?.start()
         }
@@ -655,6 +666,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                     downX = e.rawX; downY = e.rawY; startY = lp.y
                     dragMode = false; consumed = false; moved = false
                     downAt = android.os.SystemClock.uptimeMillis()
+                    openDist = dp(Prefs.swipeOpenDp(Prefs.swipeSensitivity(this)).toFloat())
                     // Immediate hit feedback so the user knows they touched the strip.
                     handleBar?.animate()?.scaleX(1.15f)?.alpha(1f)?.setDuration(80)?.start()
                     mainHandler.postDelayed(enterDrag, longPressMs)
@@ -668,7 +680,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                     } else {
                         val inward = if (isLeft) dx else -dx
                         // Intentional inward swipe opens the panel and cancels long-press.
-                        if (!consumed && inward > dp(24f) && abs(dx) > abs(dy)) {
+                        if (!consumed && inward > openDist && abs(dx) > abs(dy)) {
                             moved = true
                             mainHandler.removeCallbacks(enterDrag)
                             restoreBarVisual(80)
@@ -828,8 +840,10 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = false; overScrollMode = View.OVER_SCROLL_NEVER }
         val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         scroll.addView(list)
+        scroll.setOnScrollChangeListener { _, _, _, _, _ -> maybeLoadMore(scroll) }
         card.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         listContainer = list
+        listShown = LIST_PAGE
         panelCard = card
         root.target = card
 
@@ -987,6 +1001,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     private var clearedAll: List<LineMessage>? = null
     private val UNDO_SINGLE_MS = 4000L
     private val UNDO_CLEAR_MS = 5000L
+    private val CLEAR_STAGGER_MAX = 15
     private val hideUndo = Runnable { finishUndoWindow() }
 
     /** The message card under a screen point, if any (used by SwipeFrame). */
@@ -1089,9 +1104,10 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                 v.animate().cancel()
                 v.animate().translationX(endX).alpha(0f)
                     .setDuration(200).setInterpolator(DecelerateInterpolator()).start()
-            }, i * 45L)
+            }, min(i, CLEAR_STAGGER_MAX) * 45L)
         }
-        val doneAt = if (cards.isEmpty()) 0L else (cards.size - 1) * 45L + 260L
+        // Cards past the first screenful leave together, so clearing 200 loaded cards stays quick.
+        val doneAt = if (cards.isEmpty()) 0L else min(cards.size - 1, CLEAR_STAGGER_MAX) * 45L + 260L
         mainHandler.postDelayed({
             val removed = MessageStore.removeAll(this@PanelController)
             dismissingViews.clear()
@@ -1218,11 +1234,15 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     private val dateFmt = SimpleDateFormat("M/d HH:mm", Locale.TAIWAN)
     private fun formatTime(t: Long) = if (DateUtils.isToday(t)) timeFmt.format(Date(t)) else dateFmt.format(Date(t))
 
+    private fun visibleMessages() =
+        MessageStore.all(this).filter { m -> Sources.isSelected(this, m.pkg) }.sortedByDescending { it.time }
+
     private fun refreshList() {
         val list = listContainer ?: return
         list.removeAllViews()
-        val visible = MessageStore.all(this).filter { m -> Sources.isSelected(this, m.pkg) }
-        val msgs = visible.sortedByDescending { it.time }.take(50)
+        listFooter = null
+        val visible = visibleMessages()
+        val msgs = visible.take(listShown)
         updateHeader(visible.size)
         if (msgs.isEmpty()) {
             list.addView(TextView(this).apply {
@@ -1232,10 +1252,64 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             })
             return
         }
-        for (m in msgs) list.addView(itemView(m), LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(when (Prefs.msgGap(this@PanelController)) { Prefs.GAP_NONE -> 3f; Prefs.GAP_LARGE -> 14f; else -> 8f })
-        })
+        for (m in msgs) list.addView(itemView(m), itemParams())
+        addListFooter(visible.size - msgs.size)
+    }
+
+    private fun itemParams() = LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+        bottomMargin = dp(when (Prefs.msgGap(this@PanelController)) { Prefs.GAP_NONE -> 3f; Prefs.GAP_LARGE -> 14f; else -> 8f })
+    }
+
+    /** 「再載入 N 則」 under the last card when older messages are not built yet (also auto-loads on scroll). */
+    private fun addListFooter(remaining: Int) {
+        val list = listContainer ?: return
+        if (remaining <= 0) return
+        val footer = TextView(this).apply {
+            text = "再載入 ${min(remaining, LIST_PAGE)} 則（還有 $remaining 則）"
+            setTextColor(0xFF16A34A.toInt()); textSize = 13f; gravity = Gravity.CENTER
+            setPadding(0, dp(12f), 0, dp(16f))
+            setOnClickListener { loadMoreMessages() }
+        }
+        list.addView(footer, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        listFooter = footer
+    }
+
+    /** Appends the next [LIST_PAGE] older messages without rebuilding the cards already shown. */
+    private fun loadMoreMessages() {
+        val list = listContainer ?: return
+        if (listFooter == null || suppressListRefresh > 0 || clearedAll != null) return
+        val visible = visibleMessages()
+        val from = listShown.coerceAtMost(visible.size)
+        listShown += LIST_PAGE
+        val more = visible.subList(from, listShown.coerceAtMost(visible.size))
+        listFooter?.let { list.removeView(it) }
+        listFooter = null
+        for (m in more) list.addView(itemView(m), itemParams())
+        addListFooter(visible.size - from - more.size)
+    }
+
+    /** Auto-load when the list is scrolled to within about one screen of the footer. */
+    private fun maybeLoadMore(scroll: ScrollView) {
+        val footer = listFooter ?: return
+        if (scroll.scrollY + scroll.height >= footer.top - scroll.height) loadMoreMessages()
+    }
+
+    /** Round default avatar: [color] circle with the name's first character in white. */
+    private fun letterAvatar(name: String, color: Int): android.graphics.Bitmap {
+        val px = 96
+        val bmp = android.graphics.Bitmap.createBitmap(px, px, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(bmp)
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
+        c.drawCircle(px / 2f, px / 2f, px / 2f, p)
+        val t = name.trim()
+        if (t.isNotEmpty()) {
+            p.color = Color.WHITE; p.textSize = px * 0.46f; p.textAlign = android.graphics.Paint.Align.CENTER
+            p.typeface = android.graphics.Typeface.DEFAULT_BOLD
+            val fm = p.fontMetrics
+            c.drawText(String(Character.toChars(t.codePointAt(0))), px / 2f, px / 2f - (fm.ascent + fm.descent) / 2f, p)
+        }
+        return bmp
     }
 
     private fun itemView(m: LineMessage): View {
@@ -1258,16 +1332,19 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                 override fun getOutline(view: View, outline: Outline) = outline.setOval(0, 0, view.width, view.height)
             }
             clipToOutline = true
-            val bmp = MessageStore.loadBitmap(m.avatarPath)
+            // The row is titled with the chat's name, so once we know LINE's large icon is the group's
+            // own picture (communities, see GroupPicture) show that, like the notification does.
+            val chatPic = if (MessageStore.groupPicture(this@PanelController, m.chatKey) == GroupPicture.Verdict.CHAT)
+                MessageStore.loadBitmap(MessageStore.chatAvatarPath(this@PanelController, m.chatKey)) else null
+            val bmp = chatPic ?: MessageStore.loadBitmap(m.avatarPath)
             val appIcon = if (bmp == null && Sources.known(m.pkg) == null)
                 try { packageManager.getApplicationIcon(m.pkg) } catch (_: Exception) { null } else null
             when {
                 bmp != null -> setImageBitmap(bmp)
                 appIcon != null -> setImageDrawable(appIcon)   // user-picked app without an avatar
-                else -> setImageDrawable(GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(Sources.forPackage(this@PanelController, m.pkg)?.color ?: 0xFF1FA2C9.toInt())
-                })
+                // No picture: a default avatar with the first character of the name, like the notification shows.
+                else -> setImageBitmap(letterAvatar(m.sender.ifBlank { m.chatTitle },
+                    Sources.forPackage(this@PanelController, m.pkg)?.color ?: 0xFF1FA2C9.toInt()))
             }
         }
         val av = if (narrowItems) 32f else 38f

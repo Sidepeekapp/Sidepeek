@@ -115,6 +115,17 @@ object MessageStore {
         saveBitmap(ctx, "chatav", chatKey.hashCode().toUInt().toString(), bmp, 192)
     }
 
+    /** LINE groups: what the saved chat avatar (LINE's large icon) shows, see [GroupPicture]. */
+    private fun groupPictures(ctx: Context) = ctx.getSharedPreferences("group_pictures", Context.MODE_PRIVATE)
+
+    fun groupPicture(ctx: Context, chatKey: String): GroupPicture.Verdict =
+        groupPictures(ctx).getString(chatKey, null)
+            ?.let { runCatching { GroupPicture.Verdict.valueOf(it) }.getOrNull() } ?: GroupPicture.Verdict.UNKNOWN
+
+    fun setGroupPicture(ctx: Context, chatKey: String, v: GroupPicture.Verdict) {
+        if (v != GroupPicture.Verdict.UNKNOWN && v != groupPicture(ctx, chatKey)) groupPictures(ctx).edit().putString(chatKey, v.name).apply()
+    }
+
     fun chatAvatarPath(ctx: Context, chatKey: String): String? =
         File(File(ctx.filesDir, "chatav"), chatKey.hashCode().toUInt().toString() + ".png").takeIf { it.exists() }?.absolutePath
 
@@ -161,7 +172,11 @@ object MessageStore {
         val t = norm(msg.text)
         for (m in messages.asReversed()) {
             if (m.id == msg.id) return "same id"
-            if (mid != null && midOf(m.id) == mid && m.chatKey == msg.chatKey) return "same line.message.id"
+            val otherMid = midOf(m.id)
+            if (mid != null && otherMid == mid && m.chatKey == msg.chatKey) return "same line.message.id"
+            // Both carry LINE's own message id and the ids differ: two real messages, even when the
+            // text is the same (the same long sentence sent twice must notify twice).
+            if (mid != null && otherMid != null) continue
             // Same event posted twice by non-LINE apps under different titles, e.g. Threads
             // 「1 個新的讚」+「chen__.90 說你的回覆讚…」 and 「chen__.90」+「說你的回覆讚…」.
             if (m.pkg == msg.pkg && m.pkg != LineListenerService.LINE_PKG && kotlin.math.abs(m.time - msg.time) <= 15_000L) {

@@ -7,4 +7,5 @@
     <color name="brand_accent">#16A34A</color>
     <color name="brand_on_accent">#FFFFFF</color>
     <color name="section_text">#15803D</color>
+    <color name="brand_tint">#2616A34A</color>
 </resources>

@@ -16,6 +16,15 @@ class ProfileLinksTest {
         assertEquals("shawarma17.c", ProfileLinks.handleFor(msg(threads, "1 個新的讚", "", "shawarma17.c 說你的回覆讚：之後會放到 github")))
     }
 
+    @Test fun threadsNewerWordingWithYi() {
+        // Screenshot 10/28: Threads now writes 「已追蹤你」「已轉發」 right after the handle.
+        assertEquals("lynn_0702551", ProfileLinks.handleFor(msg(threads, "1 位新的粉絲", "", "lynn_0702551 已追蹤你。")))
+        assertEquals("lynn_0702551", ProfileLinks.handleFor(msg(threads, "1 則新的轉發內容", "", "lynn_0702551 已轉發：我的第一個App終於開放下載啦！")))
+        assertEquals("wade_207", ProfileLinks.handleFor(msg(threads, "1 個新的讚", "", "wade_207 說你的回覆讚：您好，看您可否在以下路徑")))
+        // A reply without a handle still has none.
+        assertNull(ProfileLinks.handleFor(msg(threads, "Lin Chin Yeh", "Lin Chin Yeh", "已回覆：好讚，我也需要這個更改")))
+    }
+
     @Test fun threadsHandleInTitle() {
         assertEquals("chen__.90", ProfileLinks.handleFor(msg(threads, "chen__.90", "chen__.90", "說你的回覆讚：除了notistar…")))
     }

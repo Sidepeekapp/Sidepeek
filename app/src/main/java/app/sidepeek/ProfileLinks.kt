@@ -13,9 +13,12 @@ object ProfileLinks {
     private const val THREADS = "com.instagram.barcelona"
     private const val INSTAGRAM = "com.instagram.android"
 
-    /** "chen__.90 說你的回覆讚…", "amy.lu and 3 others liked…", "@bob 在貼文中提及你" */
+    /**
+     * "chen__.90 說你的回覆讚…", "amy.lu and 3 others liked…", "@bob 在貼文中提及你",
+     * and Threads' newer wording "lynn_07 已追蹤你。", "lynn_07 已轉發：…".
+     */
     private val LEADING = Regex(
-        "^@?([A-Za-z0-9._]{1,30})(?:\\s*(?:、|,|，)\\s*@?[A-Za-z0-9._]{1,30})*\\s*" +
+        "^@?([A-Za-z0-9._]{1,30})(?:\\s*(?:、|,|，)\\s*@?[A-Za-z0-9._]{1,30})*\\s*已?" +
             "(?:說|和|及|回覆|提及|標註|開始追蹤|追蹤|分享|轉發|引用|留言|按讚|說讚|傳送|" +
             "liked|replied|mentioned|started|followed|commented|reposted|quoted|tagged|shared|and\\b)"
     )
@@ -54,7 +57,7 @@ object ProfileLinks {
     fun profileIntent(ctx: Context, m: LineMessage, others: List<LineMessage> = emptyList()): Intent? {
         val h = handleFor(m, others) ?: return null
         val (url, pkg) = when (m.pkg) {
-            THREADS -> "https://www.threads.net/@$h" to THREADS
+            THREADS -> "https://www.threads.com/@$h" to THREADS   // threads.net now redirects here
             else -> "https://www.instagram.com/$h/" to INSTAGRAM
         }
         val i = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

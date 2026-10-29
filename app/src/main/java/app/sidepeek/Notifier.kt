@@ -344,10 +344,10 @@ object Notifier {
             Diagnostics.fail(ctx, "POST add actions", e)
         }
 
-        // Header avatar: the chat's own picture (LINE's large icon), else the sender's. Group chats:
-        // LINE's large icon is usually the latest SENDER, so a member's photo would sit next to the group
-        // name; use a neutral group badge there, or the community's own picture once we know that is what it is.
-        if (isGroupChat) builder.setLargeIcon(groupPicture(ctx, latest.chatKey)?.let { circle(it) } ?: groupIcon(ctx, latest.chatTitle))
+        // LINE 26.x group notifications expose the GROUP picture as largeIcon. Keep it in the
+        // header (unless this chat turned out to put the sender there, see groupPicture);
+        // individual rows use Person.icon when supplied, otherwise a sender initial badge.
+        if (isGroupChat) builder.setLargeIcon(circle(groupPicture(ctx, latest.chatKey) ?: groupIcon(latest.chatTitle)))
         else (MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
             ?: MessageStore.loadBitmap(latest.avatarPath))?.let { builder.setLargeIcon(circle(it)) }
 
@@ -486,11 +486,13 @@ object Notifier {
             val name = (if (isGroupChat) m.sender else m.sender.takeIf { it.isNotBlank() && it != "我" } ?: title).ifBlank { title }
             val p = people.getOrPut(name) {
                 androidx.core.app.Person.Builder().setName(name).setKey("${m.chatKey}|$name").apply {
-                    // P0-3: Person icon only for group chats; 1:1 relies on shortcut/largeIcon.
+                    // Person icon only for group chats; 1:1 relies on shortcut/largeIcon. When
+                    // LINE omits a member icon, use the same deterministic initial avatar as the
+                    // side panel so people remain distinct and consistent across Android skins.
                     if (isGroupChat) {
-                        MessageStore.loadBitmap(m.avatarPath)?.let {
-                            setIcon(androidx.core.graphics.drawable.IconCompat.createWithBitmap(circle(it)))
-                        }
+                        val icon = MessageStore.messageAvatar(ctx, m, suppressChatPicture = isLine(m.pkg))
+                            ?: AvatarBadge.bitmap(name, AVATAR_PX)
+                        setIcon(androidx.core.graphics.drawable.IconCompat.createWithBitmap(circle(icon)))
                     }
                 }.build()
             }
@@ -503,7 +505,7 @@ object Notifier {
         }
         builder.setStyle(style)
         try {
-            val chatIcon = if (isGroupChat) groupPicture(ctx, latest.chatKey) ?: groupIcon(ctx, title)
+            val chatIcon = if (isGroupChat) groupPicture(ctx, latest.chatKey) ?: groupIcon(title)
                 else MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
                     ?: MessageStore.loadBitmap(latest.avatarPath)
             val id = "chat_" + latest.chatKey.hashCode().toUInt().toString(16)
@@ -560,25 +562,21 @@ object Notifier {
     }
 
     /** Always output a square [AVATAR_PX] circular bitmap (largeIcon / shortcut / Person). */
-    /** A LINE group's own picture, once we know its large icon shows the chat (communities), not a member. */
+    /**
+     * A LINE group's own picture (LINE's large icon, saved per chat). Not used once this chat has
+     * shown that its large icon follows the sender instead (see GroupPicture).
+     */
     private fun groupPicture(ctx: Context, chatKey: String): android.graphics.Bitmap? =
-        if (MessageStore.groupPicture(ctx, chatKey) != GroupPicture.Verdict.CHAT) null
+        if (MessageStore.groupPicture(ctx, chatKey) == GroupPicture.Verdict.SENDER) null
         else MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, chatKey))
 
-    /** Neutral round group badge: brand-green circle with the group name's first character. */
-    private fun groupIcon(ctx: Context, name: String): android.graphics.Bitmap {
-        val px = AVATAR_PX
-        val bmp = android.graphics.Bitmap.createBitmap(px, px, android.graphics.Bitmap.Config.ARGB_8888)
-        val c = android.graphics.Canvas(bmp)
-        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF16A34A.toInt() }
-        c.drawCircle(px / 2f, px / 2f, px / 2f, p)
-        val ch = name.trim().let { if (it.isEmpty()) "群" else String(Character.toChars(it.codePointAt(0))) }
-        p.color = android.graphics.Color.WHITE; p.textSize = px * 0.46f; p.textAlign = android.graphics.Paint.Align.CENTER
-        p.typeface = android.graphics.Typeface.DEFAULT_BOLD
-        val fm = p.fontMetrics
-        c.drawText(ch, px / 2f, px / 2f - (fm.ascent + fm.descent) / 2f, p)
-        return bmp
+    /** Neutral fallback when LINE did not include a group picture. */
+    private fun groupIcon(name: String): android.graphics.Bitmap {
+        return AvatarBadge.bitmap(name.ifBlank { "群" }, AVATAR_PX, 0xFF16A34A.toInt())
     }
+
+    private fun isLine(pkg: String): Boolean =
+        pkg == LineListenerService.LINE_PKG || pkg == LineListenerService.LINE_LITE_PKG
 
     private fun circle(src: android.graphics.Bitmap, outPx: Int = AVATAR_PX): android.graphics.Bitmap {
         val s = minOf(src.width, src.height)
@@ -622,6 +620,9 @@ object Notifier {
 
     fun postTest(ctx: Context) {
         val chatKey = "test|demo"
+        // The demo deliberately repeats the same five texts. Remove its previous run first so the
+        // production duplicate filter (10 seconds, or 30 minutes for long text) cannot hide rows.
+        MessageStore.purgeFiles(ctx, MessageStore.removeChat(ctx, chatKey))
         MessageStore.markRead(ctx, chatKey)   // start a fresh stack
         MessageStore.setNotifWatermark(ctx, chatKey, 0L)
         val now = System.currentTimeMillis() + 5

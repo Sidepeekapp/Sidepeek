@@ -563,6 +563,8 @@ class LineListenerService : NotificationListenerService() {
                     pendingStickerByMsgId[id] = candidates
                 }
 
+                // Only a MessagingStyle Person icon is a trustworthy member avatar in LINE groups
+                // (see memberFallback); without one the UI draws an initial badge for that sender.
                 val avatar = m.person?.let { personAvatar(it) } ?: memberFallback
                 newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender, text,
                     if (m.timestamp > 0) m.timestamp else sbn.postTime, image, avatar)

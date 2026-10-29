@@ -1295,23 +1295,6 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         if (scroll.scrollY + scroll.height >= footer.top - scroll.height) loadMoreMessages()
     }
 
-    /** Round default avatar: [color] circle with the name's first character in white. */
-    private fun letterAvatar(name: String, color: Int): android.graphics.Bitmap {
-        val px = 96
-        val bmp = android.graphics.Bitmap.createBitmap(px, px, android.graphics.Bitmap.Config.ARGB_8888)
-        val c = android.graphics.Canvas(bmp)
-        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
-        c.drawCircle(px / 2f, px / 2f, px / 2f, p)
-        val t = name.trim()
-        if (t.isNotEmpty()) {
-            p.color = Color.WHITE; p.textSize = px * 0.46f; p.textAlign = android.graphics.Paint.Align.CENTER
-            p.typeface = android.graphics.Typeface.DEFAULT_BOLD
-            val fm = p.fontMetrics
-            c.drawText(String(Character.toChars(t.codePointAt(0))), px / 2f, px / 2f - (fm.ascent + fm.descent) / 2f, p)
-        }
-        return bmp
-    }
-
     private fun itemView(m: LineMessage): View {
         val ts = Prefs.panelTextScale(this)
         // Chat-app look: avatar on the left, chat name + time on top, the message in a bubble.
@@ -1324,6 +1307,9 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             setOnClickListener { openMessage(m) }
         }
         row.tag = m
+        val av = if (narrowItems) 32f else 38f
+        val isLineGroup = (m.pkg == LineListenerService.LINE_PKG || m.pkg == LineListenerService.LINE_LITE_PKG) &&
+            m.sender.isNotBlank() && m.sender != m.chatTitle
         val avatar = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             setOnClickListener { openProfile(m) }
@@ -1336,18 +1322,16 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             // own picture (communities, see GroupPicture) show that, like the notification does.
             val chatPic = if (MessageStore.groupPicture(this@PanelController, m.chatKey) == GroupPicture.Verdict.CHAT)
                 MessageStore.loadBitmap(MessageStore.chatAvatarPath(this@PanelController, m.chatKey)) else null
-            val bmp = chatPic ?: MessageStore.loadBitmap(m.avatarPath)
-            val appIcon = if (bmp == null && Sources.known(m.pkg) == null)
+            val bmp = chatPic ?: MessageStore.messageAvatar(this@PanelController, m, suppressChatPicture = isLineGroup)
+            val appIcon = if (bmp == null && !isLineGroup && Sources.known(m.pkg) == null)
                 try { packageManager.getApplicationIcon(m.pkg) } catch (_: Exception) { null } else null
             when {
                 bmp != null -> setImageBitmap(bmp)
                 appIcon != null -> setImageDrawable(appIcon)   // user-picked app without an avatar
-                // No picture: a default avatar with the first character of the name, like the notification shows.
-                else -> setImageBitmap(letterAvatar(m.sender.ifBlank { m.chatTitle },
-                    Sources.forPackage(this@PanelController, m.pkg)?.color ?: 0xFF1FA2C9.toInt()))
+                // No picture: the same initial badge (fixed palette) the notification uses.
+                else -> setImageBitmap(AvatarBadge.bitmap(m.sender.ifBlank { m.chatTitle }, dp(av * ts)))
             }
         }
-        val av = if (narrowItems) 32f else 38f
         row.addView(avatar, LinearLayout.LayoutParams(dp(av * ts), dp(av * ts)).apply {
             rightMargin = dp(if (narrowItems) 8f else 10f); topMargin = dp(2f)
         })

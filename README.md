@@ -27,6 +27,10 @@ Sidepeek 想做的事很簡單：把這些該有的功能做好，**完全免費
 - **依聊天室分開**：群組和一對一各自一則通知，不會全部擠在一起。
 - **用 Sidepeek 接管 LINE**（總開關）：每個聊天室整合成一則通知，隱藏 LINE 原本的訊息通知；**來電不會被隱藏**。
 - **通知行為對齊 LINE 原生**：每則新訊息都會提醒；在通知上回覆或按已讀後，通知會跟著更新或消失；把通知滑掉後，下一則只顯示新訊息，不會把舊的帶回來。
+- **看過的通知自己收掉**：點 Sidepeek 的通知進聊天室，那個聊天室的通知會清掉；直接打開 LINE 看訊息，整理好的 LINE 通知會全部清掉（需要開著側邊欄服務）。訊息本身仍留在側邊欄。
+- **進階清理（實驗性，預設關閉）**：打開後，在 LINE 裡點進哪個聊天室，就只收掉那個聊天室的通知，其他還沒看的照樣留著。開啟時會先說明並請你同意；只讀 LINE 畫面最上方的聊天室名稱來比對，不讀聊天內容、不儲存。
+- **群組裡分得清楚是誰**：LINE 社群用社群頭貼；一般群組的成員顯示自己的照片；沒附頭貼的人顯示名字第一個字，依名字固定一種顏色（12 種）。
+- **換 LINE 通知鈴聲**：在「設定」分頁的「通知外觀」直接選手機內建的通知音、改成靜音，或從「我的檔案」挑自己的 mp3。
 - **側邊欄**：放最近的訊息，卡片可以滑掉，往內滑就關閉。
 - **自己挑 App**：預設收 LINE、IG、Threads、Messenger、Teams，也可以從手機上的任何 App 挑選要收進側邊欄的（只有 LINE 的通知會被整理，其他 App 維持原樣）。
 - **網址變按鈕**：點一下開啟，長按複製。
@@ -37,7 +41,8 @@ Sidepeek 想做的事很簡單：把這些該有的功能做好，**完全免費
 ## Peek 條（邊緣把手）
 
 - 一條半透明的磨砂膠條，預設在**右側、約螢幕 3/4 高度**，剛好是右手拇指好按的位置。
-- **從 Peek 條往內滑**就能打開側邊欄；輕點不會打開，避免碰到邊緣就誤觸。
+- **不透明度 0%–100% 可調**：嫌礙眼就調到 0%，Peek 條完全看不到，截圖和錄影也不會出現；從原本的位置往內滑一樣能打開，手指碰到時會短暫亮起。
+- **從 Peek 條往內滑**就能打開側邊欄；輕點不會打開，避免碰到邊緣就誤觸。**滑動靈敏度**分五段，常不小心打開就調低。
 - **長按 Peek 條就能拖曳**，上下調到你順手的位置。
 - 會顯示在其他 App 上層；鍵盤打開時自動淡出。
 - Peek 條是 Sidepeek 自己的，**不是**三星的側拉標籤／側螢幕面板（Edge Panel）。Android 和三星不開放第三方 App 掛進系統的側螢幕面板，所以只能這樣做。
@@ -61,6 +66,8 @@ Android 13 以上，從 APK 安裝的 App 預設不能開協助工具。請照�
 3. 回到協助工具，重新開啟就可以了。
 
 > 請先試開協助工具，再去 App 資訊。直接先進 App 資訊，「允許受限設定」可能不會出現。
+
+華碩、Pixel 等手機連**通知存取權**（第 1 步）也會擋下不是從商店安裝的 App。被擋的話，設定引導會改成教你到 App 資訊「允許受限制的設定」，照著做之後再回來開一次即可。
 
 ### 協助工具會讀我的畫面嗎？
 
@@ -168,7 +175,7 @@ Copyright (C) 2026 Sidepeek developers
 
 感謝每一位幫忙改善 Sidepeek 的人：
 
-- [@bingxyz](https://github.com/bingxyz)：修正 LINE 社群名稱顯示（[#1](../../pull/1)）
+- [@bingxyz](https://github.com/bingxyz)：修正 LINE 社群名稱顯示（[#1](../../pull/1)）、LINE 社群頭貼與成員字首頭像（[#2](../../pull/2)）
 
 ---
 
@@ -176,7 +183,9 @@ Copyright (C) 2026 Sidepeek developers
 
 **Sidepeek for LINE** is an unofficial personal Android app (not affiliated with LINE, LY Corporation or Samsung). It regroups stacked LINE notifications into per-chat previews and adds an edge handle (the “Peek bar”) that opens a side panel with recent messages. Everything runs on-device; no server, no analytics. Requires Android 8.0+. Designed for Samsung One UI with gesture navigation.
 
-Setup: install the APK from Releases, open the app, and follow the in-app setup guide. On Android 13+, if the accessibility service is blocked as a "restricted setting", try enabling it first, then go to App info → ⋮ → Allow restricted settings, and enable it again. The app explains the accessibility service and asks for consent before sending you to enable it. The service only detects the foreground app, the home screen and keyboard state, and the back key while the panel is open. It never reads on-screen text.
+Setup: install the APK from Releases, open the app, and follow the in-app setup guide. On Android 13+, if the accessibility service is blocked as a "restricted setting", try enabling it first, then go to App info → ⋮ → Allow restricted settings, and enable it again. The app explains the accessibility service and asks for consent before sending you to enable it. By default the service only detects the foreground app, the home screen and keyboard state, and the back key while the panel is open; it does not read on-screen text. The one exception is the experimental, off-by-default "advanced clearing": once you turn it on (it asks for your consent first), it reads only the chat name in the title bar of LINE screens to clear that one chat's notification. It never reads message contents and stores nothing.
+
+New in v1.1.0: tidied LINE notifications are cleared when you open LINE, the Peek bar can be fully transparent, LINE communities show their own picture, members without a picture get a colored initial, and you can pick the LINE notification sound inside the app.
 
 ### Why
 

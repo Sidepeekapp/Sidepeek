@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <!--
   功能介紹 #5「群組通知，一眼認出是誰」：360×640 的畫面依時間軸播放，rec.js 逐格截圖（2 倍 → 720×1280）再用 ffmpeg 編成影片。
-  手機情境：以前社群通知每個人的頭貼都一樣 → 現在社群用社群圖、沒頭貼的成員各有一種顏色 → 側邊欄也一樣，一般群組照舊顯示發話的人。
+  手機情境：以前社群通知每個人的頭貼都一樣 → 現在社群用社群圖、沒頭貼的成員各有一種顏色 → 側邊欄也一樣，一般群組照舊顯示發話者的照片。
   window.seek(t) 畫出第 t 秒；直接用瀏覽器打開會自動循環播放，方便預覽。內容全部是示範資料。
 -->
 <style>
@@ -207,7 +207,7 @@
   <section class="scene" id="s4">
     <div class="tag ok">側邊欄</div>
     <div class="h">側邊欄也認得出來</div>
-    <div class="sub">社群換成社群頭貼，一般群組照舊顯示發話的人。</div>
+    <div class="sub">社群換成社群頭貼，一般群組顯示發話者的照片。</div>
     <div class="phone"><div class="scr" id="p4">
       <div class="home"><div class="t">1:24</div><div class="d">10月30日 週五</div><div class="apps"></div><div class="dock"></div></div>
       <div class="peek" style="opacity:.55"></div>
@@ -223,7 +223,7 @@
     <div class="klbl" id="k1" style="top:303px;color:#93C5FD">← 群組</div>
     <div class="klbl" id="k2" style="top:353px;color:#93C5FD">← 群組</div>
     <div class="klbl" id="k3" style="top:403px;color:#d9dbe4">← 好友</div>
-    <div class="call good" id="c4"><span class="dot"></span>一般群組照舊顯示發話的人</div>
+    <div class="call good" id="c4"><span class="dot"></span>一般群組顯示發話者的照片</div>
     <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #5 ・ 群組頭貼</small></div>
   </section>
 
@@ -238,7 +238,7 @@
       <div class="ck" id="ck2"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <b>沒頭貼的人有自己的顏色</b><span>依名字固定一種顏色，通知和側邊欄都一樣。</span></div>
       <div class="ck" id="ck3"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <b>一般群組照舊</b><span>還是顯示發話的人的頭貼。</span></div>
+        <b>一般群組照舊</b><span>還是顯示發話者自己的照片。</span></div>
     </div>
     <div class="url">sidepeekapp.github.io/Sidepeek</div>
     <div class="disc">非官方 App，與 LINE、LY Corporation 無關。所有處理都在手機上完成。畫面為示範資料。</div>
@@ -259,6 +259,10 @@ const MOUNTAIN = `<svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#7
   <path d="M-2 34L13 15L22 26L28 19L42 34V42H-2Z" fill="#15803D"/><path d="M13 15L17 20L14 19L11 21Z" fill="#F0FDF4"/></svg>`;
 const pic = svg => `<div>${svg}</div>`;
 const letter = (ch, color) => `<div style="background:${color}">${ch}</div>`;
+/** A member's own photo (simple portrait): background, hair and shirt colours. */
+const face = (bg, hair, shirt) => pic(`<svg viewBox="0 0 40 40"><rect width="40" height="40" fill="${bg}"/>
+  <path d="M6 42C6 31 12 27 20 27S34 31 34 42Z" fill="${shirt}"/><circle cx="20" cy="17" r="8" fill="#F5D0B5"/>
+  <path d="M11.5 17C11.5 10 15 7.5 20 7.5S28.5 10 28.5 17C27 13 24 12 20 12S13 13 11.5 17Z" fill="${hair}"/></svg>`);
 /** Avatar that can switch from `before` to `after` (opacity of the second layer, set in seek). */
 const av = (before, after) => `<div class="av2">${before}${after ? after.replace("<div", '<div data-after="1"') : ""}</div>`;
 
@@ -285,7 +289,7 @@ function shadeHtml(after) {
 document.getElementById("p2").innerHTML = shadeHtml(false);
 document.getElementById("p3").innerHTML = shadeHtml(true);
 document.querySelector("#p4 .apps").innerHTML = APPS;
-[[pic(MOUNTAIN)], [letter("怡", "#0E7490")], [letter("冠", "#475569")], [letter("宗", "#C2410C")]].forEach(([a], i) =>
+[[pic(MOUNTAIN)], [face("#FDE68A", "#3F2A1D", "#F472B6")], [face("#BAE6FD", "#111827", "#334155")], [letter("宗", "#C2410C")]].forEach(([a], i) =>
   document.getElementById("pa" + i).innerHTML = av(a));
 
 const SCENES = [ // [id, start, end]

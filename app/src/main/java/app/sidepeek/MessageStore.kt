@@ -26,7 +26,15 @@ data class LineMessage(
     val urls: List<String> = emptyList(),
     /** How many times the app re-posted this same notification (e.g. bubble's 「有新消息。」). */
     val repeat: Int = 1,
-)
+    /**
+     * LINE: the large icon that came with this message, kept as is (the sender's picture in ordinary
+     * groups, the community's in communities). The side panel shows it without judging whose it is.
+     */
+    val linePicPath: String? = null,
+) {
+    /** Files in the "av" folder this message uses (both can point at the same picture). */
+    val avatarFiles: List<String> get() = listOfNotNull(avatarPath, linePicPath)
+}
 
 /**
  * Keeps the last [MAX] messages in memory, persisted as JSON in filesDir.
@@ -69,6 +77,7 @@ object MessageStore {
                         // Recompute from text so older, wrongly-detected links (e.g. user names) disappear.
                         urls = LinkExtractor.extract(o.optString("text")),
                         repeat = o.optInt("repeat", 1).coerceAtLeast(1),
+                        linePicPath = o.optString("linePic").ifEmpty { null },
                     )
                 )
             }
@@ -319,7 +328,7 @@ object MessageStore {
             while (messages.size > MAX) {
                 val old = messages.removeAt(0)
                 old.imagePath?.let { p -> if (messages.none { it.imagePath == p }) File(p).delete() }
-                old.avatarPath?.let { p -> if (messages.none { it.avatarPath == p }) File(p).delete() }
+                old.avatarFiles.forEach { p -> if (messages.none { p in it.avatarFiles }) File(p).delete() }
             }
             save(ctx)
         }
@@ -367,11 +376,11 @@ object MessageStore {
     fun purgeFiles(ctx: Context, removed: List<LineMessage>) {
         synchronized(this) {
             val usedImg = messages.mapNotNullTo(HashSet()) { it.imagePath }
-            val usedAv = messages.mapNotNullTo(HashSet()) { it.avatarPath }
+            val usedAv = messages.flatMapTo(HashSet()) { it.avatarFiles }
             val chats = messages.mapTo(HashSet()) { it.chatKey }
             for (m in removed) {
                 m.imagePath?.let { if (it !in usedImg) File(it).delete() }
-                m.avatarPath?.let { if (it !in usedAv) File(it).delete() }
+                m.avatarFiles.forEach { if (it !in usedAv) File(it).delete() }
                 if (m.chatKey !in chats) chatAvatarPath(ctx, m.chatKey)?.let { File(it).delete() }
             }
         }
@@ -385,7 +394,7 @@ object MessageStore {
                     put("id", m.id); put("pkg", m.pkg); put("chatKey", m.chatKey)
                     put("chatTitle", m.chatTitle); put("sender", m.sender); put("text", m.text)
                     put("time", m.time); put("image", m.imagePath ?: ""); put("avatar", m.avatarPath ?: "")
-                    put("urls", JSONArray(m.urls)); put("repeat", m.repeat)
+                    put("urls", JSONArray(m.urls)); put("repeat", m.repeat); put("linePic", m.linePicPath ?: "")
                 })
             }
             val tmp = File(ctx.filesDir, "$FILE.tmp")

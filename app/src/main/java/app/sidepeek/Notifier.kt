@@ -570,9 +570,12 @@ object Notifier {
         if (MessageStore.groupPicture(ctx, chatKey) == GroupPicture.Verdict.SENDER) null
         else MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, chatKey))
 
-    /** Neutral fallback when LINE did not include a group picture. */
+    /**
+     * Fallback when there is no group picture to show (ordinary groups, whose large icon is the
+     * sender): the group's initial in its own palette colour, so several groups are easy to tell apart.
+     */
     private fun groupIcon(name: String): android.graphics.Bitmap {
-        return AvatarBadge.bitmap(name.ifBlank { "群" }, AVATAR_PX, 0xFF16A34A.toInt())
+        return AvatarBadge.bitmap(name.ifBlank { "群" }, AVATAR_PX)
     }
 
     private fun isLine(pkg: String): Boolean =

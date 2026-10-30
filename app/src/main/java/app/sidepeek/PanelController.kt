@@ -1318,11 +1318,20 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                 override fun getOutline(view: View, outline: Outline) = outline.setOval(0, 0, view.width, view.height)
             }
             clipToOutline = true
-            // The row is titled with the chat's name, so once we know LINE's large icon is the group's
-            // own picture (communities, see GroupPicture) show that, like the notification does.
-            val chatPic = if (MessageStore.groupPicture(this@PanelController, m.chatKey) == GroupPicture.Verdict.CHAT)
-                MessageStore.loadBitmap(MessageStore.chatAvatarPath(this@PanelController, m.chatKey)) else null
-            val bmp = chatPic ?: MessageStore.messageAvatar(this@PanelController, m, suppressChatPicture = isLineGroup)
+            // LINE groups: show the picture LINE attached to this message as is (the sender's in ordinary
+            // groups, the community's in communities), so the row never waits for GroupPicture.
+            // Messages saved before linePicPath existed: a community's picture (CHAT) wins, otherwise
+            // the member's own icon; until a second person speaks every message is from one sender,
+            // so the chat's latest large icon is the one LINE gave them.
+            val bmp = if (!isLineGroup) MessageStore.messageAvatar(this@PanelController, m, suppressChatPicture = false)
+            else MessageStore.loadBitmap(m.linePicPath) ?: run {
+                val verdict = MessageStore.groupPicture(this@PanelController, m.chatKey)
+                val chatPic = if (verdict != GroupPicture.Verdict.SENDER)
+                    MessageStore.loadBitmap(MessageStore.chatAvatarPath(this@PanelController, m.chatKey)) else null
+                (if (verdict == GroupPicture.Verdict.CHAT) chatPic else null)
+                    ?: MessageStore.messageAvatar(this@PanelController, m, suppressChatPicture = false)
+                    ?: chatPic
+            }
             val appIcon = if (bmp == null && !isLineGroup && Sources.known(m.pkg) == null)
                 try { packageManager.getApplicationIcon(m.pkg) } catch (_: Exception) { null } else null
             when {

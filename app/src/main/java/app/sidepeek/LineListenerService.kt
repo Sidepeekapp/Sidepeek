@@ -567,7 +567,8 @@ class LineListenerService : NotificationListenerService() {
                 // (see memberFallback); without one the UI draws an initial badge for that sender.
                 val avatar = m.person?.let { personAvatar(it) } ?: memberFallback
                 newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender, text,
-                    if (m.timestamp > 0) m.timestamp else sbn.postTime, image, avatar)
+                    if (m.timestamp > 0) m.timestamp else sbn.postTime, image, avatar,
+                    linePic = if (isLine && isLast) notifLargeIcon else null)
             }
             msgs.maxOfOrNull { it.timestamp }?.let { t -> if (t > (lastMsTime[chatKey] ?: 0L)) lastMsTime[chatKey] = t }
         } else {
@@ -595,7 +596,8 @@ class LineListenerService : NotificationListenerService() {
                 }
             }
             newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender,
-                text.ifEmpty { "（圖片）" }, time, picture, memberFallback)
+                text.ifEmpty { "（圖片）" }, time, picture, memberFallback,
+                linePic = if (isLine) notifLargeIcon else null)
         }
 
         // Conversation metadata (including LINE's subText chat name) is authoritative. Apart from
@@ -711,17 +713,17 @@ class LineListenerService : NotificationListenerService() {
 
     private fun build(
         id: String, pkg: String, chatKey: String, chatTitle: String, sender: String,
-        text: String, time: Long, image: Bitmap?, avatar: Bitmap?,
+        text: String, time: Long, image: Bitmap?, avatar: Bitmap?, linePic: Bitmap? = null,
     ): LineMessage {
         val imgPath = image?.let { MessageStore.saveBitmap(this, "img", id.hashCode().toUInt().toString(), it, 720) }
-        val avPath = avatar?.let {
-            // Name the file after the picture itself: notifications that share a title/sender
-            // (Threads「1 個新的讚」, IG activity…) each keep their own avatar instead of all
-            // pointing at one file that the newest notification keeps overwriting.
-            MessageStore.saveBitmap(this, "av", MessageStore.bitmapKey(it), it, 160)
-        }
+        // Name the file after the picture itself: notifications that share a title/sender
+        // (Threads「1 個新的讚」, IG activity…) each keep their own avatar instead of all
+        // pointing at one file that the newest notification keeps overwriting.
+        fun saveAv(b: Bitmap) = MessageStore.saveBitmap(this, "av", MessageStore.bitmapKey(b), b, 160)
+        val avPath = avatar?.let(::saveAv)
+        val linePicPath = linePic?.let { if (it === avatar) avPath else saveAv(it) }
         val urls = LinkExtractor.extract(text)
-        return LineMessage(id, pkg, chatKey, chatTitle, sender, text, time, imgPath, avPath, urls)
+        return LineMessage(id, pkg, chatKey, chatTitle, sender, text, time, imgPath, avPath, urls, linePicPath = linePicPath)
     }
 
     private fun idOf(chatKey: String, sender: String, text: String, time: Long, uri: Uri?): String =
@@ -761,8 +763,8 @@ class LineListenerService : NotificationListenerService() {
         null
     }
 
-    /** chatKey -> (sender, large-icon fingerprint) of the previous LINE group post. */
-    private val groupIconProbe = HashMap<String, Pair<String, Int>>()
+    /** chatKey -> (sender, large-icon thumbnail) of the previous LINE group post. */
+    private val groupIconProbe = HashMap<String, Pair<String, IntArray>>()
 
     /** Works out (and remembers) what a LINE group's large icon shows, see [GroupPicture]. */
     private fun judgeGroupPicture(
@@ -772,24 +774,30 @@ class LineListenerService : NotificationListenerService() {
         if (large == null) return stored
         val last = msgs.lastOrNull()
         val sender = last?.person?.name?.toString()?.takeIf { it.isNotBlank() } ?: title ?: return stored
-        val icon = fingerprint(large) ?: return stored
-        val own = last?.person?.let { personAvatar(it) }?.let { fingerprint(it) }
+        val icon = thumb(large) ?: return stored
+        val ownBmp = last?.person?.let { personAvatar(it) }
+        val own = ownBmp?.let { thumb(it) }
         val prev = groupIconProbe.put(chatKey, sender to icon)
         val v = GroupPicture.judge(prev?.first, prev?.second, sender, icon, own)
         if (v == GroupPicture.Verdict.UNKNOWN) return stored
         if (v != stored) {
             MessageStore.setGroupPicture(this, chatKey, v)
-            Diagnostics.note(this, "AVATAR group large icon is the ${if (v == GroupPicture.Verdict.CHAT) "chat's" else "sender's"} chat=$chatKey")
+            // How the pictures compared, so a wrong verdict can be read from the log.
+            val why = if (own != null) "person=${ownBmp.width}x${ownBmp.height} diff=${GroupPicture.diff(own, icon)}"
+                else "prev diff=${prev?.second?.let { GroupPicture.diff(it, icon) }}"
+            Diagnostics.note(this, "AVATAR group large icon is the ${if (v == GroupPicture.Verdict.CHAT) "chat's" else "sender's"} " +
+                "chat=$chatKey large=${large.width}x${large.height} $why (same<=${GroupPicture.SAME_MAX})")
         }
         return v
     }
 
-    /** Cheap picture identity: the same image decoded twice gives the same value. */
-    private fun fingerprint(b: Bitmap): Int? = try {
-        val s = Bitmap.createScaledBitmap(b, 12, 12, true)
-        val px = IntArray(144); s.getPixels(px, 0, 12, 0, 0, 12, 12)
+    /** Small ARGB copy of a picture for [GroupPicture] to compare. */
+    private fun thumb(b: Bitmap): IntArray? = try {
+        val n = GroupPicture.THUMB
+        val s = Bitmap.createScaledBitmap(b, n, n, true)
+        val px = IntArray(n * n); s.getPixels(px, 0, n, 0, 0, n, n)
         if (s !== b) s.recycle()
-        px.contentHashCode()
+        px
     } catch (_: Exception) {
         null  // e.g. a hardware bitmap cannot be read back
     }

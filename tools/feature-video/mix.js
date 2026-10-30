@@ -1,5 +1,6 @@
-// Adds operation sound effects to a recorded feature video: node mix.js <page.html> <in.mp4> <out.mp4> [chrome.exe]
-// Reads window.SFX ([seconds, kind] pairs) from the page; every sound is synthesized by ffmpeg, no audio files are used.
+// Adds operation sound effects to a recorded feature video: node mix.js <page.html | cues.json> <in.mp4> <out.mp4> [chrome.exe]
+// Reads window.SFX ([seconds, kind] pairs) from the page, or { sfx, duration } from a JSON file;
+// every sound is synthesized by ffmpeg, no audio files are used.
 const path = require('path'), fs = require('fs'), os = require('os');
 const { execFileSync } = require('child_process');
 const { chromium } = require(process.env.PLAYWRIGHT_CORE || 'playwright-core');
@@ -17,11 +18,16 @@ const SOUNDS = {
 
 (async () => {
   const [, , page, input, output, exe] = process.argv;
-  const b = await chromium.launch({ executablePath: exe || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
-  const p = await b.newPage();
-  await p.goto('file:///' + path.resolve(page).replace(/\\/g, '/') + '?rec');
-  const [sfx, dur] = await p.evaluate(() => [window.SFX || [], window.DURATION]);
-  await b.close();
+  let sfx, dur;
+  if (page.endsWith('.json')) {
+    ({ sfx, duration: dur } = JSON.parse(fs.readFileSync(page, 'utf8')));
+  } else {
+    const b = await chromium.launch({ executablePath: exe || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
+    const p = await b.newPage();
+    await p.goto('file:///' + path.resolve(page).replace(/\\/g, '/') + '?rec');
+    [sfx, dur] = await p.evaluate(() => [window.SFX || [], window.DURATION]);
+    await b.close();
+  }
 
   const chains = sfx.map(([t, kind], i) => {
     const [src, fx] = SOUNDS[kind];

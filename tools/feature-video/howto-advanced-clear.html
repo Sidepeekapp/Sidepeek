@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>Sidepeek 使用教學：進階清理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<!--
+  使用教學「怎麼打開進階清理」：360×640 的畫面依時間軸播放，rec.js 逐格截圖（2 倍 → 720×1280）再用 ffmpeg 編成影片。
+  手機情境（照 App 實際畫面重畫）：首頁「LINE 通知清理」點開「進階清理」→ 同意視窗說明讀什麼、不做什麼 → 同意並開啟 →
+  之後在 LINE 點進哪個聊天室，就只收掉那一則。卡片與同意視窗的文字取自 activity_main.xml 與 A11yDisclosure.kt。
+  window.seek(t) 畫出第 t 秒；直接用瀏覽器打開會自動循環播放，方便預覽。內容全部是示範資料。
+-->
+<style>
+  :root { --green: #22C55E; --brand: #16A34A; --ink: #F4F5F8; --dim: #A3A8B8; --card: rgba(38, 40, 56, .96); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 360px; height: 640px; overflow: hidden; background: #0d0f1c; }
+  body { font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  #stage { position: relative; width: 360px; height: 640px; overflow: hidden;
+    background: radial-gradient(120% 70% at 20% 0%, #26244f 0%, rgba(38,36,79,0) 60%),
+                radial-gradient(90% 60% at 100% 100%, #3a1f4d 0%, rgba(58,31,77,0) 65%),
+                linear-gradient(180deg, #151833 0%, #10121f 55%, #160f22 100%); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .tag { position: absolute; left: 22px; top: 40px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+    background: rgba(255,255,255,.10); color: var(--dim); letter-spacing: .5px; }
+  .tag.ok { background: rgba(34,197,94,.16); color: var(--green); }
+  .tag.exp { background: rgba(217,119,6,.22); color: #FBBF24; }
+  .h { position: absolute; left: 22px; right: 22px; top: 68px; font-size: 21px; font-weight: 900; line-height: 1.3; }
+  .sub { position: absolute; left: 22px; right: 22px; top: 101px; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+  .foot { position: absolute; left: 22px; right: 22px; bottom: 18px; display: flex; justify-content: space-between; align-items: baseline; }
+  .logo { font-weight: 900; font-size: 14px; letter-spacing: .2px; }
+  .logo i { font-style: normal; color: var(--green); }
+  .foot small { font-size: 10px; color: var(--dim); }
+
+  /* phone */
+  .phone { position: absolute; left: 70px; top: 136px; width: 220px; height: 440px; border-radius: 30px; background: #05060b;
+    box-shadow: 0 0 0 1.5px #2e3146, 0 18px 40px rgba(0,0,0,.45); }
+  .scr { position: absolute; inset: 6px; border-radius: 24px; overflow: hidden; background: #121318; }
+  .navbar { position: absolute; left: 50%; bottom: 7px; width: 70px; height: 4px; margin-left: -35px; border-radius: 3px; background: rgba(255,255,255,.55); z-index: 9; }
+  .finger { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; opacity: 0; z-index: 8;
+    background: rgba(255,255,255,.30); border: 2px solid rgba(255,255,255,.85); box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+
+  /* Sidepeek 首頁: the 「LINE 通知清理」 card */
+  .app .ttl { position: absolute; left: 14px; top: 28px; font-size: 13px; font-weight: 700; }
+  .app .card { position: absolute; left: 8px; right: 8px; top: 54px; border-radius: 14px; background: #1b1c22; border: 1px solid #2a2b33; padding: 10px 10px 12px; }
+  .app .ch { font-size: 11px; font-weight: 900; color: var(--green); }
+  .app .ds { font-size: 7.2px; color: var(--dim); line-height: 1.5; margin-top: 4px; }
+  .app .it { display: grid; grid-template-columns: 14px 1fr; gap: 6px; margin-top: 7px; font-size: 7.2px; line-height: 1.45; color: #e3e4ea; }
+  .app .it i { width: 13px; height: 13px; border-radius: 50%; background: rgba(34,197,94,.16); color: var(--green); font-style: normal;
+    font-size: 7px; font-weight: 700; display: grid; place-items: center; margin-top: 1px; }
+  .app .sw { display: grid; grid-template-columns: 1fr 26px; gap: 8px; align-items: center; margin-top: 10px; font-size: 8.4px; line-height: 1.35; font-weight: 500; }
+  .tog { position: relative; width: 26px; height: 14px; border-radius: 8px; background: #3a3b44; }
+  .tog b { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #c9cad2; }
+  .tog.on { background: rgba(34,197,94,.45); }
+  .tog.on b { left: 14px; background: var(--green); }
+  .app .hint { font-size: 7px; color: var(--dim); line-height: 1.5; margin-top: 5px; }
+  .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; border-top: 1px solid #24252d; background: #121318;
+    display: flex; justify-content: space-around; padding-top: 8px; font-size: 7.5px; color: var(--dim); }
+  .tabs b { display: block; width: 13px; height: 13px; border-radius: 4px; background: #3a3b44; margin: 0 auto 3px; }
+  .tabs .on { color: var(--green); }
+  .tabs .on b { background: var(--green); }
+
+  /* the consent dialog (A11yDisclosure.smartClear) */
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.6); opacity: 0; z-index: 5; }
+  .dlg { position: absolute; left: 9px; right: 9px; top: 26px; border-radius: 12px; background: #2b2c33; padding: 10px 10px 8px; z-index: 6; opacity: 0; }
+  .dlg .dt { font-size: 9.6px; font-weight: 700; margin-bottom: 4px; }
+  .dlg .sh { font-size: 7.6px; font-weight: 700; margin-top: 5px; }
+  .dlg .li { position: relative; font-size: 6.9px; line-height: 1.42; color: #dfe0e6; padding-left: 7px; margin-top: 1px; }
+  .dlg .li::before { content: "•"; position: absolute; left: 0; }
+  .dlg .mk { border-radius: 3px; padding: 0 1px; }
+  .dlg .bt { display: flex; justify-content: flex-end; gap: 14px; margin-top: 7px; font-size: 8.4px; font-weight: 700; color: var(--green); }
+  .dlg .bt span { padding: 2px 4px; border-radius: 6px; }
+
+  /* notification shade for the result */
+  .shade { position: absolute; inset: 0; background: linear-gradient(170deg, #2a2e5c 0%, #1a1c33 50%, #151628 100%); }
+  .shade .tm { position: absolute; left: 14px; top: 30px; font-size: 17px; font-weight: 700; }
+  .shade .tm small { font-size: 8px; color: var(--dim); font-weight: 500; margin-left: 5px; }
+  .nc { position: absolute; left: 8px; right: 8px; height: 50px; border-radius: 13px; background: var(--card); padding: 8px 8px 0 40px; overflow: hidden; }
+  .nc .av { position: absolute; left: 9px; top: 10px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; }
+  .nc .m { font-size: 7px; color: var(--dim); }
+  .nc .ti { font-size: 9.5px; font-weight: 700; margin-top: 1px; }
+  .nc .ln { font-size: 8.5px; color: #d9dbe4; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seen { position: absolute; left: 50%; top: 262px; transform: translateX(-50%); white-space: nowrap; font-size: 8.5px; font-weight: 700;
+    padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,.12); color: #e3e4ea; opacity: 0; }
+
+  .call { position: absolute; left: 50%; top: 506px; z-index: 10; box-shadow: 0 6px 18px rgba(0,0,0,.4); transform: translateX(-50%); white-space: nowrap; opacity: 0;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); font-size: 12.5px; font-weight: 700;
+    padding: 7px 14px; border-radius: 999px; display: flex; gap: 7px; align-items: center; }
+  .call .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .call.good { color: var(--green); border-color: rgba(34,197,94,.45); background: rgba(34,197,94,.12); }
+  .call.good .dot { background: var(--green); }
+
+  /* title + end cards */
+  .kick { position: absolute; left: 24px; top: 150px; font-size: 11px; font-weight: 700; color: var(--green);
+    background: rgba(34,197,94,.14); padding: 3px 9px; border-radius: 6px; }
+  .big { position: absolute; left: 24px; right: 20px; top: 184px; font-size: 38px; font-weight: 900; line-height: 1.18; }
+  .big em { font-style: normal; color: var(--green); }
+  .lead { position: absolute; left: 24px; right: 24px; top: 336px; font-size: 14px; color: var(--dim); line-height: 1.6; }
+  .tiny { position: absolute; left: 24px; top: 400px; font-size: 11px; color: #7d8296; }
+  .brand { position: absolute; left: 24px; top: 128px; font-size: 40px; font-weight: 900; }
+  .brand i { font-style: normal; color: var(--green); }
+  .tagline { position: absolute; left: 24px; top: 186px; font-size: 13px; color: var(--dim); }
+  .ver { position: absolute; right: 24px; top: 146px; font-size: 11px; font-weight: 700; color: var(--green);
+    border: 1px solid rgba(34,197,94,.45); padding: 2px 8px; border-radius: 999px; }
+  .checks { position: absolute; left: 24px; right: 20px; top: 232px; }
+  .ck { display: grid; grid-template-columns: 26px 1fr; column-gap: 10px; margin-bottom: 20px; }
+  .ck .c { width: 22px; height: 22px; border-radius: 50%; background: rgba(34,197,94,.16); display: grid; place-items: center; margin-top: 1px; }
+  .ck .c svg { width: 13px; height: 13px; }
+  .ck b { font-size: 15px; }
+  .ck span { grid-column: 2; font-size: 11.5px; color: var(--dim); margin-top: 3px; }
+  .url { position: absolute; left: 24px; right: 24px; top: 520px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.12);
+    font-size: 12px; color: #d9dbe4; }
+  .disc { position: absolute; left: 24px; right: 24px; top: 552px; font-size: 9.5px; color: #7d8296; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1. 標題 -->
+  <section class="scene" id="s1">
+    <div class="kick">● Sidepeek 使用教學</div>
+    <div class="big" id="s1big">怎麼打開<br><em>進階清理</em></div>
+    <div class="lead" id="s1lead" style="top:290px">兩個步驟就打開。之後在 LINE 點進哪個聊天室，<br>就只收掉那個聊天室的通知。</div>
+    <div class="tiny" id="s1tiny" style="top:360px">Sidepeek v1.1.0 ・ 實驗性功能</div>
+  </section>
+
+  <!-- 2. 首頁：點「進階清理」開關 -->
+  <section class="scene" id="s2">
+    <div class="tag ok">步驟 1</div>
+    <div class="h">點「進階清理」的開關</div>
+    <div class="sub">首頁的「LINE 通知清理」卡片，第二個開關。</div>
+    <div class="phone"><div class="scr">
+      <div class="app" id="home2"></div>
+      <div class="scrim" id="scrim2"></div>
+      <div class="dlg" id="dlg2"></div>
+      <div class="finger" id="f2"></div><div class="navbar"></div></div></div>
+    <div class="call good" id="c2"><span class="dot"></span>會先跳出說明</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>使用教學 ・ 進階清理</small></div>
+  </section>
+
+  <!-- 3. 同意視窗：讀什麼、不做什麼 -->
+  <section class="scene" id="s3">
+    <div class="tag ok">步驟 2</div>
+    <div class="h">看完說明，按「同意並開啟」</div>
+    <div class="sub">只讀 LINE 最上方的聊天室名稱，不讀聊天內容。</div>
+    <div class="phone"><div class="scr">
+      <div class="app" id="home3"></div>
+      <div class="scrim" style="opacity:1"></div>
+      <div class="dlg" id="dlg3" style="opacity:1"></div>
+      <div class="finger" id="f3"></div><div class="navbar"></div></div></div>
+    <div class="call good" id="c3"><span class="dot"></span>開關打開就完成了</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>使用教學 ・ 進階清理</small></div>
+  </section>
+
+  <!-- 4. 打開了：只收掉看過的那一則 -->
+  <section class="scene" id="s4">
+    <div class="tag ok">完成</div>
+    <div class="h">點進哪個聊天室，就只收那一則</div>
+    <div class="sub">其他還沒看的，照樣留在通知欄。</div>
+    <div class="phone"><div class="scr">
+      <div class="shade">
+        <div class="tm">1:24<small>10月30日 週五</small></div>
+        <div class="nc" id="n1" style="top:70px"><div class="av" style="background:#4F46E5">佳</div><div class="m">Sidepeek ・ 現在</div><div class="ti">佳慧</div><div class="ln">那我先訂位，七點可以嗎？</div></div>
+        <div class="nc" id="n2" style="top:126px"><div class="av" style="background:#C026D3">週</div><div class="m">Sidepeek ・ 下午1:22</div><div class="ti">週六聚餐</div><div class="ln">怡君：收到 👌</div></div>
+        <div class="nc" id="n3" style="top:182px"><div class="av" style="background:#7C3AED">讀</div><div class="m">Sidepeek ・ 上午9:47</div><div class="ti">讀書會</div><div class="ln">冠宇：這週讀到第五章喔</div></div>
+        <div class="seen" id="seen">在 LINE 看完「週六聚餐」</div>
+      </div>
+      <div class="navbar"></div></div></div>
+    <div class="call good" id="c4"><span class="dot"></span>只收掉你看過的那一則</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>使用教學 ・ 進階清理</small></div>
+  </section>
+
+  <!-- 5. 結尾 -->
+  <section class="scene" id="s5">
+    <div class="brand">Side<i>peek</i></div>
+    <div class="ver">v1.1.0</div>
+    <div class="tagline">把 LINE 通知整理好，再放回你手上。</div>
+    <div class="checks">
+      <div class="ck" id="ck1"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>要開著側邊欄服務</b><span>沒開的話，進階清理不會動作。</span></div>
+      <div class="ck" id="ck2"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>比對不到就不清</b><span>可以自己把那則通知滑掉。</span></div>
+      <div class="ck" id="ck3"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>隨時可以關閉</b><span>關掉就回到「打開 LINE 時全部清掉」。</span></div>
+    </div>
+    <div class="url">sidepeekapp.github.io/Sidepeek</div>
+    <div class="disc">非官方 App，與 LINE、LY Corporation 無關。所有處理都在手機上完成。<br>需開啟「側邊欄服務」才會自動清除。</div>
+  </section>
+</div>
+
+<script>
+// 首頁「LINE 通知清理」 card, text as in activity_main.xml. id prefix keeps the copies in each scene apart.
+const homeHtml = (p) => `
+  <div class="ttl">Sidepeek</div>
+  <div class="card">
+    <div class="ch">LINE 通知清理</div>
+    <div class="ds">看過的訊息，Sidepeek 會幫你把通知收掉，不會一直掛在通知欄。訊息本身仍留在側邊欄。 注意：第 2、3 點要開著側邊欄服務才會清；沒開的話，只有第 1 點會清。</div>
+    <div class="it"><i>1</i><span>點 Sidepeek 的通知進聊天室<br>那個聊天室的通知會自動清掉。</span></div>
+    <div class="it"><i>2</i><span>直接打開 LINE 看訊息<br>LINE 不會告訴 Sidepeek 你看了哪個聊天室，所以會把整理好的 LINE 通知全部清掉。（需要開側邊欄服務）</span></div>
+    <div class="it"><i>3</i><span>打開「進階清理」的話<br>只清你正在看的那個聊天室，其他聊天室的通知會留著。（需要開側邊欄服務）</span></div>
+    <div class="sw"><span>打開 LINE 時清掉整理好的 LINE 通知（需要側邊欄服務）</span><div class="tog on"><b></b></div></div>
+    <div class="sw"><span>進階清理（實驗性）：只清正在看的聊天室</span><div class="tog" id="${p}tog"><b></b></div></div>
+    <div class="hint">開啟時會讀取 LINE 畫面最上方的聊天室名稱，跟通知比對；不讀聊天內容、不儲存。比對不到時不會清，可以自己滑掉通知。</div>
+  </div>
+  <div class="tabs"><div class="on"><b></b>首頁</div><div><b></b>設定</div><div><b></b>說明</div></div>`;
+
+// Consent dialog, text as in A11yDisclosure.smartSections. Marked phrases get highlighted in scene 3.
+const dlgHtml = (p) => `
+  <div class="dt">開啟進階清理前，請先看這裡</div>
+  <div class="sh">進階清理會讀取 LINE 畫面上的文字</div>
+  <div class="li">這是實驗性功能，預設關閉。打開後，Sidepeek 會透過「Sidepeek 側邊欄」服務讀取 LINE 畫面最上方標題列的文字。</div>
+  <div class="sh">會讀取的資料</div>
+  <div class="li">只在 LINE 的畫面裡，而且<span class="mk" id="${p}m1">只讀畫面最上方的標題列（聊天室名稱那一列）</span>。</div>
+  <div class="li"><span class="mk" id="${p}m2">不讀聊天內容、輸入框、照片</span>，也不讀其他 App 的畫面。</div>
+  <div class="sh">用來做什麼</div>
+  <div class="li">跟 Sidepeek 通知裡已經有的聊天室名稱比對，只清掉你正在看的那個聊天室的通知，其他聊天室的通知會留著。</div>
+  <div class="li">比對不到，或同時符合好幾個聊天室時，就什麼都不清。</div>
+  <div class="sh">不會做的事</div>
+  <div class="li">讀到的文字只在手機上比對一次，<span class="mk" id="${p}m3">比完就丟掉，不儲存、不上傳</span>、不分享給任何人。</div>
+  <div class="li">診斷記錄平常只寫「比對成功／失敗」。只有你自己開始收集完整記錄時，才會寫入讀到的標題文字，方便回報問題。</div>
+  <div class="sh">隨時可以關閉</div>
+  <div class="li">關掉「進階清理」開關就會停止讀取，回到「打開 LINE 時全部清掉」的做法。</div>
+  <div class="bt"><span>不同意</span><span id="${p}ok">同意並開啟</span></div>`;
+
+const $ = id => document.getElementById(id);
+$("home2").innerHTML = homeHtml("h2"); $("home3").innerHTML = homeHtml("h3");
+$("dlg2").innerHTML = dlgHtml("d2"); $("dlg3").innerHTML = dlgHtml("d3");
+
+const SCENES = [ // [id, start, end]
+  ["s1", 0, 2.4], ["s2", 2.4, 7.4], ["s3", 7.4, 13.4], ["s4", 13.4, 17.2], ["s5", 17.2, 20.4],
+];
+const DURATION = 20.4, XF = 0.35;
+// Operation sound effects [seconds, kind] for mix.js: the switch tap, the dialog, the highlights, 同意並開啟, the cleared card.
+const SFX = [
+  [4.2, "tap"], [4.5, "pop"], [8.1, "tick"], [8.9, "tick"], [9.7, "tick"], [11.25, "tap"], [11.5, "tick"], [14.95, "swipe"],
+];
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ease = x => 1 - Math.pow(1 - clamp(x), 3);
+const prog = (t, a, b) => ease((t - a) / (b - a));     // 0 → 1 between a and b
+function rise(el, p, dy = 14) { el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * dy}px)`; }
+function callAt(el, p) { el.style.opacity = p; el.style.transform = `translateX(-50%) translateY(${(1 - p) * 10}px)`; }
+function finger(f, x, y, op, down) {
+  f.style.left = x + "px"; f.style.top = y + "px"; f.style.opacity = op; f.style.transform = `scale(${down ? 0.78 : 1})`;
+}
+// Centre of an element inside the phone screen (both scenes' screens are laid out the same way).
+function centre(el) {
+  const s = el.closest(".scr").getBoundingClientRect(), r = el.getBoundingClientRect();
+  return [r.left - s.left + r.width / 2, r.top - s.top + r.height / 2];
+}
+function mark(el, p) {
+  el.style.background = `rgba(34,197,94,${0.28 * p})`;
+  el.style.boxShadow = `0 0 0 ${1.2 * p}px rgba(34,197,94,${0.9 * p})`;
+  el.style.color = p > 0.5 ? "#fff" : "";
+}
+
+window.seek = function (t) {
+  for (const [id, a, b] of SCENES) {
+    // Overlapping cross-fade centred on each cut, so no frame between scenes is empty.
+    const inP = a === 0 ? 1 : clamp((t - a + XF / 2) / XF), outP = b === DURATION ? 1 : clamp((b + XF / 2 - t) / XF);
+    $(id).style.opacity = Math.min(inP, outP);
+    $(id).style.display = t >= a - XF / 2 && t <= b + XF / 2 ? "block" : "none";
+  }
+  // 1. title
+  rise($("s1big"), prog(t, 0.1, 0.8), 18); rise($("s1lead"), prog(t, 0.45, 1.1)); rise($("s1tiny"), prog(t, 0.7, 1.3));
+
+  // 2. 首頁: tap the 進階清理 switch → the consent dialog pops up
+  { const l = t - 2.4;
+    const [x, y] = centre($("h2tog"));
+    finger($("f2"), x, y, prog(l, 1.2, 1.5) * (1 - prog(l, 1.95, 2.15)), l > 1.7 && l < 1.95);
+    const d = prog(l, 2.05, 2.4);
+    $("scrim2").style.opacity = d;
+    $("dlg2").style.opacity = d; $("dlg2").style.transform = `scale(${0.94 + 0.06 * d})`;
+    callAt($("c2"), prog(l, 2.9, 3.25)); }
+
+  // 3. the dialog: highlight what is read and what is never done, then 同意並開啟
+  { const l = t - 7.4;
+    mark($("d3m1"), prog(l, 0.7, 0.95)); mark($("d3m2"), prog(l, 1.5, 1.75)); mark($("d3m3"), prog(l, 2.3, 2.55));
+    const ok = $("d3ok"), [x, y] = centre(ok);
+    finger($("f3"), x, y, prog(l, 3.4, 3.7) * (1 - prog(l, 4.1, 4.3)), l > 3.8 && l < 4.1);
+    ok.style.background = l > 3.85 && l < 4.25 ? "rgba(34,197,94,.22)" : "";
+    // after agreeing: the dialog closes and the switch turns on
+    const close = prog(l, 4.1, 4.4);
+    $("dlg3").style.opacity = 1 - close; $("dlg3").previousElementSibling.style.opacity = 1 - close;
+    $("h3tog").classList.toggle("on", l > 4.3);
+    callAt($("c3"), prog(l, 4.7, 5.05)); }
+
+  // 4. result: read 週六聚餐 in LINE → only that card goes
+  { const l = t - 13.4;
+    $("seen").style.opacity = prog(l, 0.6, 0.9) * (1 - prog(l, 2.6, 2.9));
+    const g = prog(l, 1.5, 1.9);
+    $("n2").style.opacity = 1 - g; $("n2").style.transform = `translateX(${g * 40}px)`;
+    $("n3").style.transform = `translateY(${-56 * prog(l, 1.8, 2.2)}px)`;
+    callAt($("c4"), prog(l, 2.3, 2.65)); }
+
+  // 5. end card
+  { const l = t - 17.2; ["ck1", "ck2", "ck3"].forEach((id, i) => rise($(id), prog(l, 0.25 + i * 0.22, 0.7 + i * 0.22))); }
+};
+window.DURATION = DURATION;
+window.SFX = SFX;
+
+// Opened directly in a browser: play on a loop for preview (rec.js sets ?rec to drive seek itself).
+if (!location.search.includes("rec")) {
+  const t0 = performance.now();
+  (function loop(now) { window.seek(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop); })(t0);
+} else window.seek(0);
+</script>
+</body>
+</html>

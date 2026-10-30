@@ -11,7 +11,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_CORE || 'playwright-core');
 // Per demo: the header above the phone, and when to stop (ms after the demo starts).
 const DEMOS = {
   clearDemo: {
-    tag: '用 Sidepeek v1.1', h: '打開 LINE，看過的通知自己收掉', sub: '預設全部收掉；進階清理只收你點進的聊天室。',
+    tag: '用 Sidepeek v1.1.0', h: '打開 LINE，看過的通知自己收掉', sub: '預設全部收掉；進階清理只收你點進的聊天室。',
     foot: '功能介紹 #2 ・ 看過就收掉',
     // two rounds: default, then 進階清理; stop 3 s after the second toast
     done: (ev) => { const p = ev.filter(([, k]) => k === 'toast'); return p.length >= 2 ? p[1][0] + 3000 : null; },

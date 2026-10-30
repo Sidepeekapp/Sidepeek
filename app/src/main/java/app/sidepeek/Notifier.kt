@@ -628,13 +628,14 @@ object Notifier {
         val now = System.currentTimeMillis() + 5
         // A small group chat that shows off what the app does: several senders, a link button,
         // a user name that only looks like a URL (no button), and a long message shown in full.
-        val title = "測試｜週末烤肉群組"
+        // The four names get four different badge colours (AvatarBadge.colorFor).
+        val title = "測試｜週六聚餐"
         val lines = listOf(
-            "小明" to "週六烤肉確定嗎？",
-            "阿華" to "確定！地點在這 https://example.com/bbq",
-            "小美" to "我負責買肉和飲料，總共 1,800 元，一人 450，晚點我再把轉帳帳號貼上來，記得週五前轉給我喔",
-            "阿華" to "食譜可以參考 chef.lu.tw 的分享",
-            "小明" to "收到 👌",
+            "家豪" to "這週六聚餐還 OK 嗎？",
+            "怡君" to "OK！餐廳在這 https://example.com/dinner",
+            "思妤" to "我先訂位，6 個人、晚上 6 點半，套餐一人 680 含飲料。我先刷卡，大家再轉給我，帳號晚點貼上來，記得週五前喔",
+            "宗翰" to "甜點可以參考 IG 上 cake.daily 的推薦",
+            "怡君" to "收到 👌",
         )
         var last: LineMessage? = null
         lines.forEachIndexed { i, (who, t) ->

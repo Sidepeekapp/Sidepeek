@@ -10,16 +10,20 @@ import android.util.LruCache
 /** Deterministic initial avatars used when a notification names a person but supplies no icon. */
 object AvatarBadge {
     private val palette = intArrayOf(
-        0xFF2563EB.toInt(), // blue
-        0xFF7C3AED.toInt(), // purple
-        0xFFDB2777.toInt(), // pink
-        0xFFEA580C.toInt(), // orange
-        0xFF0891B2.toInt(), // cyan
-        0xFF0F766E.toInt(), // teal
-        0xFF4F46E5.toInt(), // indigo
-        0xFF9333EA.toInt(), // violet
-        0xFFC2410C.toInt(), // amber
+        // 12 clearly different hues, each readable with white text (contrast >= 4.6). No green,
+        // so a badge never looks like the brand colour.
         0xFFBE123C.toInt(), // rose
+        0xFFDB2777.toInt(), // pink
+        0xFFC026D3.toInt(), // magenta
+        0xFF7C3AED.toInt(), // purple
+        0xFF4F46E5.toInt(), // indigo
+        0xFF2563EB.toInt(), // blue
+        0xFF0E7490.toInt(), // cyan
+        0xFF0F766E.toInt(), // teal
+        0xFFA16207.toInt(), // amber
+        0xFFC2410C.toInt(), // orange
+        0xFF78350F.toInt(), // brown
+        0xFF475569.toInt(), // slate
     )
 
     private val cache = object : LruCache<String, Bitmap>(40) {}

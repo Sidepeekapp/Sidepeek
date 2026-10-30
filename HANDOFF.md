@@ -139,4 +139,4 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## 10/29 版號改成 v1.1.0
 - 原本規劃的 v1.0.5 沒有發布，因為新功能和介面改版較多，改名為 **v1.1.0**（versionName 1.1.0，versionCode 仍是 12）。上面標成 v1.0.5 的內容都屬於 v1.1.0。
-- 更新檢查比對 tag 版號，舊版（1.0.3、1.0.4）會直接提示 v1.1.0。發版 tag 用 `v1.1.0`，檔名 `sidepeek-v1.1.0-build12.apk`。
+- 更新檢查比對 tag 版號，舊版（1.0.3、1.0.4）會直接提示 v1.1.0。發版用 Actions → Build APK → Run workflow 填 `1.1.0`，會建 tag `v1.1.0`、檔名 `sidepeek-v1.1.0.apk`，更新說明取自 README 的「

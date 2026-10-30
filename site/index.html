@@ -133,33 +133,6 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .other { margin: 10px 10px 0; background: rgba(29, 32, 41, 0.8); border-radius: 22px; padding: 12px 14px; display: grid; grid-template-columns: 40px 1fr; gap: 11px; align-items: center; opacity: 0.75; }
 .other .av { background: #3a3e4c; font-size: 12px; }
 
-/* home screen + Peek bar + panel */
-.home-clock { padding: 46px 22px 0; font-size: 54px; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
-.home-date { padding: 8px 24px 0; font-size: 14px; color: var(--screen-ink-2); }
-.apps { position: absolute; left: 22px; right: 22px; bottom: 96px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 14px; }
-.apps i { aspect-ratio: 1; border-radius: 30%; background: rgba(255,255,255,0.12); display: block; }
-.apps i:nth-child(3n) { background: rgba(120, 160, 255, 0.28); } .apps i:nth-child(4n+1) { background: rgba(255, 170, 120, 0.25); }
-.dock { position: absolute; left: 22px; right: 22px; bottom: 26px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-.dock i { aspect-ratio: 1; border-radius: 30%; background: rgba(255,255,255,0.18); display: block; }
-.peek { position: absolute; right: 4px; top: 66%; width: 6px; height: 92px; border-radius: 6px; background: rgba(242, 244, 247, 0.55); border: 1px solid rgba(255,255,255,0.4); transition: opacity .25s; }
-.panel { position: absolute; right: 8px; top: 12%; bottom: 12%; width: 82%; border-radius: 22px; background: rgba(23, 23, 23, 0.96); padding: 14px 12px;
-  transform: translateX(110%); transition: transform .5s cubic-bezier(.2,.8,.2,1); box-shadow: -10px 0 30px rgba(0,0,0,0.4); }
-.scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; transition: opacity .4s; }
-.panel-on .panel { transform: none; }
-.panel-on .scrim { opacity: 1; }
-.panel-on .peek { opacity: 0; }
-.ph { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 10px; }
-.ph b { font-size: 17px; }
-.ph b small { font-size: 12px; color: #8e8e93; font-weight: 500; margin-left: 6px; }
-.ph span { font-size: 11.5px; color: #b4b4ba; border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 2px 9px; }
-.pitem { display: grid; grid-template-columns: 30px 1fr; gap: 9px; padding: 7px 4px; opacity: 0; transform: translateX(16px); transition: opacity .35s, transform .35s; }
-.panel-on .pitem { opacity: 1; transform: none; }
-.pitem .tt { display: flex; gap: 6px; align-items: center; font-size: 12.5px; font-weight: 800; min-width: 0; }
-.pitem .tt em { font-style: normal; font-size: 9.5px; font-weight: 800; color: #fff; padding: 1px 6px; border-radius: 7px; flex: none; }
-.pitem .tm { font-size: 10.5px; color: #8e8e93; font-weight: 500; margin-left: auto; flex: none; }
-.bub { margin-top: 4px; background: #2e3136; border-radius: 4px 14px 14px 14px; padding: 7px 10px; font-size: 12px; line-height: 1.45; color: #f2f2f7; }
-.chip { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 700; color: #0a84ff; background: #1c3a5f; border-radius: 999px; padding: 2px 9px; }
-
 /* sections */
 section { padding-block: 72px; }
 .band { background: var(--bg-2); border-block: 1px solid var(--line); }
@@ -187,31 +160,78 @@ section { padding-block: 72px; }
 @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
 
-.steps { margin-top: 36px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; counter-reset: s; }
-.step { display: flex; flex-direction: column; gap: 8px; }
-.step::before { counter-increment: s; content: counter(s); width: 38px; height: 38px; border-radius: 12px; background: var(--brand); color: #fff;
-  display: grid; place-items: center; font-family: var(--round); font-size: 20px; }
-.step p { font-size: 15px; color: var(--fg-2); }
-.note { margin-top: 32px; padding: 18px 20px; border-radius: 16px; border: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; gap: 8px; }
-.note p { font-size: 15px; color: var(--fg-2); }
-.note b { color: var(--fg); }
-@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+/* v1.1 demos ------------------------------------------------------------ */
+/* shared: a small toast pill near the bottom of a phone screen */
+.pill { position: absolute; left: 50%; bottom: 34px; transform: translate(-50%, 12px); white-space: nowrap; padding: 8px 14px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 700; color: #4ade80; background: rgba(22, 163, 74, 0.16); border: 1px solid rgba(74, 222, 128, 0.45);
+  opacity: 0; transition: opacity .3s, transform .3s; z-index: 6; }
+.pill.on { opacity: 1; transform: translate(-50%, 0); }
 
-.faq { margin-top: 28px; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
-.faq details { border-bottom: 1px solid var(--line); }
-.faq summary { cursor: pointer; list-style: none; padding: 18px 36px 18px 0; font-weight: 700; font-size: 16.5px; position: relative; }
-.faq summary::-webkit-details-marker { display: none; }
-.faq summary::after { content: ""; position: absolute; right: 8px; top: 25px; width: 9px; height: 9px; border-right: 2px solid var(--fg-3); border-bottom: 2px solid var(--fg-3); transform: rotate(45deg); transition: transform .2s; }
-.faq details[open] summary::after { transform: rotate(225deg); top: 29px; }
-.faq details p { padding: 0 0 20px; color: var(--fg-2); font-size: 15.5px; max-width: 46em; }
+/* notification shade: a new card arrives, opening LINE folds the LINE cards away */
+.stack .ncard { max-height: 140px; margin-top: 10px; transition: max-height .45s ease, opacity .3s, margin-top .45s ease, border-width .45s, transform .4s; }
+.stack .ncard:first-child { margin-top: 0; }
+.stack .ncard.hide { max-height: 0; opacity: 0; margin-top: 0; border-width: 0; transform: translateY(-8px); }
+.stack .ncard.hide:first-child + .ncard { margin-top: 0; }
+.av.cal { background: #e7e9ee; color: #c2410c; font-size: 15px; }
+/* the two clearing modes: chips at the top of the shade, a callout next to the ticks */
+.era.mode .was { background: rgba(255,255,255,0.12); color: var(--screen-ink); }
+.adv .era.mode .was { background: rgba(255,255,255,0.08); color: var(--screen-ink-2); }
+.adv .era.mode .now { background: rgba(251,191,36,0.2); color: #fbbf24; }
+.xbox { margin-top: 6px; padding: 16px 18px; border-radius: 16px; border: 1.5px solid rgba(217,119,6,0.45); background: rgba(251,191,36,0.08); display: flex; flex-direction: column; gap: 8px; }
+.xt { font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.xt span { font-size: 12px; font-weight: 800; color: #fff; background: #d97706; border-radius: 999px; padding: 2px 9px; }
+.xbox p { font-size: 15px; color: var(--fg-2); }
+.xbox .xs { font-size: 13.5px; color: var(--fg-3); }
+.chat { position: absolute; inset: 0; background: #111317; transform: translateY(100%); transition: transform .45s cubic-bezier(.2,.8,.2,1); z-index: 5; overflow: hidden; }
+.chat.on { transform: none; }
+.cbar { display: flex; align-items: center; gap: 10px; padding: 44px 0 12px; font-size: 15px; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 6px; }
+.cbar span { font-size: 22px; font-weight: 400; color: var(--screen-ink-2); }
+.cbar em { font-style: normal; font-size: 10px; font-weight: 800; padding: 1px 7px; border-radius: 7px; background: #16a34a; margin-left: auto; }
+.cmsg { align-self: flex-start; max-width: 78%; background: #2a2d34; border-radius: 4px 16px 16px 16px; padding: 8px 12px; font-size: 13px; line-height: 1.45;
+  opacity: 0; transform: translateY(6px); transition: opacity .3s, transform .3s; }
+.cmsg.me { align-self: flex-end; background: #3a4150; border-radius: 16px 4px 16px 16px; }
+.chat.view .cmsg { opacity: 1; transform: none; }
+.clist, .cview { position: absolute; inset: 0; padding: 0 14px; display: flex; flex-direction: column; gap: 10px; transition: transform .4s cubic-bezier(.2,.8,.2,1); }
+.cview { background: #111317; transform: translateX(100%); }
+.chat.view .cview { transform: none; }
+.crow { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: center; padding: 8px 6px; border-radius: 12px; transition: background .2s; }
+.crow b { display: block; font-size: 13.5px; }
+.crow small { font-size: 11.5px; color: var(--screen-ink-2); }
+.tap { background: rgba(255,255,255,0.1) !important; }
 
-footer { padding-block: 44px 56px; border-top: 1px solid var(--line); font-size: 14px; color: var(--fg-3); }
-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px 40px; }
-footer .links { display: flex; flex-wrap: wrap; gap: 8px 22px; }
-footer .links a { color: var(--fg-2); }
-footer p { max-width: 34em; }
-.mono { font-family: var(--mono); font-size: 0.92em; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* group pictures: each avatar has a "before" and an "after" layer */
+.era { display: flex; gap: 6px; margin: -2px 14px 10px; }
+.era span { font-size: 11.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); color: var(--screen-ink-2); transition: background .3s, color .3s; }
+.era .was { background: rgba(251,191,36,0.18); color: #fbbf24; }
+.after .era .was { background: rgba(255,255,255,0.08); color: var(--screen-ink-2); }
+.after .era .now { background: rgba(22,163,74,0.2); color: #4ade80; }
+.chev.up { transform: rotate(225deg); }
+.gmsgs { padding: 2px 14px 13px; display: flex; flex-direction: column; gap: 9px; }
+.gmsgs .nmsg { opacity: 1; transform: none; }
+.sw { background: none; overflow: visible; }
+.sw i { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; font-style: normal; overflow: hidden; transition: opacity .35s, transform .35s; }
+.sw .l1 { opacity: 0; transform: scale(.6); }
+.after .sw .l0 { opacity: 0; }
+.after .sw .l1 { opacity: 1; transform: none; }
+.gcard .nmsg .sw .l0 { box-shadow: 0 0 0 2px #fbbf24; }
+.after .gcard .nmsg .sw .l0 { box-shadow: none; }
+.mtn { background: #7dd3fc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='29' cy='12' r='5' fill='%23fde047'/%3E%3Cpath d='M-2 34L13 15L22 26L28 19L42 34V42H-2Z' fill='%2315803d'/%3E%3Cpath d='M13 15L17 20L14 19L11 21Z' fill='%23f0fdf4'/%3E%3C/svg%3E") center / cover; }
+.face { width: 30px; height: 30px; border-radius: 50%; flex: none; display: block;
+  background: #fde68a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M6 42C6 31 12 27 20 27S34 31 34 42Z' fill='%23f472b6'/%3E%3Ccircle cx='20' cy='17' r='8' fill='%23f5d0b5'/%3E%3Cpath d='M11.5 17C11.5 10 15 7.5 20 7.5S28.5 10 28.5 17C27 13 24 12 20 12S13 13 11.5 17Z' fill='%233f2a1d'/%3E%3C/svg%3E") center / cover; }
+.ncol.gface { display: flex; gap: 11px; align-items: center; padding-left: 14px; }
+.ncol.gface b { display: block; }
+.gnote { position: relative; height: 30px; margin: 10px 14px 0; }
+.gnote span { position: absolute; left: 0; font-size: 12.5px; font-weight: 800; padding: 6px 12px; border-radius: 999px; transition: opacity .3s; }
+.gnote .was { color: #fbbf24; background: rgba(251,191,36,0.14); }
+.gnote .now { color: #4ade80; background: rgba(22,163,74,0.16); opacity: 0; }
+.after .gnote .was { opacity: 0; }
+.after .gnote .now { opacity: 1; }
+
+/* feature-video pages (tools/feature-video, copied to demos/ by build.py) play as live animations.
+   They are drawn at 360×640 and scaled to the column width by script. */
+.fclip { position: relative; width: min(100%, 340px); margin-inline: auto; aspect-ratio: 9 / 16; border-radius: 30px; overflow: hidden; background: #0d0f1c;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 30px 60px -24px rgba(10, 30, 20, 0.45); }
+.fclip iframe { position: absolute; left: 0; top: 0; width: 360px; height: 640px; border: 0; transform-origin: 0 0; transform: scale(var(--s, 1)); pointer-events: none; }
 </style>
 </head>
 <body>
@@ -255,7 +275,7 @@ footer p { max-width: 34em; }
           <div class="shade-time">下午 1:24<span>10月27日 週二</span></div>
           <div class="ncard" id="demoCard">
             <div class="nhead">
-              <div class="av" style="background:#16a34a">測<span class="bd"></span></div>
+              <div class="av" style="background:#4F46E5">測<span class="bd"></span></div>
               <div><div class="nmeta">Sidepeek ・ 下午1:22</div><div class="ntitle">測試｜週六聚餐</div></div>
               <div class="chev" id="demoChev"></div>
             </div>
@@ -298,16 +318,37 @@ footer p { max-width: 34em; }
           <li><span><b>每則新訊息照樣提醒</b>，來電不會被藏起來。</span></li>
           <li><span><b>直接在通知上回覆、按已讀</b>，沿用 LINE 原本的按鈕。</span></li>
           <li><span><b>長網址變短</b>，只有一個連結時會多一顆「開啟連結」。</span></li>
+          <li><span><b>打開 LINE 就自動收掉</b>，看過的訊息不會一直留在通知欄（需要開著側邊欄服務）。</span></li>
+          <li><span><b>群組裡分得清楚是誰</b>：社群用社群頭貼，沒有頭貼的人依名字固定一種顏色。</span></li>
         </ul>
+        <div class="xbox">
+          <div class="xt"><span>實驗性</span>進階清理：點進哪個聊天室，就只收掉那一則</div>
+          <p>預設是全部清理：打開 LINE，所有 LINE 通知一起收掉。打開「進階清理」後，在 LINE 裡點進哪個聊天室，就只收掉那個聊天室的通知，其他還沒看的照樣留在通知欄。</p>
+          <p class="xs">預設關閉，開啟時會先請你同意。只讀 LINE 畫面最上方的聊天室名稱來比對，不讀聊天內容，比完就丟掉，不儲存、不上傳。</p>
+        </div>
       </div>
-      <div class="phone" role="img" aria-label="通知欄示意：多個聊天室各自一則通知">
-        <div class="screen">
+      <div class="phone" role="img" aria-label="示範：打開 LINE 看完訊息後，預設所有 LINE 通知都收掉；打開進階清理時，只收掉正在看的那個聊天室">
+        <div class="screen" id="clearDemo">
           <div class="sbar"><span>下午 1:24</span><span>5G ▮▮▮ 96%</span></div>
           <div class="shade-time">下午 1:24<span>10月27日 週二</span></div>
-          <div class="ncard"><div class="nhead"><div class="av" style="background:#16a34a">測<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 下午1:22</div><div class="ntitle">測試｜週六聚餐</div></div><div class="chev"></div></div><div class="ncol"><b>怡君</b><br>收到 👌</div></div>
-          <div class="ncard" style="margin-top:10px"><div class="nhead"><div class="av" style="background:#4F46E5">佳<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 下午1:10</div><div class="ntitle">佳慧</div></div><div class="chev"></div></div><div class="ncol">那我先訂位，七點可以嗎？</div></div>
-          <div class="ncard" style="margin-top:10px"><div class="nhead"><div class="av" style="background:#7C3AED">讀<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 上午9:47 ・ 6 則</div><div class="ntitle">讀書會</div></div><div class="chev"></div></div><div class="ncol"><b>冠宇</b><br>這週讀到第五章喔</div></div>
-          <div class="ncard" style="margin-top:10px"><div class="nhead"><div class="av" style="background:#A16207">公<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 上午8:54 ・ 2 則</div><div class="ntitle">社區公告</div></div><div class="chev"></div></div><div class="ncol">本週六上午停水，請提前儲水</div></div>
+          <div class="era mode"><span class="was">預設：全部清理</span><span class="now">進階清理（實驗性）</span></div>
+          <div class="stack">
+            <div class="ncard line hide" id="clearNew"><div class="nhead"><div class="av" style="background:#4F46E5">佳<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 現在</div><div class="ntitle">佳慧</div></div><div class="chev"></div></div><div class="ncol">那我先訂位，七點可以嗎？</div></div>
+            <div class="ncard line"><div class="nhead"><div class="av" style="background:#C026D3">週<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 下午1:22</div><div class="ntitle">週六聚餐</div></div><div class="chev"></div></div><div class="ncol"><b>怡君</b><br>收到 👌</div></div>
+            <div class="ncard line"><div class="nhead"><div class="av" style="background:#7C3AED">讀<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 上午9:47 ・ 6 則</div><div class="ntitle">讀書會</div></div><div class="chev"></div></div><div class="ncol"><b>冠宇</b><br>這週讀到第五章喔</div></div>
+            <div class="ncard"><div class="nhead"><div class="av cal">25</div><div><div class="nmeta">行事曆 ・ 上午8:30</div><div class="ntitle">明天 10:00 看牙醫</div></div><div class="chev"></div></div><div class="ncol">別的 App 的通知不會被動到</div></div>
+          </div>
+          <div class="pill" id="clearPill">看過的 LINE 通知自動收掉了</div>
+          <div class="chat" id="clearChat">
+            <div class="clist">
+              <div class="cbar">聊天<em>LINE</em></div>
+              <div class="crow"><div class="av sm" style="background:#4F46E5">佳</div><div><b>佳慧</b><small>那我先訂位，七點可以嗎？</small></div></div>
+              <div class="crow" id="clearRow"><div class="av sm" style="background:#C026D3">週</div><div><b>週六聚餐</b><small>怡君：收到 👌</small></div></div>
+              <div class="crow"><div class="av sm" style="background:#7C3AED">讀</div><div><b>讀書會</b><small>冠宇：這週讀到第五章喔</small></div></div>
+            </div>
+            <div class="cview" id="clearView"></div>
+          </div>
+          <div class="finger" id="clearFinger"></div>
         </div>
       </div>
     </div>
@@ -318,32 +359,67 @@ footer p { max-width: 34em; }
       <div class="text">
         <div class="eyebrow">Peek 條＋側邊欄</div>
         <h2>從邊緣一滑，<br>最近的訊息都在這。</h2>
-        <p>螢幕右側、拇指剛好按得到的位置有一條半透明的 Peek 條。往內滑就打開側邊欄，輕點不會誤開；長按可以上下拖到順手的地方。</p>
+        <p>螢幕右側、拇指剛好按得到的位置有一條半透明的 Peek 條，透明度可以一路調到 0%，看不到也滑得開。往內滑就打開側邊欄，輕點不會誤開；長按可以上下拖到順手的地方。</p>
         <ul class="ticks">
           <li><span><b>不只 LINE</b>：IG、Threads、Messenger、Teams，或手機上任何你挑的 App。</span></li>
           <li><span><b>點訊息直接跳過去</b>：那則貼文、那個聊天室；在 Threads／IG 點頭像開對方的個人頁。</span></li>
           <li><span><b>卡片往左滑刪除</b>，按「清除」全部清掉，5 秒內都能復原。</span></li>
           <li><span><b>打字時自動淡出</b>，也可以設定只在桌面出現。</span></li>
+          <li><span><b>滑動靈敏度五段可調</b>，常常不小心打開就調低。</span></li>
         </ul>
       </div>
-      <div class="phone" role="img" aria-label="示範：從螢幕右側的 Peek 條往內滑，打開側邊欄">
-        <div class="screen" id="peekDemo">
+      <div class="fclip">
+        <iframe data-src="demos/feature-4.html" title="示範動畫：Peek 條不透明度調到 0%，看不到也滑得開" tabindex="-1"></iframe>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature" id="groups">
+    <div class="wrap">
+      <div class="text">
+        <div class="eyebrow">v1.1 新功能・群組頭貼</div>
+        <h2>群組通知，<br>一眼認出是誰。</h2>
+        <p>以前 LINE 社群的通知，每個人都頂著同一張社群圖，分不出誰在說話。現在社群圖放回聊天室頭像，成員各自顯示自己的頭貼，沒有頭貼的人有自己的顏色。</p>
+        <ul class="ticks">
+          <li><span><b>社群用社群頭貼</b>，不會再貼到每個成員身上。</span></li>
+          <li><span><b>一般群組照舊</b>：成員顯示自己的照片，群組依名稱固定一種顏色。</span></li>
+          <li><span><b>沒有頭貼的人有自己的顏色</b>：12 種顏色，依名字固定不變，通知和側邊欄都一樣。</span></li>
+        </ul>
+      </div>
+      <div class="phone" role="img" aria-label="示範：社群通知以前每個人都是同一張社群圖，v1.1 改成社群圖當聊天室頭像、成員各自一種顏色">
+        <div class="screen" id="groupDemo">
           <div class="sbar"><span>下午 1:24</span><span>5G ▮▮▮ 96%</span></div>
-          <div class="home-clock">13:24</div>
-          <div class="home-date">10月27日 週二</div>
-          <div class="apps"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="dock"><i></i><i></i><i></i><i></i></div>
-          <div class="peek"></div>
-          <div class="scrim"></div>
-          <div class="panel">
-            <div class="ph"><b>最近訊息<small>4</small></b><span>清除</span></div>
-            <div class="pitem" style="transition-delay:.12s"><div class="av sm" style="background:#16a34a">測</div><div style="min-width:0"><div class="tt">測試｜週六聚餐 <em style="background:#16a34a">LINE</em><span class="tm">13:22</span></div><div class="bub">收到 👌</div></div></div>
-            <div class="pitem" style="transition-delay:.2s"><div class="av sm" style="background:#e1306c">a</div><div style="min-width:0"><div class="tt">amy.lu <em style="background:#e1306c">IG</em><span class="tm">13:15</span></div><div class="bub">傳了一則限時動態給你</div></div></div>
-            <div class="pitem" style="transition-delay:.28s"><div class="av sm" style="background:#8e8e93">c</div><div style="min-width:0"><div class="tt">chen__.90 <em style="background:#6b6b70">Threads</em><span class="tm">13:02</span></div><div class="bub">說你的回覆讚</div></div></div>
-            <div class="pitem" style="transition-delay:.36s"><div class="av sm" style="background:#4F46E5">佳</div><div style="min-width:0"><div class="tt">佳慧 <em style="background:#16a34a">LINE</em><span class="tm">12:58</span></div><div class="bub">餐廳在這 <span class="lk" style="color:#8ab4ff">example.com/dinner</span><br><span class="chip">🔗 example.com</span></div></div></div>
+          <div class="shade-time">下午 1:24<span>10月27日 週二</span></div>
+          <div class="era"><span class="was">以前</span><span class="now">v1.1</span></div>
+          <div class="ncard gcard">
+            <div class="nhead"><div class="av sw"><i class="l0" style="background:#16a34a">台</i><i class="l1 mtn"></i><span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 現在</div><div class="ntitle">台北爬山社</div></div><div class="chev up"></div></div>
+            <div class="gmsgs">
+              <div class="nmsg"><div class="av sm sw"><i class="l0 mtn"></i><i class="l1" style="background:#BE123C">家</i></div><div><b>家豪</b>大家週六有空嗎？</div></div>
+              <div class="nmsg"><div class="av sm sw"><i class="l0 mtn"></i><i class="l1" style="background:#4F46E5">小</i></div><div><b>小雯</b>我可以！7 點集合？</div></div>
+              <div class="nmsg"><div class="av sm sw"><i class="l0 mtn"></i><i class="l1" style="background:#C2410C">宗</i></div><div><b>宗翰</b>+1，我帶早餐</div></div>
+            </div>
           </div>
-          <div class="finger" id="peekFinger"></div>
+          <div class="gnote" id="groupNote"><span class="was">分不出誰是誰</span><span class="now">一眼看出誰在說話</span></div>
+          <div class="ncard" style="margin-top:10px"><div class="nhead"><div class="av" style="background:#C026D3">週<span class="bd"></span></div><div><div class="nmeta">Sidepeek ・ 下午1:22 ・ 一般群組</div><div class="ntitle">週六聚餐</div></div><div class="chev"></div></div><div class="ncol gface"><i class="face"></i><span><b>怡君</b>收到 👌</span></div></div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature flip band" id="sound">
+    <div class="wrap">
+      <div class="text">
+        <div class="eyebrow">v1.1 新功能・換鈴聲</div>
+        <h2>LINE 通知，<br>換成你的聲音。</h2>
+        <p>不用再到系統設定一層一層找。在 Sidepeek「設定」分頁的「通知外觀」按「選擇鈴聲」，就能換成手機內建的通知音、改成靜音，或挑自己下載的音檔。</p>
+        <ul class="ticks">
+          <li><span><b>從「我的檔案」挑 mp3、m4a</b>，自己喜歡的聲音都可以。</span></li>
+          <li><span><b>手機內建的通知音</b>，或直接靜音。</span></li>
+          <li><span><b>原本的設定都保留</b>：調過的重要性、震動和鎖定畫面設定不會被改掉。</span></li>
+        </ul>
+      </div>
+      <div class="fclip">
+        <iframe data-src="demos/feature-3.html" title="示範動畫：在 Sidepeek 設定裡選擇鈴聲，換成自己的音檔" tabindex="-1"></iframe>
       </div>
     </div>
   </section>
@@ -441,26 +517,86 @@ footer p { max-width: 34em; }
     }
   }
 
-  // Peek bar: finger slides in from the right edge and the side panel follows.
-  const peek = $("peekDemo"), pf = $("peekFinger"), bar = peek.querySelector(".peek");
-  async function peekLoop() {
-    if (reduce) { peek.classList.add("panel-on"); return; }
-    for (;;) {
-      peek.classList.remove("panel-on");
+  // Resolves once el is on screen, so each demo plays from its start when it is scrolled to.
+  const seen = (el) => new Promise((r) => {
+    if (!("IntersectionObserver" in window)) return r();
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); r(); } }, { threshold: 0.35 });
+    io.observe(el);
+  });
+  const tap = async (f, target, dx = 0, dy = 0) => {
+    f.style.transition = "none"; placeFinger(f, target, dx, dy); void f.offsetWidth; f.style.transition = "";
+    f.classList.add("on"); await wait(360);
+    f.classList.add("press"); target.classList.add("tap"); await wait(170);
+    f.classList.remove("press"); await wait(120); f.classList.remove("on"); target.classList.remove("tap");
+  };
+
+  // Notification shade: a new message still notifies; reading it in LINE folds the LINE cards away.
+  // Rounds alternate between the default (every LINE card goes) and 進階清理 (only the chat that was read).
+  const clr = $("clearDemo"), cNew = $("clearNew"), cChat = $("clearChat"), cView = $("clearView"), cRow = $("clearRow"), cPill = $("clearPill"), cf = $("clearFinger");
+  const lineCards = [...clr.querySelectorAll(".ncard.line")];
+  const groupCard = lineCards[1];   // 週六聚餐, the chat opened in the 進階清理 round
+  const chatView = (title, msgs) => {
+    cView.innerHTML = `<div class="cbar"><span>‹</span>${title}<em>LINE</em></div>` +
+      msgs.map(([t, me]) => `<div class="cmsg${me ? " me" : ""}">${t}</div>`).join("");
+  };
+  async function clearLoop() {
+    if (reduce) { cNew.classList.remove("hide"); return; }
+    for (let adv = false; ; adv = !adv) {
+      clr.classList.toggle("adv", adv);
+      lineCards.forEach((c) => c.classList.toggle("hide", c === cNew));
+      cChat.classList.remove("on", "view");
+      cPill.classList.remove("on");
+      cPill.textContent = adv ? "點進哪個聊天室，就只收掉那一則" : "打開 LINE，全部一起收掉";
+      await seen(clr);
+      await wait(1300);
+      cNew.classList.remove("hide");
       await wait(1500);
-      pf.style.transition = "none"; placeFinger(pf, bar, 6, 0);
-      pf.classList.add("on"); void pf.offsetWidth;
-      await wait(300);
-      pf.style.transition = "opacity .2s, transform .2s, left .45s cubic-bezier(.2,.8,.2,1)";
-      placeFinger(pf, bar, -70, 0);
-      await wait(260);
-      peek.classList.add("panel-on");
-      await wait(250); pf.classList.remove("on");
-      await wait(4200);
+      // Both rounds do the same thing: open LINE, tap 週六聚餐 in its chat list, come back.
+      cChat.classList.add("on");
+      await wait(1100);
+      await tap(cf, cRow);
+      chatView("週六聚餐", [["怡君：收到 👌"], ["那就週六見！", true]]);
+      cChat.classList.add("view");
+      await wait(2200);
+      cChat.classList.remove("on");
+      await wait(550);
+      cChat.classList.remove("view");
+      // Default: every LINE card goes at once. 進階清理: only the chat that was read.
+      (adv ? [groupCard] : lineCards).forEach((c) => c.classList.add("hide"));
+      await wait(550);
+      cPill.classList.add("on");
+      await wait(3600);
     }
   }
 
-  const go = () => { heroLoop(); peekLoop(); };
+  // Group pictures: the community card switches from "everyone has the community picture" to v1.1.
+  const grp = $("groupDemo");
+  async function groupLoop() {
+    if (reduce) { grp.classList.add("after"); return; }
+    for (;;) {
+      grp.classList.remove("after");
+      await seen(grp);
+      await wait(3000);
+      grp.classList.add("after");
+      await wait(5000);
+    }
+  }
+
+  // Feature-video pages (?embed: demo scenes only): scaled to fit, loaded when scrolled to;
+  // with reduced motion they show one still frame instead of playing.
+  const clips = [...document.querySelectorAll(".fclip")];
+  const fit = (c) => c.style.setProperty("--s", c.clientWidth / 360);
+  clips.forEach(fit);
+  if ("ResizeObserver" in window) { const ro = new ResizeObserver((es) => es.forEach((e) => fit(e.target))); clips.forEach((c) => ro.observe(c)); }
+  else window.addEventListener("resize", () => clips.forEach(fit));
+  const load = (f) => { if (!f.src) f.src = f.dataset.src + (reduce ? "?embed&still" : "?embed"); };
+  const frames = clips.map((c) => c.querySelector("iframe"));
+  if ("IntersectionObserver" in window) {
+    const fio = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { load(e.target); fio.unobserve(e.target); } }), { threshold: 0.3 });
+    frames.forEach((f) => fio.observe(f));
+  } else frames.forEach(load);
+
+  const go = () => { heroLoop(); clearLoop(); groupLoop(); };
   window.addEventListener("resize", () => setOpen(card.classList.contains("open")));
   (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(go);
 })();

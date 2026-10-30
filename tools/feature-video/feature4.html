@@ -345,9 +345,26 @@ window.DURATION = DURATION;
 window.SFX = SFX;
 
 // Opened directly in a browser: play on a loop for preview (rec.js sets ?rec to drive seek itself).
-if (!location.search.includes("rec")) {
+// The website embeds the page with ?embed: only the demo scenes loop (no title card, end card or
+// footer), fading through black at the joint; ?still (reduced motion) shows one frame.
+const EMBED = location.search.includes("embed");
+if (EMBED) {
+  const st = document.createElement("style");
+  st.textContent = ".foot { display: none !important; }";
+  document.head.appendChild(st);
+}
+if (location.search.includes("still")) window.seek(11.5);
+else if (!location.search.includes("rec")) {
+  const sc = (id) => SCENES.find((x) => x[0] === id);
+  const from = EMBED ? sc("s2")[1] + XF : 0, to = EMBED ? sc("s5")[1] - XF : DURATION, span = to - from;
+  const stage = document.getElementById("stage");
   const t0 = performance.now();
-  (function loop(now) { window.seek(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop); })(t0);
+  (function loop(now) {
+    const u = ((now - t0) / 1000) % span;
+    window.seek(from + u);
+    if (EMBED) stage.style.opacity = Math.min(1, u / 0.3, (span - u) / 0.3);
+    requestAnimationFrame(loop);
+  })(t0);
 } else window.seek(0);
 </script>
 </body>

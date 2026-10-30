@@ -1,6 +1,8 @@
 """Build the GitHub Pages site into _site/.
 
 - index.html and og.png (the link-preview image) are copied as is.
+- demos/feature-3.html and demos/feature-4.html are tools/feature-video/feature3.html and feature4.html
+  (the pages the feature videos are recorded from), so the site plays the very same animations.
 - privacy.html is generated from docs/privacy.md, so the policy has one source of truth
   (the same text the app shows in PrivacyActivity).
 
@@ -64,6 +66,10 @@ def main() -> None:
     OUT.mkdir()
     shutil.copy(SITE / "index.html", OUT / "index.html")
     shutil.copy(SITE / "og.png", OUT / "og.png")  # link-preview image (og:image)
+    # The Peek bar and ringtone demos are the feature-video pages themselves, played live.
+    (OUT / "demos").mkdir()
+    for name in ("feature-3.html", "feature-4.html"):
+        shutil.copy(ROOT / "tools" / "feature-video" / name.replace("-", ""), OUT / "demos" / name)
 
     md = (ROOT / "docs" / "privacy.md").read_text(encoding="utf-8")
     title = re.search(r"^#\s+(.+)$", md, re.M).group(1).replace("Sidepeek ", "").strip()

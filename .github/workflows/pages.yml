@@ -1,11 +1,11 @@
-# Publishes the website (site/ + docs/privacy.md) to GitHub Pages.
+# Publishes the website (site/ + docs/privacy.md + two feature-video pages) to GitHub Pages.
 # One-time setup: Settings → Pages → Build and deployment → Source: GitHub Actions.
 name: Website
 
 on:
   push:
     branches: [main]
-    paths: ["site/**", "docs/privacy.md", ".github/workflows/pages.yml"]
+    paths: ["site/**", "docs/privacy.md", "tools/feature-video/feature3.html", "tools/feature-video/feature4.html", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:

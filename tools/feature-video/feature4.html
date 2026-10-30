@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>Sidepeek 功能介紹 #4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<!--
+  功能介紹 #4「Peek 條：看不到，但一滑就有」：360×640 的畫面依時間軸播放，rec.js 逐格截圖（2 倍 → 720×1280）再用 ffmpeg 編成影片。
+  手機情境：在設定把不透明度拉到 0% → 桌面上看不到 Peek 條，從原位置往內滑照樣打開側邊欄 → 截圖也不會出現 Peek 條。
+  window.seek(t) 畫出第 t 秒；直接用瀏覽器打開會自動循環播放，方便預覽。內容全部是示範資料。
+-->
+<style>
+  :root { --green: #22C55E; --brand: #16A34A; --ink: #F4F5F8; --dim: #A3A8B8; --card: rgba(38, 40, 56, .96); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 360px; height: 640px; overflow: hidden; background: #0d0f1c; }
+  body { font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  #stage { position: relative; width: 360px; height: 640px; overflow: hidden;
+    background: radial-gradient(120% 70% at 20% 0%, #26244f 0%, rgba(38,36,79,0) 60%),
+                radial-gradient(90% 60% at 100% 100%, #3a1f4d 0%, rgba(58,31,77,0) 65%),
+                linear-gradient(180deg, #151833 0%, #10121f 55%, #160f22 100%); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .tag { position: absolute; left: 22px; top: 40px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+    background: rgba(255,255,255,.10); color: var(--dim); letter-spacing: .5px; }
+  .tag.ok { background: rgba(34,197,94,.16); color: var(--green); }
+  .h { position: absolute; left: 22px; right: 22px; top: 68px; font-size: 21px; font-weight: 900; line-height: 1.3; }
+  .sub { position: absolute; left: 22px; right: 22px; top: 101px; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+  .foot { position: absolute; left: 22px; right: 22px; bottom: 18px; display: flex; justify-content: space-between; align-items: baseline; }
+  .logo { font-weight: 900; font-size: 14px; letter-spacing: .2px; }
+  .logo i { font-style: normal; color: var(--green); }
+  .foot small { font-size: 10px; color: var(--dim); }
+
+  /* phone */
+  .phone { position: absolute; left: 70px; top: 136px; width: 220px; height: 440px; border-radius: 30px; background: #05060b;
+    box-shadow: 0 0 0 1.5px #2e3146, 0 18px 40px rgba(0,0,0,.45); }
+  .scr { position: absolute; inset: 6px; border-radius: 24px; overflow: hidden; background: #15161f; }
+  .screen { position: absolute; inset: 0; background: #15161f; opacity: 0; }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 58px; padding: 26px 14px 0; display: flex; gap: 8px; align-items: center;
+    background: #1e2030; font-size: 12.5px; font-weight: 700; }
+  .bar .back { font-size: 16px; color: var(--dim); }
+  .navbar { position: absolute; left: 50%; bottom: 7px; width: 70px; height: 4px; margin-left: -35px; border-radius: 3px; background: rgba(255,255,255,.55); z-index: 5; }
+  .finger { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; opacity: 0; z-index: 6;
+    background: rgba(255,255,255,.30); border: 2px solid rgba(255,255,255,.85); box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+
+  /* system settings list */
+  .srow { position: absolute; left: 10px; right: 10px; height: 38px; border-radius: 10px; background: #202232; padding: 0 12px;
+    display: flex; align-items: center; font-size: 10.5px; }
+  .srow .ph { height: 7px; width: 70px; border-radius: 4px; background: #34374b; }
+  .srow .val { margin-left: auto; font-size: 9px; color: #7fb3ff; }
+  .srow.hi { outline: 1.5px solid rgba(251,191,36,.9); }
+
+  /* home */
+  .home { position: absolute; inset: 0; background: linear-gradient(160deg, #3b3f7a 0%, #262a52 45%, #1a1b31 100%); }
+  .home .t { position: absolute; left: 18px; top: 34px; font-size: 34px; font-weight: 700; letter-spacing: 1px; }
+  .home .d { position: absolute; left: 20px; top: 78px; font-size: 10px; color: #c9cbe0; }
+  .app { position: absolute; width: 36px; height: 36px; border-radius: 11px; background: #4a4e6b; }
+  .dock { position: absolute; left: 14px; right: 14px; bottom: 22px; height: 52px; border-radius: 18px; background: rgba(255,255,255,.10); }
+  .appicon { overflow: hidden; }
+  .appicon svg { display: block; width: 100%; height: 100%; }
+  .lbl { position: absolute; width: 48px; margin-left: -6px; text-align: center; font-size: 8px; color: #d9dbe8; }
+
+  /* Sidepeek settings tab */
+  .sp .ttl { position: absolute; left: 14px; top: 30px; font-size: 15px; font-weight: 900; }
+  .sp .card { position: absolute; left: 10px; right: 10px; top: 64px; height: 262px; border-radius: 16px; background: #1d1f2d;
+    border: 1px solid #2b2e40; padding: 12px; }
+  .sp .ch { font-size: 12px; font-weight: 700; color: var(--green); }
+  .sp .lab { font-size: 9.5px; font-weight: 700; margin-top: 12px; }
+  .sp .seg { display: flex; gap: 4px; margin-top: 6px; }
+  .sp .seg div { flex: 1; height: 22px; border-radius: 7px; border: 1px solid #3a3d52; font-size: 8px; display: grid; place-items: center; color: #cfd1dc; }
+  .sp .seg div.on { border-color: var(--green); background: rgba(34,197,94,.14); color: var(--green); }
+  .sp .btn { position: relative; margin-top: 8px; height: 30px; border-radius: 9px; border: 1.5px solid var(--brand); color: var(--green);
+    font-size: 10.5px; font-weight: 700; display: grid; place-items: center; }
+  .sp .btn span { position: absolute; }
+  .sp .hint { font-size: 8px; color: var(--dim); margin-top: 6px; line-height: 1.5; }
+  .sp .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 50px; border-top: 1px solid #2b2e40; background: #15161f;
+    display: flex; justify-content: space-around; padding-top: 8px; font-size: 8px; color: var(--dim); }
+  .sp .tabs b { display: block; width: 14px; height: 14px; border-radius: 4px; background: #3a3d52; margin: 0 auto 3px; }
+  .sp .tabs .on { color: var(--green); }
+  .sp .tabs .on b { background: var(--green); }
+
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.55); opacity: 0; }
+  .dialog { position: absolute; left: 14px; right: 14px; top: 140px; border-radius: 16px; background: #26283a; padding: 14px 14px 6px; opacity: 0; }
+  .dialog .dt { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+  .dialog .it { font-size: 10.5px; padding: 9px 2px; border-top: 1px solid #33364a; }
+
+  .picker .row { position: absolute; left: 0; right: 0; height: 46px; padding: 8px 12px 0 50px; }
+  .picker .fi { position: absolute; left: 12px; top: 8px; width: 28px; height: 28px; border-radius: 7px; background: #3b2f66;
+    display: grid; place-items: center; font-size: 12px; color: #c4b5fd; }
+  .picker .nm { font-size: 10.5px; font-weight: 700; }
+  .picker .mt { font-size: 8.5px; color: var(--dim); margin-top: 2px; }
+  .toast { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); white-space: nowrap; background: #e9eaf0; color: #15161f;
+    font-size: 10px; font-weight: 700; padding: 7px 12px; border-radius: 999px; opacity: 0; }
+
+  /* heads-up notification + sound */
+  .hu { position: absolute; left: 8px; right: 8px; top: 30px; background: var(--card); border-radius: 14px; padding: 9px 10px 9px 42px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.4); opacity: 0; z-index: 3; }
+  .hu .av { position: absolute; left: 10px; top: 11px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    font-weight: 700; font-size: 11px; color: #fff; background: #16A34A; }
+  .hu .m { font-size: 7.5px; color: var(--dim); }
+  .hu .ti { font-size: 10px; font-weight: 700; margin-top: 1px; }
+  .hu .ln { font-size: 9px; color: #d9dbe4; margin-top: 1px; }
+  .wave { position: absolute; left: 50%; top: 190px; width: 60px; height: 60px; margin-left: -30px; border-radius: 50%;
+    border: 2px solid rgba(34,197,94,.8); opacity: 0; }
+  .note { position: absolute; left: 50%; top: 204px; transform: translateX(-50%); font-size: 26px; color: var(--green); opacity: 0; font-weight: 700; }
+
+  .call { position: absolute; left: 50%; top: 506px; z-index: 2; box-shadow: 0 6px 18px rgba(0,0,0,.4); transform: translateX(-50%); white-space: nowrap; opacity: 0;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); font-size: 12.5px; font-weight: 700;
+    padding: 7px 14px; border-radius: 999px; display: flex; gap: 7px; align-items: center; }
+  .call .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .call.bad { color: #FBBF24; border-color: rgba(251,191,36,.45); background: rgba(251,191,36,.10); }
+  .call.bad .dot { background: #FBBF24; }
+  .call.good { color: var(--green); border-color: rgba(34,197,94,.45); background: rgba(34,197,94,.12); }
+  .call.good .dot { background: var(--green); }
+
+  /* title + end cards */
+  .kick { position: absolute; left: 24px; top: 150px; font-size: 11px; font-weight: 700; color: var(--green);
+    background: rgba(34,197,94,.14); padding: 3px 9px; border-radius: 6px; }
+  .big { position: absolute; left: 24px; right: 20px; top: 184px; font-size: 38px; font-weight: 900; line-height: 1.18; }
+  .big em { font-style: normal; color: var(--green); }
+  .lead { position: absolute; left: 24px; right: 24px; top: 290px; font-size: 14px; color: var(--dim); line-height: 1.6; }
+  .tiny { position: absolute; left: 24px; top: 372px; font-size: 11px; color: #7d8296; }
+  .brand { position: absolute; left: 24px; top: 128px; font-size: 40px; font-weight: 900; }
+  .brand i { font-style: normal; color: var(--green); }
+  .tagline { position: absolute; left: 24px; top: 186px; font-size: 13px; color: var(--dim); }
+  .ver { position: absolute; right: 24px; top: 146px; font-size: 11px; font-weight: 700; color: var(--green);
+    border: 1px solid rgba(34,197,94,.45); padding: 2px 8px; border-radius: 999px; }
+  .checks { position: absolute; left: 24px; right: 20px; top: 232px; }
+  .ck { display: grid; grid-template-columns: 26px 1fr; column-gap: 10px; margin-bottom: 20px; }
+  .ck .c { width: 22px; height: 22px; border-radius: 50%; background: rgba(34,197,94,.16); display: grid; place-items: center; margin-top: 1px; }
+  .ck .c svg { width: 13px; height: 13px; }
+  .ck b { font-size: 15px; }
+  .ck span { grid-column: 2; font-size: 11.5px; color: var(--dim); margin-top: 3px; }
+  .url { position: absolute; left: 24px; right: 24px; top: 520px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.12);
+    font-size: 12px; color: #d9dbe4; }
+  .disc { position: absolute; left: 24px; right: 24px; top: 552px; font-size: 9.5px; color: #7d8296; line-height: 1.5; }
+
+  /* Peek bar + side panel */
+  .peek { position: absolute; right: 2px; top: 288px; width: 7px; height: 64px; border-radius: 4px; z-index: 4;
+    background: rgba(235,238,245,.9); box-shadow: 0 0 0 1px rgba(255,255,255,.25); }
+  .ghost { position: absolute; right: 0; top: 282px; width: 16px; height: 76px; border-radius: 6px; border: 1.5px dashed rgba(251,191,36,.9); opacity: 0; z-index: 4; }
+  .plbl { position: absolute; left: 298px; font-size: 10.5px; font-weight: 700; color: #d9dbe4; white-space: nowrap; }
+  .panel { position: absolute; right: 0; top: 54px; width: 160px; height: 252px; border-radius: 16px 0 0 16px; background: #1d1f2d;
+    border: 1px solid #2f3246; border-right: 0; box-shadow: -8px 0 24px rgba(0,0,0,.45); padding: 10px 8px; z-index: 3; }
+  .panel .pt { font-size: 10px; font-weight: 700; color: var(--green); margin: 0 2px 8px; }
+  .panel .pr { position: relative; height: 50px; padding: 8px 4px 0 36px; border-top: 1px solid #2b2e40; }
+  .panel .pa { position: absolute; left: 4px; top: 10px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 11px; font-weight: 700; color: #fff; }
+  .panel .pn { font-size: 9.5px; font-weight: 700; }
+  .panel .pm { font-size: 8.5px; color: var(--dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* sliders in the Sidepeek settings card */
+  .sl { position: absolute; left: 22px; right: 22px; font-size: 9.5px; font-weight: 700; }
+  .track { position: absolute; left: 22px; width: 164px; height: 4px; border-radius: 2px; background: #3a3d52; }
+  .track .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--green); }
+  .track .knob { position: absolute; top: -6px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 0 4px rgba(34,197,94,.18); }
+  .track .tick { position: absolute; top: -1px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: #565a73; }
+
+  /* screenshot thumbnail */
+  .flash { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 7; }
+  .shot { position: absolute; left: 12px; bottom: 84px; width: 84px; height: 173px; border-radius: 10px; overflow: hidden; opacity: 0; z-index: 6;
+    border: 2px solid #fff; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+  .shot .mini { position: absolute; left: 0; top: 0; width: 208px; height: 428px; transform: scale(.3942); transform-origin: 0 0; }
+  .shotlbl { position: absolute; left: 102px; bottom: 234px; font-size: 9px; font-weight: 700; color: #fff; background: rgba(0,0,0,.55);
+    padding: 3px 7px; border-radius: 6px; opacity: 0; z-index: 6; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1. 標題 -->
+  <section class="scene" id="s1">
+    <div class="kick">● Sidepeek 功能介紹 #4</div>
+    <div class="big" id="s1big">Peek 條<br><em>看不到，<br>但一滑就有</em></div>
+    <div class="lead" id="s1lead" style="top:336px">不透明度可以調到 0%，畫面乾乾淨淨；<br>往內一滑，側邊欄照樣打開。</div>
+    <div class="tiny" id="s1tiny" style="top:400px">Android ・ 免費開源 ・ v1.1</div>
+  </section>
+
+  <!-- 2. 設定：不透明度拉到 0% -->
+  <section class="scene" id="s2">
+    <div class="tag ok">設定</div>
+    <div class="h">嫌 Peek 條礙眼？拉到 0%</div>
+    <div class="sub">設定 → 側邊欄：Peek 條 → 不透明度。</div>
+    <div class="phone"><div class="scr" id="p2">
+      <div class="screen sp" style="opacity:1">
+        <div class="ttl">設定</div>
+        <div class="card" style="height:244px"></div>
+        <div class="sl" style="top:76px;color:var(--green);font-size:12px">側邊欄：Peek 條</div>
+        <div class="sl" style="top:102px">Peek 條在哪一邊</div>
+        <div class="seg" style="position:absolute;left:22px;right:22px;top:118px"><div class="on">右邊（右手）</div><div>左邊（左手）</div></div>
+        <div class="sl" style="top:154px" id="opLbl">不透明度：55%</div>
+        <div class="track" style="top:178px" id="opTrack"><div class="fill"></div><div class="knob"></div></div>
+        <div class="sl" style="top:198px">滑動靈敏度：中・24dp（預設）</div>
+        <div class="track" style="top:222px"><div class="fill" style="width:50%"></div>
+          <div class="tick" style="left:0"></div><div class="tick" style="left:25%"></div><div class="tick" style="left:50%"></div><div class="tick" style="left:75%"></div><div class="tick" style="left:100%"></div>
+          <div class="knob" style="left:50%"></div></div>
+        <div class="sl" style="top:240px;font-weight:400;font-size:8px;color:var(--dim);line-height:1.5">看不清楚就調高。調到 0% 會完全看不到，但從原位置往內滑一樣能打開。</div>
+        <div class="tabs"><div><b></b>首頁</div><div class="on"><b></b>設定</div><div><b></b>說明</div></div>
+      </div>
+      <div class="peek" id="peek2"></div>
+      <div class="finger" id="f2"></div><div class="navbar"></div></div></div>
+    <div class="plbl" id="pl2" style="top:448px">← Peek 條</div>
+    <div class="call good" id="c2"><span class="dot"></span>調到 0%，完全看不到</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #4 ・ Peek 條隱形</small></div>
+  </section>
+
+  <!-- 3. 桌面：看不到，但往內滑就打開 -->
+  <section class="scene" id="s3">
+    <div class="tag ok">平常</div>
+    <div class="h">看不到，一樣滑得出來</div>
+    <div class="sub">從原本的位置往內滑，側邊欄照樣打開。</div>
+    <div class="phone"><div class="scr" id="p3">
+      <div class="home"><div class="t">1:24</div><div class="d">10月30日 週五</div><div class="apps"></div><div class="dock"></div></div>
+      <div class="ghost" id="ghost"></div>
+      <div class="peek" id="peek3" style="opacity:0"></div>
+      <div class="panel" id="panel">
+        <div class="pt">最近訊息</div>
+        <div class="pr"><div class="pa" style="background:#16A34A">聚</div><div class="pn">週六聚餐</div><div class="pm">怡君：收到 👌</div></div>
+        <div class="pr"><div class="pa" style="background:#BE123C">媽</div><div class="pn">媽媽</div><div class="pm">晚餐要回來吃嗎？</div></div>
+        <div class="pr"><div class="pa" style="background:#2563EB">讀</div><div class="pn">讀書會</div><div class="pm">冠宇：下週改成線上</div></div>
+        <div class="pr"><div class="pa" style="background:#A16207">芳</div><div class="pn">小芳</div><div class="pm">照片傳給你了</div></div>
+      </div>
+      <div class="finger" id="f3"></div><div class="navbar"></div></div></div>
+    <div class="plbl" id="pl3" style="top:448px;color:#FBBF24">← 在這裡</div>
+    <div class="call good" id="c3"><span class="dot"></span>往內一滑，側邊欄就出來</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #4 ・ Peek 條隱形</small></div>
+  </section>
+
+  <!-- 4. 截圖也乾淨 -->
+  <section class="scene" id="s4">
+    <div class="tag ok">截圖</div>
+    <div class="h">截圖、錄影也不會出現</div>
+    <div class="sub">分享畫面時，邊緣不會多一條東西。</div>
+    <div class="phone"><div class="scr" id="p4">
+      <div class="home"><div class="t">1:24</div><div class="d">10月30日 週五</div><div class="apps"></div><div class="dock"></div></div>
+      <div class="flash" id="flash"></div>
+      <div class="shot" id="shot"><div class="mini"><div class="home"><div class="t">1:24</div><div class="d">10月30日 週五</div><div class="apps"></div><div class="dock"></div></div></div></div>
+      <div class="shotlbl" id="shotlbl">已截圖</div>
+      <div class="navbar"></div></div></div>
+    <div class="call good" id="c4"><span class="dot"></span>畫面乾乾淨淨</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #4 ・ Peek 條隱形</small></div>
+  </section>
+
+  <!-- 5. 結尾 -->
+  <section class="scene" id="s5">
+    <div class="brand">Side<i>peek</i></div>
+    <div class="ver">v1.1</div>
+    <div class="tagline">把 LINE 通知整理好，再放回你手上。</div>
+    <div class="checks">
+      <div class="ck" id="ck1"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>不透明度 0%–100%</b><span>想看清楚就調高，礙眼就調到 0%。</span></div>
+      <div class="ck" id="ck2"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>看不到也滑得開</b><span>手指碰到時會短暫亮起。</span></div>
+      <div class="ck" id="ck3"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>滑動靈敏度五段</b><span>常不小心打開？調低一點就好。</span></div>
+    </div>
+    <div class="url">sidepeekapp.github.io/Sidepeek</div>
+    <div class="disc">非官方 App，與 LINE、LY Corporation 無關。所有處理都在手機上完成。</div>
+  </section>
+</div>
+
+<script>
+// Sidepeek launcher icon, from res/drawable/ic_launcher_background + ic_launcher_foreground (adaptive-icon safe zone).
+const ICON = `<svg viewBox="18 18 72 72"><rect x="0" y="0" width="108" height="108" fill="#16A34A"/>
+  <path d="M40.67,34H60.67A12,12 0 0 1 72.67,46V55.33A12,12 0 0 1 60.67,67.33H40.67A12,12 0 0 1 28.67,55.33V46A12,12 0 0 1 40.67,34ZM35.33,63.33L46.00,66.00L34.67,74.00Z" fill="#FFFFFF"/>
+  <path d="M39.67,44.67H57.67A2.33,2.33 0 0 1 60,47V47A2.33,2.33 0 0 1 57.67,49.33H39.67A2.33,2.33 0 0 1 37.33,47V47A2.33,2.33 0 0 1 39.67,44.67Z" fill="#16A34A"/>
+  <path d="M39.67,53.33H51A2.33,2.33 0 0 1 53.33,55.67V55.67A2.33,2.33 0 0 1 51,58H39.67A2.33,2.33 0 0 1 37.33,55.67V55.67A2.33,2.33 0 0 1 39.67,53.33Z" fill="#86EFAC"/>
+  <path d="M81,38H81A3,3 0 0 1 84,41V65.67A3,3 0 0 1 81,68.67H81A3,3 0 0 1 78,65.67V41A3,3 0 0 1 81,38Z" fill="#DCFCE7"/>
+  <path d="M61.33,35.33A7.33,7.33 0 1 1 76.00,35.33A7.33,7.33 0 1 1 61.33,35.33Z" fill="#16A34A"/>
+  <path d="M63.33,35.33A5.33,5.33 0 1 1 74.00,35.33A5.33,5.33 0 1 1 63.33,35.33Z" fill="#FACC15"/></svg>`;
+
+// Home screen icons (other apps are plain blocks).
+const APP_X = c => 18 + c * 48, APP_Y = r => 128 + r * 64;
+const APPS = [[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1]].map(([c, r]) =>
+  c === 3 && r === 0
+    ? `<div class="app appicon" style="left:${APP_X(c)}px;top:${APP_Y(r)}px;background:none">${ICON}</div><div class="lbl" style="left:${APP_X(c)}px;top:${APP_Y(r) + 40}px">Sidepeek</div>`
+    : `<div class="app" style="left:${APP_X(c)}px;top:${APP_Y(r)}px"></div>`).join("");
+for (const el of document.querySelectorAll(".apps")) el.innerHTML = APPS;
+
+const SCENES = [ // [id, start, end]
+  ["s1", 0, 2.4], ["s2", 2.4, 7.6], ["s3", 7.6, 13.0], ["s4", 13.0, 16.8], ["s5", 16.8, 20.0],
+];
+const DURATION = 20.0, XF = 0.35;
+const OP_DEFAULT = 55, TRACK_X = 22, TRACK_W = 164;
+// Operation sound effects [seconds, kind] for mix.js (silent video otherwise).
+const SFX = [
+  [3.3, "tap"], [3.8, "tick"], [4.05, "tick"], [4.3, "tick"], [4.55, "tick"], [4.75, "tick"],
+  [8.9, "tap"], [9.0, "swipe"], [13.8, "shutter"],
+];
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ease = x => 1 - Math.pow(1 - clamp(x), 3);
+const prog = (t, a, b) => ease((t - a) / (b - a));     // 0 → 1 between a and b
+const $ = id => document.getElementById(id);
+function rise(el, p, dy = 14) { el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * dy}px)`; }
+function callAt(el, p) { el.style.opacity = p; el.style.transform = `translateX(-50%) translateY(${(1 - p) * 10}px)`; }
+function finger(f, x, y, op, down) {
+  f.style.left = (x + 6) + "px"; f.style.top = (y + 8) + "px"; f.style.opacity = op; f.style.transform = `scale(${down ? 0.78 : 1})`;
+}
+
+window.seek = function (t) {
+  for (const [id, a, b] of SCENES) {
+    // Overlapping cross-fade centred on each cut, so no frame between scenes is empty.
+    const inP = a === 0 ? 1 : clamp((t - a + XF / 2) / XF), outP = b === DURATION ? 1 : clamp((b + XF / 2 - t) / XF);
+    $(id).style.opacity = Math.min(inP, outP);
+    $(id).style.display = t >= a - XF / 2 && t <= b + XF / 2 ? "block" : "none";
+  }
+  // 1. title
+  rise($("s1big"), prog(t, 0.1, 0.8), 18); rise($("s1lead"), prog(t, 0.45, 1.1)); rise($("s1tiny"), prog(t, 0.7, 1.3));
+
+  // 2. settings: drag 不透明度 from 55% to 0%; the Peek bar on the edge fades with it
+  { const l = t - 2.4;
+    const v = Math.round(OP_DEFAULT * (1 - prog(l, 1.1, 2.4)));
+    $("opLbl").textContent = v === 0 ? "不透明度：0%（看不到）" : `不透明度：${v}%`;
+    $("opTrack").querySelector(".fill").style.width = v + "%";
+    $("opTrack").querySelector(".knob").style.left = v + "%";
+    $("peek2").style.opacity = v / 100;
+    $("pl2").textContent = v === 0 ? "← 看不到了" : "← Peek 條";
+    const kx = TRACK_X + TRACK_W * v / 100;
+    finger($("f2"), kx, 178, prog(l, 0.6, 0.85) * (1 - prog(l, 2.6, 2.85)), l > 0.9 && l < 2.55);
+    callAt($("c2"), prog(l, 2.8, 3.15)); }
+
+  // 3. home: the bar is invisible; touch its spot, it lights up briefly, swipe in → side panel
+  { const l = t - 7.6;
+    const g = prog(l, 0.4, 0.7) * (1 - prog(l, 1.25, 1.45));
+    $("ghost").style.opacity = g; $("pl3").style.opacity = g;
+    $("peek3").style.opacity = l > 1.3 ? 0.65 * (1 - prog(l, 1.6, 2.1)) : 0;
+    const sw = prog(l, 1.4, 1.8);
+    finger($("f3"), 200 - sw * 80, 320, prog(l, 1.05, 1.3) * (1 - prog(l, 1.8, 2.0)), l > 1.3 && l < 1.85);
+    const pn = prog(l, 1.5, 1.95);
+    $("panel").style.transform = `translateX(${(1 - pn) * 170}px)`;
+    callAt($("c3"), prog(l, 2.4, 2.75)); }
+
+  // 4. screenshot: flash, then a thumbnail without the Peek bar
+  { const l = t - 13.0;
+    $("flash").style.opacity = l > 0.8 ? 0.85 * (1 - prog(l, 0.82, 1.1)) : 0;
+    const s = prog(l, 1.0, 1.3);
+    $("shot").style.opacity = s; $("shot").style.transform = `scale(${0.9 + 0.1 * s})`;
+    $("shotlbl").style.opacity = prog(l, 1.25, 1.5);
+    callAt($("c4"), prog(l, 1.7, 2.05)); }
+
+  // 5. end card
+  { const l = t - 16.8; ["ck1", "ck2", "ck3"].forEach((id, i) => rise($(id), prog(l, 0.25 + i * 0.22, 0.7 + i * 0.22))); }
+};
+window.DURATION = DURATION;
+window.SFX = SFX;
+
+// Opened directly in a browser: play on a loop for preview (rec.js sets ?rec to drive seek itself).
+if (!location.search.includes("rec")) {
+  const t0 = performance.now();
+  (function loop(now) { window.seek(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop); })(t0);
+} else window.seek(0);
+</script>
+</body>
+</html>

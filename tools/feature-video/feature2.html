@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>Sidepeek 功能介紹 #2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<!--
+  功能介紹 #2「看過就收掉」：360×640 的畫面依時間軸播放，rec.js 逐格截圖（2 倍 → 720×1280）再用 ffmpeg 編成影片。
+  中間三段是手機情境：通知欄 → 點 LINE 看聊天室 → 回桌面 → 拉下通知欄。LINE 畫成中性的灰色聊天室，不用 LINE 的配色。
+  window.seek(t) 畫出第 t 秒；直接用瀏覽器打開會自動循環播放，方便預覽。內容全部是示範資料。
+-->
+<style>
+  :root { --green: #22C55E; --brand: #16A34A; --ink: #F4F5F8; --dim: #A3A8B8; --card: rgba(38, 40, 56, .96); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 360px; height: 640px; overflow: hidden; background: #0d0f1c; }
+  body { font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  #stage { position: relative; width: 360px; height: 640px; overflow: hidden;
+    background: radial-gradient(120% 70% at 20% 0%, #26244f 0%, rgba(38,36,79,0) 60%),
+                radial-gradient(90% 60% at 100% 100%, #3a1f4d 0%, rgba(58,31,77,0) 65%),
+                linear-gradient(180deg, #151833 0%, #10121f 55%, #160f22 100%); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .tag { position: absolute; left: 22px; top: 40px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+    background: rgba(255,255,255,.10); color: var(--dim); letter-spacing: .5px; }
+  .tag.ok { background: rgba(34,197,94,.16); color: var(--green); }
+  .h { position: absolute; left: 22px; right: 22px; top: 68px; font-size: 21px; font-weight: 900; line-height: 1.3; }
+  .sub { position: absolute; left: 22px; right: 22px; top: 101px; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+  .foot { position: absolute; left: 22px; right: 22px; bottom: 18px; display: flex; justify-content: space-between; align-items: baseline; }
+  .logo { font-weight: 900; font-size: 14px; letter-spacing: .2px; }
+  /* the real launcher icon (res/drawable/ic_launcher_*) on the phone home screen, filled in by script */
+  .appicon { display: inline-block; border-radius: 26%; overflow: hidden; flex: none; }
+  .appicon svg { display: block; width: 100%; height: 100%; }
+  .logo i { font-style: normal; color: var(--green); }
+  .foot small { font-size: 10px; color: var(--dim); }
+
+  /* phone */
+  .phone { position: absolute; left: 70px; top: 136px; width: 220px; height: 440px; border-radius: 30px; background: #05060b;
+    box-shadow: 0 0 0 1.5px #2e3146, 0 18px 40px rgba(0,0,0,.45); }
+  .scr { position: absolute; inset: 6px; border-radius: 24px; overflow: hidden; background: #1b1d33; }
+  .home { position: absolute; inset: 0; background: linear-gradient(160deg, #3b3f7a 0%, #262a52 45%, #1a1b31 100%); }
+  .home .t { position: absolute; left: 18px; top: 34px; font-size: 34px; font-weight: 700; letter-spacing: 1px; }
+  .home .d { position: absolute; left: 20px; top: 78px; font-size: 10px; color: #c9cbe0; }
+  .app { position: absolute; width: 36px; height: 36px; border-radius: 11px; background: #4a4e6b; }
+  .app.line { background: #5a5e73; display: grid; place-items: center; font-size: 9px; font-weight: 900; letter-spacing: .3px; }
+  .app.sp { background: none; }
+  .lbl { position: absolute; width: 48px; margin-left: -6px; text-align: center; font-size: 8px; color: #d9dbe8; }
+  .dock { position: absolute; left: 14px; right: 14px; bottom: 22px; height: 52px; border-radius: 18px; background: rgba(255,255,255,.10); }
+  .navbar { position: absolute; left: 50%; bottom: 7px; width: 70px; height: 4px; margin-left: -35px; border-radius: 3px; background: rgba(255,255,255,.55); }
+
+  .chat { position: absolute; inset: 0; background: #15161f; opacity: 0; }
+  .chat .bar { position: absolute; left: 0; right: 0; top: 0; height: 58px; padding: 26px 12px 0; display: flex; gap: 8px; align-items: center;
+    background: #1e2030; font-size: 12px; font-weight: 700; }
+  .chat .bar .back { font-size: 16px; color: var(--dim); }
+  .chat .bar .app-name { margin-left: auto; font-size: 8.5px; font-weight: 700; color: var(--dim); border: 1px solid #3a3d52; padding: 1px 5px; border-radius: 4px; }
+  .msg { position: absolute; left: 12px; max-width: 160px; }
+  .msg .n { font-size: 8.5px; color: var(--dim); margin: 0 0 3px 2px; }
+  .msg .b { background: #2d3042; border-radius: 12px; padding: 7px 10px; font-size: 10.5px; line-height: 1.45; }
+  .chat .input { position: absolute; left: 10px; right: 10px; bottom: 22px; height: 30px; border-radius: 15px; background: #23253a; }
+
+  .clist { position: absolute; inset: 0; background: #15161f; opacity: 0; }
+  .clist .bar { position: absolute; left: 0; right: 0; top: 0; height: 58px; padding: 26px 14px 0; display: flex; align-items: center;
+    background: #1e2030; font-size: 13px; font-weight: 700; }
+  .clist .bar .app-name { margin-left: auto; font-size: 8.5px; font-weight: 700; color: var(--dim); border: 1px solid #3a3d52; padding: 1px 5px; border-radius: 4px; }
+  .row { position: absolute; left: 0; right: 0; height: 46px; padding: 6px 12px 0 50px; }
+  .row .av { position: absolute; left: 12px; top: 7px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; color: #fff; }
+  .row .nm { font-size: 11px; font-weight: 700; }
+  .row .pv { font-size: 9px; color: var(--dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+  .row .un { position: absolute; right: 12px; top: 15px; min-width: 16px; height: 16px; border-radius: 8px; background: #5a5e73;
+    font-size: 8.5px; font-weight: 700; display: grid; place-items: center; padding: 0 4px; }
+  .mini .lab { position: absolute; right: 8px; top: 8px; font-size: 7.5px; font-weight: 700; padding: 1px 5px; border-radius: 4px; opacity: 0; }
+  .mini .lab.g { color: var(--green); background: rgba(34,197,94,.16); }
+  .mini .lab.n { color: #c9cbd6; background: rgba(255,255,255,.10); }
+  .shade { position: absolute; inset: 0; background: rgba(14, 15, 26, .97); transform: translateY(-102%); }
+  .shade .st { position: absolute; left: 14px; top: 30px; font-size: 22px; font-weight: 700; }
+  .shade .sd { position: absolute; left: 16px; top: 60px; font-size: 9px; color: var(--dim); }
+  .shade .list { position: absolute; left: 8px; right: 8px; top: 82px; }
+  .mini { position: relative; background: var(--card); border-radius: 13px; padding: 8px 9px 8px 40px; margin-bottom: 6px; }
+  .mini .av { position: absolute; left: 9px; top: 10px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    font-weight: 700; font-size: 11px; color: #fff; }
+  .mini .bd { position: absolute; left: 25px; top: 26px; width: 11px; height: 11px; border-radius: 50%; background: var(--brand); border: 1.5px solid #26283a; }
+  .mini .m { font-size: 7.5px; color: var(--dim); }
+  .mini .ti { font-size: 10px; font-weight: 700; margin-top: 1px; }
+  .mini .ln { font-size: 9px; color: #d9dbe4; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty { position: absolute; left: 0; right: 0; top: 150px; text-align: center; opacity: 0; }
+  .empty .ring { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: 50%; background: rgba(34,197,94,.16); display: grid; place-items: center; }
+  .empty .ring svg { width: 24px; height: 24px; }
+  .empty b { display: block; font-size: 12px; }
+  .empty span { display: block; font-size: 9px; color: var(--dim); margin-top: 3px; }
+  .finger { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; opacity: 0;
+    background: rgba(255,255,255,.30); border: 2px solid rgba(255,255,255,.85); box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+
+  .call { position: absolute; left: 50%; top: 506px; z-index: 2; box-shadow: 0 6px 18px rgba(0,0,0,.4); transform: translateX(-50%); white-space: nowrap; opacity: 0;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); font-size: 12.5px; font-weight: 700;
+    padding: 7px 14px; border-radius: 999px; display: flex; gap: 7px; align-items: center; }
+  .call .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .call.bad { color: #FBBF24; border-color: rgba(251,191,36,.45); background: rgba(251,191,36,.10); }
+  .call.bad .dot { background: #FBBF24; }
+  .call.good { color: var(--green); border-color: rgba(34,197,94,.45); background: rgba(34,197,94,.12); }
+  .call.good .dot { background: var(--green); }
+
+  /* title + end cards */
+  .kick { position: absolute; left: 24px; top: 150px; font-size: 11px; font-weight: 700; color: var(--green);
+    background: rgba(34,197,94,.14); padding: 3px 9px; border-radius: 6px; }
+  .big { position: absolute; left: 24px; right: 20px; top: 184px; font-size: 38px; font-weight: 900; line-height: 1.18; }
+  .big em { font-style: normal; color: var(--green); }
+  .lead { position: absolute; left: 24px; right: 24px; top: 290px; font-size: 14px; color: var(--dim); line-height: 1.6; }
+  .tiny { position: absolute; left: 24px; top: 372px; font-size: 11px; color: #7d8296; }
+  .brand { position: absolute; left: 24px; top: 128px; font-size: 40px; font-weight: 900; }
+  .brand i { font-style: normal; color: var(--green); }
+  .tagline { position: absolute; left: 24px; top: 186px; font-size: 13px; color: var(--dim); }
+  .ver { position: absolute; right: 24px; top: 146px; font-size: 11px; font-weight: 700; color: var(--green);
+    border: 1px solid rgba(34,197,94,.45); padding: 2px 8px; border-radius: 999px; }
+  .checks { position: absolute; left: 24px; right: 20px; top: 232px; }
+  .ck { display: grid; grid-template-columns: 26px 1fr; column-gap: 10px; margin-bottom: 20px; }
+  .ck .c { width: 22px; height: 22px; border-radius: 50%; background: rgba(34,197,94,.16); display: grid; place-items: center; margin-top: 1px; }
+  .ck .c svg { width: 13px; height: 13px; }
+  .ck b { font-size: 15px; }
+  .ck span { grid-column: 2; font-size: 11.5px; color: var(--dim); margin-top: 3px; }
+  .url { position: absolute; left: 24px; right: 24px; top: 520px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.12);
+    font-size: 12px; color: #d9dbe4; }
+  .disc { position: absolute; left: 24px; right: 24px; top: 552px; font-size: 9.5px; color: #7d8296; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1. 標題 -->
+  <section class="scene" id="s1">
+    <div class="kick">● Sidepeek 功能介紹 #2</div>
+    <div class="big" id="s1big">看過的通知<br><em>自己會收掉</em></div>
+    <div class="lead" id="s1lead">直接打開 LINE 看完訊息，<br>通知欄也會跟著清乾淨。</div>
+    <div class="tiny" id="s1tiny">Android ・ 免費開源 ・ v1.1</div>
+  </section>
+
+  <!-- 2. 以前 -->
+  <section class="scene" id="s2">
+    <div class="tag">以前</div>
+    <div class="h">看完訊息，通知還掛著</div>
+    <div class="sub">在 LINE 裡讀完了，回到桌面，通知欄還是一整排。</div>
+    <div class="phone" id="p2"></div>
+    <div class="call bad" id="c2"><span class="dot"></span>還有 3 則，要一則一則滑掉</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #2 ・ 看過就收掉</small></div>
+  </section>
+
+  <!-- 3. 用 Sidepeek -->
+  <section class="scene" id="s3">
+    <div class="tag ok">用 Sidepeek</div>
+    <div class="h">打開 LINE，回來就清乾淨</div>
+    <div class="sub">讀完訊息回到桌面，整理好的 LINE 通知自動收掉。</div>
+    <div class="phone" id="p3"></div>
+    <div class="call good" id="c3"><span class="dot"></span>通知欄乾淨了，訊息還在側邊欄</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #2 ・ 看過就收掉</small></div>
+  </section>
+
+  <!-- 4. 進階清理 -->
+  <section class="scene" id="s4">
+    <div class="tag ok">進階清理（實驗性）</div>
+    <div class="h">只想收掉看過的那一個？</div>
+    <div class="sub">打開進階清理，沒看的聊天室會留著。</div>
+    <div class="phone" id="p4"></div>
+    <div class="call good" id="c4"><span class="dot"></span>只收掉看過的聊天室</div>
+    <div class="call" id="c4b"><span class="dot" style="background:#22C55E"></span>設定 → LINE 通知清理 → 進階清理</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #2 ・ 看過就收掉</small></div>
+  </section>
+
+  <!-- 5. 結尾 -->
+  <section class="scene" id="s5">
+    <div class="brand">Side<i>peek</i></div>
+    <div class="ver">v1.1</div>
+    <div class="tagline">把 LINE 通知整理好，再放回你手上。</div>
+    <div class="checks">
+      <div class="ck" id="ck1"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>看過就收掉</b><span>直接打開 LINE 看，通知欄也會清乾淨。</span></div>
+      <div class="ck" id="ck2"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>只清正在看的</b><span>進階清理只收掉那一個聊天室。</span></div>
+      <div class="ck" id="ck3"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>訊息不會不見</b><span>都還留在側邊欄，從 Peek 條一滑就看得到。</span></div>
+    </div>
+    <div class="url">sidepeekapp.github.io/Sidepeek</div>
+    <div class="disc">非官方 App，與 LINE、LY Corporation 無關。所有處理都在手機上完成。<br>需開啟「側邊欄服務」才會自動清除。</div>
+  </section>
+</div>
+
+<script>
+// Demo chats only (no real names). Letter avatars use the app's palette colours.
+const CHATS = [
+  { av: "聚", color: "#16A34A", title: "週六聚餐", line: "怡君：收到 👌", time: "下午1:22" },
+  { av: "思", color: "#7C3AED", title: "思妤", line: "明天幾點出發？", time: "下午1:20" },
+  { av: "讀", color: "#2563EB", title: "讀書會", line: "冠宇：講義我放雲端了", time: "下午1:15" },
+];
+const APPS = [[0, 0, ""], [1, 0, "LINE"], [2, 0, ""], [3, 0, "Sidepeek"], [0, 1, ""], [1, 1, ""], [2, 1, ""], [3, 1, ""]];
+const APP_X = c => 18 + c * 48, APP_Y = r => 128 + r * 64;
+const LINE_ICON = { x: APP_X(1) + 18, y: APP_Y(0) + 18 };   // centre, in screen coordinates
+const CHAT_ROW_Y = i => 82 + i * 48;                          // centre of a row in LINE's chat list
+
+function phoneHtml() {
+  const apps = APPS.map(([c, r, n]) => {
+    const cls = n === "LINE" ? "app line" : n === "Sidepeek" ? "app sp" : "app";
+    const lbl = n ? `<div class="lbl" style="left:${APP_X(c)}px;top:${APP_Y(r) + 40}px">${n}</div>` : "";
+    return `<div class="${cls}${n === "Sidepeek" ? " appicon" : ""}" style="left:${APP_X(c)}px;top:${APP_Y(r)}px">${n === "LINE" ? "LINE" : ""}</div>${lbl}`;
+  }).join("");
+  const cards = CHATS.map((c, i) => `<div class="mini"><div class="av" style="background:${c.color}">${c.av}</div><div class="bd"></div>
+      <div class="m">Sidepeek ・ ${c.time}</div><div class="ti">${c.title}</div><div class="ln">${c.line}</div>
+      <div class="lab ${i === 0 ? "g" : "n"}">${i === 0 ? "看過了" : "還沒看，留著"}</div></div>`).join("");
+  const rows = CHATS.map((c, i) => `<div class="row" style="top:${CHAT_ROW_Y(i) - 23}px"><div class="av" style="background:${c.color}">${c.av}</div>
+      <div class="nm">${c.title}</div><div class="pv">${c.line}</div><div class="un">${[4, 1, 2][i]}</div></div>`).join("");
+  return `<div class="scr">
+    <div class="home"><div class="t">1:24</div><div class="d">10月27日 週二</div>${apps}<div class="dock"></div></div>
+    <div class="clist"><div class="bar">聊天<span class="app-name">LINE</span></div>${rows}</div>
+    <div class="chat"><div class="bar"><span class="back">‹</span>週六聚餐<span class="app-name">LINE</span></div>
+      <div class="msg" style="top:72px"><div class="n">家豪</div><div class="b">這週六聚餐還 OK 嗎？</div></div>
+      <div class="msg" style="top:124px"><div class="n">怡君</div><div class="b">OK！餐廳我等等貼</div></div>
+      <div class="msg" style="top:176px"><div class="n">思妤</div><div class="b">我先訂位，6 個人 🍽️</div></div>
+      <div class="msg" style="top:228px"><div class="n">怡君</div><div class="b">收到 👌</div></div>
+      <div class="input"></div></div>
+    <div class="shade"><div class="st">下午 1:24</div><div class="sd">10月27日 週二</div><div class="list">${cards}</div>
+      <div class="empty"><div class="ring"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>沒有通知</b><span>訊息都還在側邊欄</span></div></div>
+    <div class="finger"></div><div class="navbar"></div></div>`;
+}
+for (const id of ["p2", "p3", "p4"]) document.getElementById(id).innerHTML = phoneHtml();
+// Sidepeek launcher icon, from res/drawable/ic_launcher_background + ic_launcher_foreground (adaptive-icon safe zone).
+const ICON = `<svg viewBox="18 18 72 72"><rect x="0" y="0" width="108" height="108" fill="#16A34A"/>
+  <path d="M40.67,34H60.67A12,12 0 0 1 72.67,46V55.33A12,12 0 0 1 60.67,67.33H40.67A12,12 0 0 1 28.67,55.33V46A12,12 0 0 1 40.67,34ZM35.33,63.33L46.00,66.00L34.67,74.00Z" fill="#FFFFFF"/>
+  <path d="M39.67,44.67H57.67A2.33,2.33 0 0 1 60,47V47A2.33,2.33 0 0 1 57.67,49.33H39.67A2.33,2.33 0 0 1 37.33,47V47A2.33,2.33 0 0 1 39.67,44.67Z" fill="#16A34A"/>
+  <path d="M39.67,53.33H51A2.33,2.33 0 0 1 53.33,55.67V55.67A2.33,2.33 0 0 1 51,58H39.67A2.33,2.33 0 0 1 37.33,55.67V55.67A2.33,2.33 0 0 1 39.67,53.33Z" fill="#86EFAC"/>
+  <path d="M81,38H81A3,3 0 0 1 84,41V65.67A3,3 0 0 1 81,68.67H81A3,3 0 0 1 78,65.67V41A3,3 0 0 1 81,38Z" fill="#DCFCE7"/>
+  <path d="M61.33,35.33A7.33,7.33 0 1 1 76.00,35.33A7.33,7.33 0 1 1 61.33,35.33Z" fill="#16A34A"/>
+  <path d="M63.33,35.33A5.33,5.33 0 1 1 74.00,35.33A5.33,5.33 0 1 1 63.33,35.33Z" fill="#FACC15"/></svg>`;
+document.querySelectorAll(".appicon").forEach(e => e.innerHTML = ICON);
+
+const SCENES = [ // [id, start, end]
+  ["s1", 0, 2.4], ["s2", 2.4, 7.8], ["s3", 7.8, 13.2], ["s4", 13.2, 19.6], ["s5", 19.6, 22.8],
+];
+const DURATION = 22.8, XF = 0.35;
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ease = x => 1 - Math.pow(1 - clamp(x), 3);
+const inOut = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const prog = (t, a, b) => ease((t - a) / (b - a));     // 0 → 1 between a and b
+const lerp = (a, b, p) => a + (b - a) * p;
+const $ = id => document.getElementById(id);
+function rise(el, p, dy = 14) { el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * dy}px)`; }
+function callAt(el, p) { el.style.opacity = p; el.style.transform = `translateX(-50%) translateY(${(1 - p) * 10}px)`; }
+
+// Phone parts for one scene's phone.
+function parts(pid) {
+  const p = $(pid);
+  return { shade: p.querySelector(".shade"), chat: p.querySelector(".chat"), finger: p.querySelector(".finger"),
+           clist: p.querySelector(".clist"), cards: [...p.querySelectorAll(".mini")], labs: [...p.querySelectorAll(".lab")],
+           empty: p.querySelector(".empty") };
+}
+const shadeAt = (ph, p) => ph.shade.style.transform = `translateY(${(1 - p) * -102}%)`;
+const chatAt = (ph, p) => { ph.chat.style.opacity = p; ph.chat.style.transform = `scale(${0.94 + 0.06 * p})`; };
+function fingerAt(ph, x, y, vis, press = 0) {
+  ph.finger.style.left = x + "px"; ph.finger.style.top = y + "px"; ph.finger.style.opacity = vis;
+  ph.finger.style.transform = `scale(${1 - 0.22 * press})`;
+}
+/** Finger path through the usual moves: tap LINE, swipe home, pull the shade down. Returns true while it is drawn. */
+function fingerScript(ph, l, k) {
+  // k: { tap: time of a tap (on k.at, default the LINE icon), home: start of the home swipe, pull: start of the shade pull }
+  if (k.tap != null && l > k.tap - 0.35 && l < k.tap + 0.3) {
+    const vis = prog(l, k.tap - 0.35, k.tap - 0.15) * (1 - prog(l, k.tap + 0.1, k.tap + 0.3));
+    const press = l > k.tap - 0.08 && l < k.tap + 0.1 ? 1 : 0, at = k.at || LINE_ICON;
+    fingerAt(ph, at.x + 6, at.y + 8, vis, press); return;
+  }
+  if (k.home != null && l > k.home - 0.1 && l < k.home + 0.5) {
+    const m = inOut((l - k.home) / 0.4), vis = prog(l, k.home - 0.1, k.home) * (1 - prog(l, k.home + 0.35, k.home + 0.5));
+    fingerAt(ph, 104, lerp(420, 330, m), vis); return;
+  }
+  if (k.pull != null && l > k.pull - 0.1 && l < k.pull + 0.55) {
+    const m = inOut((l - k.pull) / 0.45), vis = prog(l, k.pull - 0.1, k.pull) * (1 - prog(l, k.pull + 0.4, k.pull + 0.55));
+    fingerAt(ph, 120, lerp(10, 170, m), vis); return;
+  }
+  fingerAt(ph, 0, 0, 0);
+}
+
+window.seek = function (t) {
+  for (const [id, a, b] of SCENES) {
+    // Overlapping cross-fade centred on each cut, so no frame between scenes is empty.
+    const inP = a === 0 ? 1 : clamp((t - a + XF / 2) / XF), outP = b === DURATION ? 1 : clamp((b + XF / 2 - t) / XF);
+    $(id).style.opacity = Math.min(inP, outP);
+    $(id).style.display = t >= a - XF / 2 && t <= b + XF / 2 ? "block" : "none";
+  }
+  // 1. title
+  rise($("s1big"), prog(t, 0.1, 0.8), 18); rise($("s1lead"), prog(t, 0.45, 1.1)); rise($("s1tiny"), prog(t, 0.7, 1.3));
+
+  // 2 & 3. shade with 3 chats → shade up → tap LINE → read → swipe home → pull shade down.
+  // Before: all 3 are still there (and shake). With Sidepeek: the shade is empty.
+  for (const [sid, pid, cid, cleaned] of [["s2", "p2", "c2", false], ["s3", "p3", "c3", true]]) {
+    const a = SCENES.find(s => s[0] === sid)[1], l = t - a, ph = parts(pid);
+    const k = { tap: 1.45, home: 3.05, pull: 3.75 };
+    const shown = l < 0.95 ? 1 : l < 3.75 ? 1 - prog(l, 0.95, 1.25) : prog(l, 3.75, 4.15);
+    shadeAt(ph, l < 3.75 ? shown : prog(l, 3.75, 4.15));
+    chatAt(ph, prog(l, 1.55, 1.85) * (1 - prog(l, 3.1, 3.4)));
+    fingerScript(ph, l, k);
+    const back = l >= 3.75;                       // the second time the shade comes down
+    ph.cards.forEach((c, i) => {
+      const inP = prog(l, 0.15 + i * 0.1, 0.5 + i * 0.1);
+      c.style.opacity = back && cleaned ? 0 : inP;
+      const shake = !cleaned && l > 4.25 && l < 4.75 ? Math.sin((l - 4.25) * 40) * 3 * (1 - (l - 4.25) / 0.5) : 0;
+      c.style.transform = `translate(${shake}px, ${(1 - inP) * 10}px)`;
+    });
+    ph.empty.style.opacity = back && cleaned ? prog(l, 4.1, 4.45) : 0;
+    callAt($(cid), prog(l, 4.35, 4.7));
+  }
+
+  // 4. advanced: LINE's chat list → tap the barbecue chat → read → home → shade:
+  // that chat is marked 「看過了」 and goes, the other two are marked 「還沒看，留著」 and stay.
+  { const a = SCENES.find(s => s[0] === "s4")[1], l = t - a, ph = parts("p4");
+    const close = prog(l, 2.35, 2.65);
+    ph.clist.style.opacity = 1 - close;
+    chatAt(ph, prog(l, 1.05, 1.35) * (1 - close));
+    shadeAt(ph, prog(l, 3.0, 3.4));
+    fingerScript(ph, l, { tap: 0.9, at: { x: 104, y: CHAT_ROW_Y(0) }, home: 2.3, pull: 3.0 });
+    const labP = prog(l, 3.5, 3.8), outP = prog(l, 4.15, 4.55), up = prog(l, 4.5, 4.85);
+    ph.labs.forEach(e => e.style.opacity = labP);
+    ph.cards.forEach((c, i) => {
+      if (i === 0) {
+        c.style.opacity = 1 - outP;
+        c.style.transform = `translateX(${outP * 90}px)`;
+        c.style.outline = l > 3.5 && l < 4.2 ? "1.5px solid rgba(34,197,94,.85)" : "none";
+      } else c.style.transform = `translateY(${-up * (ph.cards[0].offsetHeight + 6)}px)`;
+    });
+    callAt($("c4"), prog(l, 4.75, 5.05) * (1 - prog(l, 5.55, 5.8)));
+    callAt($("c4b"), prog(l, 5.75, 6.05)); }
+
+  // 5. end card
+  { const l = t - 19.6; ["ck1", "ck2", "ck3"].forEach((id, i) => rise($(id), prog(l, 0.25 + i * 0.22, 0.7 + i * 0.22))); }
+};
+window.DURATION = DURATION;
+// Operation sound effects [seconds, kind] for mix.js: taps on LINE, the swipe home, the shade pulled down.
+window.SFX = [[3.85, "tap"], [5.45, "swipe"], [6.15, "swipe"], [9.25, "tap"], [10.85, "swipe"], [11.55, "swipe"],
+  [14.1, "tap"], [15.5, "swipe"], [16.2, "swipe"], [17.35, "swipe"]];
+
+// Opened directly in a browser: play on a loop for preview (rec.js sets ?rec to drive seek itself).
+if (!location.search.includes("rec")) {
+  const t0 = performance.now();
+  (function loop(now) { window.seek(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop); })(t0);
+} else window.seek(0);
+</script>
+</body>
+</html>

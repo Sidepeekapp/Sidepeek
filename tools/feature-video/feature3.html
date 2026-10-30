@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>Sidepeek 功能介紹 #3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<!--
+  功能介紹 #3「換成你想要的聲音」：360×640 的畫面依時間軸播放，rec.js 逐格截圖（2 倍 → 720×1280）再用 ffmpeg 編成影片。
+  手機情境：以前要在系統設定點 5 層 → 在 Sidepeek 裡按「鈴聲」選自己的 mp3 → 來訊息響你選的聲音（無聲影片，用聲波與震動表現）。
+  window.seek(t) 畫出第 t 秒；直接用瀏覽器打開會自動循環播放，方便預覽。內容全部是示範資料。
+-->
+<style>
+  :root { --green: #22C55E; --brand: #16A34A; --ink: #F4F5F8; --dim: #A3A8B8; --card: rgba(38, 40, 56, .96); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 360px; height: 640px; overflow: hidden; background: #0d0f1c; }
+  body { font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  #stage { position: relative; width: 360px; height: 640px; overflow: hidden;
+    background: radial-gradient(120% 70% at 20% 0%, #26244f 0%, rgba(38,36,79,0) 60%),
+                radial-gradient(90% 60% at 100% 100%, #3a1f4d 0%, rgba(58,31,77,0) 65%),
+                linear-gradient(180deg, #151833 0%, #10121f 55%, #160f22 100%); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .tag { position: absolute; left: 22px; top: 40px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+    background: rgba(255,255,255,.10); color: var(--dim); letter-spacing: .5px; }
+  .tag.ok { background: rgba(34,197,94,.16); color: var(--green); }
+  .h { position: absolute; left: 22px; right: 22px; top: 68px; font-size: 21px; font-weight: 900; line-height: 1.3; }
+  .sub { position: absolute; left: 22px; right: 22px; top: 101px; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+  .foot { position: absolute; left: 22px; right: 22px; bottom: 18px; display: flex; justify-content: space-between; align-items: baseline; }
+  .logo { font-weight: 900; font-size: 14px; letter-spacing: .2px; }
+  .logo i { font-style: normal; color: var(--green); }
+  .foot small { font-size: 10px; color: var(--dim); }
+
+  /* phone */
+  .phone { position: absolute; left: 70px; top: 136px; width: 220px; height: 440px; border-radius: 30px; background: #05060b;
+    box-shadow: 0 0 0 1.5px #2e3146, 0 18px 40px rgba(0,0,0,.45); }
+  .scr { position: absolute; inset: 6px; border-radius: 24px; overflow: hidden; background: #15161f; }
+  .screen { position: absolute; inset: 0; background: #15161f; opacity: 0; }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 58px; padding: 26px 14px 0; display: flex; gap: 8px; align-items: center;
+    background: #1e2030; font-size: 12.5px; font-weight: 700; }
+  .bar .back { font-size: 16px; color: var(--dim); }
+  .navbar { position: absolute; left: 50%; bottom: 7px; width: 70px; height: 4px; margin-left: -35px; border-radius: 3px; background: rgba(255,255,255,.55); z-index: 5; }
+  .finger { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; opacity: 0; z-index: 6;
+    background: rgba(255,255,255,.30); border: 2px solid rgba(255,255,255,.85); box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+
+  /* system settings list */
+  .srow { position: absolute; left: 10px; right: 10px; height: 38px; border-radius: 10px; background: #202232; padding: 0 12px;
+    display: flex; align-items: center; font-size: 10.5px; }
+  .srow .ph { height: 7px; width: 70px; border-radius: 4px; background: #34374b; }
+  .srow .val { margin-left: auto; font-size: 9px; color: #7fb3ff; }
+  .srow.hi { outline: 1.5px solid rgba(251,191,36,.9); }
+
+  /* home */
+  .home { position: absolute; inset: 0; background: linear-gradient(160deg, #3b3f7a 0%, #262a52 45%, #1a1b31 100%); }
+  .home .t { position: absolute; left: 18px; top: 34px; font-size: 34px; font-weight: 700; letter-spacing: 1px; }
+  .home .d { position: absolute; left: 20px; top: 78px; font-size: 10px; color: #c9cbe0; }
+  .app { position: absolute; width: 36px; height: 36px; border-radius: 11px; background: #4a4e6b; }
+  .dock { position: absolute; left: 14px; right: 14px; bottom: 22px; height: 52px; border-radius: 18px; background: rgba(255,255,255,.10); }
+  .appicon { overflow: hidden; }
+  .appicon svg { display: block; width: 100%; height: 100%; }
+  .lbl { position: absolute; width: 48px; margin-left: -6px; text-align: center; font-size: 8px; color: #d9dbe8; }
+
+  /* Sidepeek settings tab */
+  .sp .ttl { position: absolute; left: 14px; top: 30px; font-size: 15px; font-weight: 900; }
+  .sp .card { position: absolute; left: 10px; right: 10px; top: 64px; height: 262px; border-radius: 16px; background: #1d1f2d;
+    border: 1px solid #2b2e40; padding: 12px; }
+  .sp .ch { font-size: 12px; font-weight: 700; color: var(--green); }
+  .sp .lab { font-size: 9.5px; font-weight: 700; margin-top: 12px; }
+  .sp .seg { display: flex; gap: 4px; margin-top: 6px; }
+  .sp .seg div { flex: 1; height: 22px; border-radius: 7px; border: 1px solid #3a3d52; font-size: 8px; display: grid; place-items: center; color: #cfd1dc; }
+  .sp .seg div.on { border-color: var(--green); background: rgba(34,197,94,.14); color: var(--green); }
+  .sp .btn { position: relative; margin-top: 8px; height: 30px; border-radius: 9px; border: 1.5px solid var(--brand); color: var(--green);
+    font-size: 10.5px; font-weight: 700; display: grid; place-items: center; }
+  .sp .btn span { position: absolute; }
+  .sp .hint { font-size: 8px; color: var(--dim); margin-top: 6px; line-height: 1.5; }
+  .sp .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 50px; border-top: 1px solid #2b2e40; background: #15161f;
+    display: flex; justify-content: space-around; padding-top: 8px; font-size: 8px; color: var(--dim); }
+  .sp .tabs b { display: block; width: 14px; height: 14px; border-radius: 4px; background: #3a3d52; margin: 0 auto 3px; }
+  .sp .tabs .on { color: var(--green); }
+  .sp .tabs .on b { background: var(--green); }
+
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.55); opacity: 0; }
+  .dialog { position: absolute; left: 14px; right: 14px; top: 140px; border-radius: 16px; background: #26283a; padding: 14px 14px 6px; opacity: 0; }
+  .dialog .dt { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+  .dialog .it { font-size: 10.5px; padding: 9px 2px; border-top: 1px solid #33364a; }
+
+  .picker .row { position: absolute; left: 0; right: 0; height: 46px; padding: 8px 12px 0 50px; }
+  .picker .fi { position: absolute; left: 12px; top: 8px; width: 28px; height: 28px; border-radius: 7px; background: #3b2f66;
+    display: grid; place-items: center; font-size: 12px; color: #c4b5fd; }
+  .picker .nm { font-size: 10.5px; font-weight: 700; }
+  .picker .mt { font-size: 8.5px; color: var(--dim); margin-top: 2px; }
+  .toast { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); white-space: nowrap; background: #e9eaf0; color: #15161f;
+    font-size: 10px; font-weight: 700; padding: 7px 12px; border-radius: 999px; opacity: 0; }
+
+  /* heads-up notification + sound */
+  .hu { position: absolute; left: 8px; right: 8px; top: 30px; background: var(--card); border-radius: 14px; padding: 9px 10px 9px 42px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.4); opacity: 0; z-index: 3; }
+  .hu .av { position: absolute; left: 10px; top: 11px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    font-weight: 700; font-size: 11px; color: #fff; background: #16A34A; }
+  .hu .m { font-size: 7.5px; color: var(--dim); }
+  .hu .ti { font-size: 10px; font-weight: 700; margin-top: 1px; }
+  .hu .ln { font-size: 9px; color: #d9dbe4; margin-top: 1px; }
+  .wave { position: absolute; left: 50%; top: 190px; width: 60px; height: 60px; margin-left: -30px; border-radius: 50%;
+    border: 2px solid rgba(34,197,94,.8); opacity: 0; }
+  .note { position: absolute; left: 50%; top: 204px; transform: translateX(-50%); font-size: 26px; color: var(--green); opacity: 0; font-weight: 700; }
+
+  .call { position: absolute; left: 50%; top: 506px; z-index: 2; box-shadow: 0 6px 18px rgba(0,0,0,.4); transform: translateX(-50%); white-space: nowrap; opacity: 0;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); font-size: 12.5px; font-weight: 700;
+    padding: 7px 14px; border-radius: 999px; display: flex; gap: 7px; align-items: center; }
+  .call .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .call.bad { color: #FBBF24; border-color: rgba(251,191,36,.45); background: rgba(251,191,36,.10); }
+  .call.bad .dot { background: #FBBF24; }
+  .call.good { color: var(--green); border-color: rgba(34,197,94,.45); background: rgba(34,197,94,.12); }
+  .call.good .dot { background: var(--green); }
+
+  /* title + end cards */
+  .kick { position: absolute; left: 24px; top: 150px; font-size: 11px; font-weight: 700; color: var(--green);
+    background: rgba(34,197,94,.14); padding: 3px 9px; border-radius: 6px; }
+  .big { position: absolute; left: 24px; right: 20px; top: 184px; font-size: 38px; font-weight: 900; line-height: 1.18; }
+  .big em { font-style: normal; color: var(--green); }
+  .lead { position: absolute; left: 24px; right: 24px; top: 290px; font-size: 14px; color: var(--dim); line-height: 1.6; }
+  .tiny { position: absolute; left: 24px; top: 372px; font-size: 11px; color: #7d8296; }
+  .brand { position: absolute; left: 24px; top: 128px; font-size: 40px; font-weight: 900; }
+  .brand i { font-style: normal; color: var(--green); }
+  .tagline { position: absolute; left: 24px; top: 186px; font-size: 13px; color: var(--dim); }
+  .ver { position: absolute; right: 24px; top: 146px; font-size: 11px; font-weight: 700; color: var(--green);
+    border: 1px solid rgba(34,197,94,.45); padding: 2px 8px; border-radius: 999px; }
+  .checks { position: absolute; left: 24px; right: 20px; top: 232px; }
+  .ck { display: grid; grid-template-columns: 26px 1fr; column-gap: 10px; margin-bottom: 20px; }
+  .ck .c { width: 22px; height: 22px; border-radius: 50%; background: rgba(34,197,94,.16); display: grid; place-items: center; margin-top: 1px; }
+  .ck .c svg { width: 13px; height: 13px; }
+  .ck b { font-size: 15px; }
+  .ck span { grid-column: 2; font-size: 11.5px; color: var(--dim); margin-top: 3px; }
+  .url { position: absolute; left: 24px; right: 24px; top: 520px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.12);
+    font-size: 12px; color: #d9dbe4; }
+  .disc { position: absolute; left: 24px; right: 24px; top: 552px; font-size: 9.5px; color: #7d8296; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1. 標題 -->
+  <section class="scene" id="s1">
+    <div class="kick">● Sidepeek 功能介紹 #3</div>
+    <div class="big" id="s1big">LINE 通知<br><em>換成你的聲音</em></div>
+    <div class="lead" id="s1lead">內建通知音、自己的 mp3 都可以，<br>在 Sidepeek 裡就能換。</div>
+    <div class="tiny" id="s1tiny">Android ・ 免費開源 ・ v1.1</div>
+  </section>
+
+  <!-- 2. 以前：系統設定一層一層找 -->
+  <section class="scene" id="s2">
+    <div class="tag">以前</div>
+    <div class="h">想換鈴聲，要找半天</div>
+    <div class="sub">得到系統設定一層一層點進去，很多人找不到。</div>
+    <div class="phone"><div class="scr" id="p2">
+      <div class="screen" id="sys" style="opacity:1"><div class="bar"><span class="back">‹</span><span id="systtl">設定</span></div><div id="sysrows"></div></div>
+      <div class="finger"></div><div class="navbar"></div></div></div>
+    <div class="call bad" id="c2"><span class="dot"></span>藏在 5 層設定裡</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #3 ・ 換成你的聲音</small></div>
+  </section>
+
+  <!-- 3. 用 Sidepeek：設定 → 通知外觀 → 鈴聲 → 從我的檔案選 -->
+  <section class="scene" id="s3">
+    <div class="tag ok">用 Sidepeek</div>
+    <div class="h">在 Sidepeek 裡直接選</div>
+    <div class="sub">設定 → 通知外觀 → 鈴聲，挑你下載的 mp3。</div>
+    <div class="phone"><div class="scr" id="p3">
+      <div class="screen sp" style="opacity:1">
+        <div class="ttl">設定</div>
+        <div class="card">
+          <div class="ch">通知外觀</div>
+          <div class="lab">通知長什麼樣子</div>
+          <div class="seg"><div class="on">對話（推薦）</div><div>完整文字</div><div>精簡</div></div>
+          <div class="lab">一則通知最多放幾則訊息</div>
+          <div class="seg"><div>5</div><div class="on">10（預設）</div><div>25</div></div>
+          <div class="lab">通知鈴聲</div>
+          <div class="btn" id="sbtn"><span id="sbtnA">鈴聲：預設通知音</span><span id="sbtnB" style="opacity:0">鈴聲：叮咚</span></div>
+          <div class="hint">可以選手機內建的通知音，或從「我的檔案」挑自己下載的 mp3。</div>
+        </div>
+        <div class="tabs"><div><b></b>首頁</div><div class="on"><b></b>設定</div><div><b></b>說明</div></div>
+      </div>
+      <div class="scrim" id="scrim"></div>
+      <div class="dialog" id="dlg"><div class="dt">LINE 通知鈴聲</div>
+        <div class="it" id="dlg0">從我的檔案選音檔</div><div class="it">手機內建的通知音（或靜音）</div></div>
+      <div class="screen picker" id="pick"><div class="bar"><span class="back">‹</span>下載</div>
+        <div class="row" style="top:66px"><div class="fi">♪</div><div class="nm">叮咚.mp3</div><div class="mt">2 秒 ・ 38 KB</div></div>
+        <div class="row" style="top:112px"><div class="fi">♪</div><div class="nm">提醒音效.mp3</div><div class="mt">3 秒 ・ 52 KB</div></div>
+        <div class="row" style="top:158px"><div class="fi">♪</div><div class="nm">鳥叫聲.m4a</div><div class="mt">2 秒 ・ 41 KB</div></div>
+      </div>
+      <div class="toast" id="toast">已換成這個鈴聲</div>
+      <div class="finger"></div><div class="navbar"></div></div></div>
+    <div class="call good" id="c3"><span class="dot"></span>自己的 mp3，一次換好</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #3 ・ 換成你的聲音</small></div>
+  </section>
+
+  <!-- 4. 結果：來訊息就響你選的 -->
+  <section class="scene" id="s4">
+    <div class="tag ok">結果</div>
+    <div class="h">來訊息，響的是你選的聲音</div>
+    <div class="sub">只換 Sidepeek 整理好的 LINE 通知，震動照舊。</div>
+    <div class="phone" id="ph4"><div class="scr" id="p4">
+      <div class="home"><div class="t">1:24</div><div class="d">10月27日 週二</div><div id="apps4"></div><div class="dock"></div></div>
+      <div class="hu" id="hu"><div class="av">聚</div><div class="m">Sidepeek ・ 現在</div><div class="ti">週六聚餐</div><div class="ln">怡君：收到 👌</div></div>
+      <div class="wave" id="w1"></div><div class="wave" id="w2"></div><div class="wave" id="w3"></div>
+      <div class="note" id="note">♪</div>
+      <div class="finger"></div><div class="navbar"></div></div></div>
+    <div class="call good" id="c4"><span class="dot"></span>♪ 響的是「叮咚」</div>
+    <div class="foot"><div class="logo">Side<i>peek</i></div><small>功能介紹 #3 ・ 換成你的聲音</small></div>
+  </section>
+
+  <!-- 5. 結尾 -->
+  <section class="scene" id="s5">
+    <div class="brand">Side<i>peek</i></div>
+    <div class="ver">v1.1</div>
+    <div class="tagline">把 LINE 通知整理好，再放回你手上。</div>
+    <div class="checks">
+      <div class="ck" id="ck1"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>選自己的音檔</b><span>從「我的檔案」挑 mp3、m4a。</span></div>
+      <div class="ck" id="ck2"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>內建音或靜音</b><span>手機內建的通知音也能選。</span></div>
+      <div class="ck" id="ck3"><div class="c"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <b>其他設定照舊</b><span>震動、浮動通知、鎖定畫面都會保留。</span></div>
+    </div>
+    <div class="url">sidepeekapp.github.io/Sidepeek</div>
+    <div class="disc">非官方 App，與 LINE、LY Corporation 無關。所有處理都在手機上完成。</div>
+  </section>
+</div>
+
+<script>
+// Sidepeek launcher icon, from res/drawable/ic_launcher_background + ic_launcher_foreground (adaptive-icon safe zone).
+const ICON = `<svg viewBox="18 18 72 72"><rect x="0" y="0" width="108" height="108" fill="#16A34A"/>
+  <path d="M40.67,34H60.67A12,12 0 0 1 72.67,46V55.33A12,12 0 0 1 60.67,67.33H40.67A12,12 0 0 1 28.67,55.33V46A12,12 0 0 1 40.67,34ZM35.33,63.33L46.00,66.00L34.67,74.00Z" fill="#FFFFFF"/>
+  <path d="M39.67,44.67H57.67A2.33,2.33 0 0 1 60,47V47A2.33,2.33 0 0 1 57.67,49.33H39.67A2.33,2.33 0 0 1 37.33,47V47A2.33,2.33 0 0 1 39.67,44.67Z" fill="#16A34A"/>
+  <path d="M39.67,53.33H51A2.33,2.33 0 0 1 53.33,55.67V55.67A2.33,2.33 0 0 1 51,58H39.67A2.33,2.33 0 0 1 37.33,55.67V55.67A2.33,2.33 0 0 1 39.67,53.33Z" fill="#86EFAC"/>
+  <path d="M81,38H81A3,3 0 0 1 84,41V65.67A3,3 0 0 1 81,68.67H81A3,3 0 0 1 78,65.67V41A3,3 0 0 1 81,38Z" fill="#DCFCE7"/>
+  <path d="M61.33,35.33A7.33,7.33 0 1 1 76.00,35.33A7.33,7.33 0 1 1 61.33,35.33Z" fill="#16A34A"/>
+  <path d="M63.33,35.33A5.33,5.33 0 1 1 74.00,35.33A5.33,5.33 0 1 1 63.33,35.33Z" fill="#FACC15"/></svg>`;
+
+// Home screen icons (other apps are plain blocks).
+const APP_X = c => 18 + c * 48, APP_Y = r => 128 + r * 64;
+document.getElementById("apps4").innerHTML = [[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1]].map(([c, r]) =>
+  c === 3 && r === 0
+    ? `<div class="app appicon" style="left:${APP_X(c)}px;top:${APP_Y(r)}px;background:none">${ICON}</div><div class="lbl" style="left:${APP_X(c)}px;top:${APP_Y(r) + 40}px">Sidepeek</div>`
+    : `<div class="app" style="left:${APP_X(c)}px;top:${APP_Y(r)}px"></div>`).join("");
+
+// 系統設定 → 應用程式 → Sidepeek → 通知 → 通知類別 → LINE 訊息預覽 → 聲音（One UI 用詞）. null = a grey placeholder row.
+const SYS = [
+  { ttl: "設定", rows: [null, "通知", "應用程式", null, null], tap: 2 },
+  { ttl: "應用程式", rows: [null, "LINE", "Sidepeek", null, null], tap: 2 },
+  { ttl: "應用程式資訊", rows: ["通知", "權限", "電池", "儲存空間", null], tap: 0 },
+  { ttl: "通知", rows: ["顯示通知", "通知類別", "鎖定畫面", "應用程式圖示標記", null], tap: 1 },
+  { ttl: "通知類別", rows: ["LINE 訊息預覽", "側邊欄常駐通知", null, null, null], tap: 0 },
+  { ttl: "LINE 訊息預覽", rows: ["重要性", "聲音", "震動", "鎖定畫面", null], tap: 1, last: true },
+];
+const SYS_ROW_Y = i => 68 + i * 44;
+const SYS_STEP = 0.62, SYS_T0 = 0.35;     // seconds per level; first tap time
+function sysHtml(s) {
+  return s.rows.map((r, i) => `<div class="srow${s.last && i === s.tap ? " hi" : ""}" style="top:${SYS_ROW_Y(i)}px">${r === null
+    ? '<span class="ph"></span>' : r}${s.last && r === "聲音" ? '<span class="val">預設</span>' : ""}</div>`).join("");
+}
+
+const SCENES = [ // [id, start, end]
+  ["s1", 0, 2.4], ["s2", 2.4, 7.6], ["s3", 7.6, 13.0], ["s4", 13.0, 16.8], ["s5", 16.8, 20.0],
+];
+const DURATION = 20.0, XF = 0.35;
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ease = x => 1 - Math.pow(1 - clamp(x), 3);
+const prog = (t, a, b) => ease((t - a) / (b - a));     // 0 → 1 between a and b
+const $ = id => document.getElementById(id);
+function rise(el, p, dy = 14) { el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * dy}px)`; }
+function callAt(el, p) { el.style.opacity = p; el.style.transform = `translateX(-50%) translateY(${(1 - p) * 10}px)`; }
+/** Finger for a list of taps [{t, x, y}] inside one phone screen. */
+function taps(scr, l, list) {
+  const f = scr.querySelector(".finger");
+  for (const k of list) if (l > k.t - 0.3 && l < k.t + 0.25) {
+    f.style.left = (k.x + 6) + "px"; f.style.top = (k.y + 8) + "px";
+    f.style.opacity = prog(l, k.t - 0.3, k.t - 0.12) * (1 - prog(l, k.t + 0.08, k.t + 0.25));
+    f.style.transform = `scale(${l > k.t - 0.07 && l < k.t + 0.08 ? 0.78 : 1})`;
+    return;
+  }
+  f.style.opacity = 0;
+}
+
+let sysShown = -1;
+window.seek = function (t) {
+  for (const [id, a, b] of SCENES) {
+    // Overlapping cross-fade centred on each cut, so no frame between scenes is empty.
+    const inP = a === 0 ? 1 : clamp((t - a + XF / 2) / XF), outP = b === DURATION ? 1 : clamp((b + XF / 2 - t) / XF);
+    $(id).style.opacity = Math.min(inP, outP);
+    $(id).style.display = t >= a - XF / 2 && t <= b + XF / 2 ? "block" : "none";
+  }
+  // 1. title
+  rise($("s1big"), prog(t, 0.1, 0.8), 18); rise($("s1lead"), prog(t, 0.45, 1.1)); rise($("s1tiny"), prog(t, 0.7, 1.3));
+
+  // 2. before: tap through five levels of system settings
+  { const l = t - 2.4, scr = $("p2");
+    const step = clamp(Math.floor((l - SYS_T0 - 0.12) / SYS_STEP) + 1, 0, SYS.length - 1);
+    if (step !== sysShown) { $("systtl").textContent = SYS[step].ttl; $("sysrows").innerHTML = sysHtml(SYS[step]); sysShown = step; }
+    const since = l - (SYS_T0 + 0.12 + (step - 1) * SYS_STEP);   // time since this level opened
+    const slide = step === 0 ? 1 : prog(since, 0, 0.18);
+    $("sysrows").style.transform = `translateX(${(1 - slide) * 30}px)`; $("sysrows").style.opacity = slide;
+    taps(scr, l, SYS.slice(0, -1).map((s, i) => ({ t: SYS_T0 + i * SYS_STEP, x: 90, y: SYS_ROW_Y(s.tap) + 19 })));
+    callAt($("c2"), prog(l, 3.9, 4.25)); }
+
+  // 3. with Sidepeek: 鈴聲 button → dialog → 從我的檔案選音檔 → pick 叮咚.mp3 → toast
+  { const l = t - 7.6, scr = $("p3");
+    const dlg = prog(l, 1.05, 1.3) * (1 - prog(l, 2.05, 2.25));
+    $("scrim").style.opacity = dlg; $("dlg").style.opacity = dlg; $("dlg").style.transform = `scale(${0.94 + 0.06 * dlg})`;
+    const pk = prog(l, 2.1, 2.4) * (1 - prog(l, 3.2, 3.45));
+    $("pick").style.opacity = pk; $("pick").style.transform = `translateX(${(1 - pk) * 40}px)`;
+    const done = prog(l, 3.45, 3.75);
+    $("sbtnA").style.opacity = 1 - done; $("sbtnB").style.opacity = done;
+    $("sbtn").style.background = l > 3.5 && l < 4.4 ? "rgba(34,197,94,.14)" : "none";
+    $("toast").style.opacity = prog(l, 3.5, 3.75) * (1 - prog(l, 4.8, 5.1));
+    taps(scr, l, [{ t: 0.85, x: 90, y: 64 + 12 + 196 }, { t: 1.85, x: 70, y: 140 + 14 + 32 }, { t: 2.95, x: 90, y: 66 + 18 }]);
+    callAt($("c3"), prog(l, 4.2, 4.55)); }
+
+  // 4. result: a message comes in, the phone buzzes and plays the picked sound
+  { const l = t - 13.0;
+    const hu = prog(l, 0.5, 0.8);
+    $("hu").style.opacity = hu; $("hu").style.transform = `translateY(${(1 - hu) * -40}px)`;
+    const buzz = l > 0.8 && l < 1.6 ? Math.sin((l - 0.8) * 70) * 2.2 : 0;
+    $("ph4").style.transform = `translateX(${buzz}px)`;
+    ["w1", "w2", "w3"].forEach((id, i) => {
+      const p = ((l - 0.85 - i * 0.35) % 1.05 + 1.05) % 1.05 / 1.05, on = l > 0.85 + i * 0.35 && l < 3.2;
+      $(id).style.opacity = on ? (1 - p) * 0.9 : 0; $(id).style.transform = `scale(${0.6 + p * 2.2})`;
+    });
+    $("note").style.opacity = prog(l, 0.85, 1.1) * (1 - prog(l, 3.1, 3.4));
+    $("note").style.transform = `translateX(-50%) translateY(${Math.sin(l * 6) * 3}px)`;
+    callAt($("c4"), prog(l, 1.5, 1.85)); }
+
+  // 5. end card
+  { const l = t - 16.8; ["ck1", "ck2", "ck3"].forEach((id, i) => rise($(id), prog(l, 0.25 + i * 0.22, 0.7 + i * 0.22))); }
+};
+window.DURATION = DURATION;
+// Operation sound effects [seconds, kind] for mix.js: settings taps, the picked sound (叮咚) and the buzz.
+window.SFX = [[2.75, "tap"], [3.37, "tap"], [3.99, "tap"], [4.61, "tap"], [5.23, "tap"], [8.45, "tap"], [9.45, "tap"], [10.55, "tap"],
+  [11.1, "pop"], [13.5, "ding"], [13.8, "buzz"]];
+
+// Opened directly in a browser: play on a loop for preview (rec.js sets ?rec to drive seek itself).
+if (!location.search.includes("rec")) {
+  const t0 = performance.now();
+  (function loop(now) { window.seek(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop); })(t0);
+} else window.seek(0);
+</script>
+</body>
+</html>

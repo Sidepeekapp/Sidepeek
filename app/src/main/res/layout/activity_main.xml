@@ -621,7 +621,7 @@
                     <TextView style="@style/FaqBadge" />
                     <TextView style="@style/FaqQ" android:text="鎖定畫面看得到訊息嗎？" />
                 </LinearLayout>
-                <TextView style="@style/FaqA" android:text="可以。預設鎖定畫面也會顯示 Peek 條，往內滑就能看訊息。\n\n不想在鎖定畫面顯示，到「設定」分頁的「側邊欄：顯示方式」關掉。部分系統版本會擋住；看不到的話，把側邊欄服務關掉再打開一次。" />
+                <TextView style="@style/FaqA" android:text="預設不會。想要的話，到「設定」分頁的「側邊欄：顯示方式」打開「鎖定畫面也顯示 Peek 條」。\n\n開著時往內滑會先要求解鎖，訊息內容不會出現在鎖定畫面上。部分系統版本會擋住；看不到的話，把側邊欄服務關掉再打開一次。" />
             </LinearLayout>
         </LinearLayout>
         </LinearLayout>

@@ -169,12 +169,10 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         }
     }
 
-    /** Never treat these as "left the home screen": SystemUI (shade, QS, recents bar),
-     *  and LINE itself (heads-up / in-app notification UI must not steal the foreground for home-only).
+    /** Never treat these as "left the home screen": SystemUI (shade, QS, recents bar).
      *  Our own package IS tracked so the handle stays visible inside Sidepeek for adjust/drag. */
     private val IGNORED_FG by lazy {
-        setOf("com.android.systemui", "com.samsung.android.app.cocktailbarservice",
-            LineListenerService.LINE_PKG, LineListenerService.LINE_LITE_PKG)
+        setOf("com.android.systemui", "com.samsung.android.app.cocktailbarservice")
     }
 
     private fun log(msg: String) = Diagnostics.note(this, "PANEL $msg")

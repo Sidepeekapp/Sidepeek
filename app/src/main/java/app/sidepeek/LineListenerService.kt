@@ -675,7 +675,7 @@ class LineListenerService : NotificationListenerService() {
                     Diagnostics.fail(app, "sticker-enrich id=$id", e)
                 }
             }
-            if (any) try { Notifier.refreshChatSilently(app, chatKey) } catch (e: Throwable) {
+            if (any) try { Notifier.refreshChatSilently(app, chatKey, keepHeadsUp = true) } catch (e: Throwable) {
                 Diagnostics.fail(app, "sticker-enrich refresh chat=$chatKey", e)
             }
         }

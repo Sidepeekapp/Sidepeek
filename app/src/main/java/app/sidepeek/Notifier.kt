@@ -252,9 +252,10 @@ object Notifier {
     /**
      * After a message was deleted/restored in the side panel: refresh our stacked notification for
      * that chat silently, or cancel it if no unread messages remain. Only touches a notification
-     * that is currently showing.
+     * that is currently showing. [keepHeadsUp]: only update the content in place, so a heads-up
+     * still on screen stays up (a silent post is a non-alerting group child: the system drops it).
      */
-    fun refreshChatSilently(ctx: Context, chatKey: String) {
+    fun refreshChatSilently(ctx: Context, chatKey: String, keepHeadsUp: Boolean = false) {
         val id = notificationIdFor(chatKey)
         val showing = try {
             ctx.getSystemService(android.app.NotificationManager::class.java).activeNotifications.any { it.id == id }
@@ -264,7 +265,7 @@ object Notifier {
         if (unread.isEmpty()) { cancelChat(ctx, chatKey); return }
         val latest = unread.maxBy { it.time }
         val group = unread.any { it.sender.isNotBlank() && it.sender != it.chatTitle }
-        postChat(ctx, latest, group, silent = true)
+        postChat(ctx, latest, group, silent = !keepHeadsUp, alertOnce = keepHeadsUp)
     }
 
     /** Unread messages after the dismiss watermark; falls back to [fallback] / latest if empty. */
@@ -277,7 +278,7 @@ object Notifier {
         return all.takeLast(1).ifEmpty { fallback?.let { listOf(it) } ?: emptyList() }
     }
 
-    fun postChat(ctx: Context, latest: LineMessage, isGroupChat: Boolean, silent: Boolean = false) {
+    fun postChat(ctx: Context, latest: LineMessage, isGroupChat: Boolean, silent: Boolean = false, alertOnce: Boolean = false) {
         ensureChannels(ctx)
         val unread = unreadAfterWatermark(ctx, latest.chatKey, latest)
         val messaging = Prefs.notifStyle(ctx) == Prefs.STYLE_MESSAGING
@@ -328,7 +329,7 @@ object Notifier {
             .setShowWhen(true)
             .setNumber(unread.size)
             .setAutoCancel(true)
-            .setOnlyAlertOnce(silent)         // every new message alerts / heads-up again (not on edits)
+            .setOnlyAlertOnce(silent || alertOnce)  // every new message alerts / heads-up again (not on edits)
             .setSilent(silent)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             // A distinct group per chat => Android never auto-bundles them into one stack.
@@ -424,7 +425,7 @@ object Notifier {
                 return
             }
             NotificationManagerCompat.from(ctx).notify(id, builder.build())
-            Diagnostics.note(ctx, "POST ok id=$id chat=${latest.chatKey} style=${Prefs.notifStyle(ctx)} silent=$silent unread=${unread.size}")
+            Diagnostics.note(ctx, "POST ok id=$id chat=${latest.chatKey} style=${Prefs.notifStyle(ctx)} silent=$silent alertOnce=$alertOnce unread=${unread.size}")
         } catch (e: SecurityException) {
             Diagnostics.fail(ctx, "POST SecurityException (POST_NOTIFICATIONS?) chat=${latest.chatKey}", e)
         } catch (e: Throwable) {

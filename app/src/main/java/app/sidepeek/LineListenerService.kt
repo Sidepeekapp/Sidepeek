@@ -204,7 +204,7 @@ class LineListenerService : NotificationListenerService() {
     }
     @Volatile private var lastCanRepost: Boolean? = null
 
-    /** sbn.key -> time we last cancelled/snoozed it (to detect cancels that did not stick). */
+    /** sbn.key -> time we last cancelled it (to detect cancels that did not stick). */
     private val hiddenAt = object : LinkedHashMap<String, Long>(64, .75f, true) {
         override fun removeEldestEntry(e: MutableMap.MutableEntry<String, Long>?) = size > 300
     }
@@ -263,18 +263,18 @@ class LineListenerService : NotificationListenerService() {
         // hiddenAt is touched from the main thread (asap hide) and the worker: access-ordered
         // LinkedHashMap.get() also modifies it, so every access is synchronized.
         val prev = synchronized(hiddenAt) { hiddenAt[sbn.key] }
-        // Still active although we already removed this very post => cancel did not stick -> snooze.
+        // Still active although we already removed this very post => cancel did not stick -> retry.
+        // Never snooze: LINE reuses one key per chat, so a snooze swallows that chat's new messages.
         val stuck = prev != null && sbn.postTime <= prev
         if (stuck) {
             val still = try { getActiveNotifications(arrayOf(sbn.key))?.isNotEmpty() == true } catch (_: Exception) { true }
             if (!still) { Diagnostics.note(this, "HIDE already gone ($why) key=${sbn.key}"); return }
         }
         val method = try {
-            if (stuck) { snoozeNotification(sbn.key, 24 * 3600_000L); "snooze 24h (cancel did not stick)" }
-            else { cancelNotification(sbn.key); "cancel" }
+            cancelNotification(sbn.key)
+            if (stuck) "cancel retry (cancel did not stick)" else "cancel"
         } catch (e: Exception) {
-            try { cancelNotification(sbn.key); "cancel (snooze failed: ${e.javaClass.simpleName})" }
-            catch (e2: Exception) { "FAILED: $e2" }
+            "FAILED: $e"
         }
         synchronized(hiddenAt) { hiddenAt[sbn.key] = System.currentTimeMillis() }
         Diagnostics.note(this, "HIDE $method ($why) key=${sbn.key} ${flagsOf(sbn)}")

@@ -94,21 +94,23 @@ class PanelAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        val c = controller ?: return
         val e = event ?: return
+        // No controller = side panel switched off; LINE notification cleanup must still run.
+        val c = controller
         ensurePolling()
         when (e.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 val pkg = e.packageName?.toString()
                 val cls = e.className?.toString()
                 if (pkg != null && cls != null && isActivity(pkg, cls)) {
-                    c.onForegroundApp(pkg)
+                    c?.onForegroundApp(pkg)
                     onLineScreen(pkg, cls)
                 }
                 checkImeWindow()
-                c.recheckVisibility()
+                c?.recheckVisibility()
             }
             AccessibilityEvent.TYPE_WINDOWS_CHANGED -> {
+                if (c == null) return
                 checkImeWindow()
                 // Always re-read the active app window — Samsung often omits ACTIVE/FOCUSED bits.
                 activeAppPackage()?.let { c.onForegroundApp(it) }

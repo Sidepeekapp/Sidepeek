@@ -5,7 +5,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## 基本
 - 套件名 `app.sidepeek`，minSdk 26，compileSdk/targetSdk 36，AGP 8.11.2、Gradle 8.13、Kotlin 1.9.24。
-- 版本名稱跟著發布版本走（目前 1.0.4，前一版 1.0.3）；versionCode 目前 11，每次發新版都要遞增。發版時 Run workflow 填的版本號要和 versionName 一致。
+- 版本名稱跟著發布版本走（目前 1.1.1，前一版 1.1.0）；versionCode 目前 13，每次發新版都要遞增。發版時 Run workflow 填的版本號要和 versionName 一致。
 - 正式版：根目錄放 `keystore.properties`（不進版控，簽章金鑰在使用者手上）→ `./gradlew :app:assembleRelease` / `:app:bundleRelease`。R8 開啟。
 - 聯絡信箱 sidepeek.app@gmail.com（App 內「意見回饋」會自動帶手機資訊）。
 - 測試：`./gradlew :app:testDebugUnitTest`（LinkExtractorTest、ProfileLinksTest、ConversationTitlesTest、UpdateCheckerTest）。
@@ -141,9 +141,10 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 - 原本規劃的 v1.0.5 沒有發布，因為新功能和介面改版較多，改名為 **v1.1.0**（versionName 1.1.0，versionCode 仍是 12）。上面標成 v1.0.5 的內容都屬於 v1.1.0。
 - 更新檢查比對 tag 版號，舊版（1.0.3、1.0.4）會直接提示 v1.1.0。發版用 Actions → Build APK → Run workflow 填 `1.1.0`，會建 tag `v1.1.0`、檔名 `sidepeek-v1.1.0.apk`，更新說明取自 README 的「
 
-## v1.1.1 待修
-PR #4 已合併到 main，其餘修正在分支 `fix/v1.1.1-notifications`，尚未實機測試。單元測試和 debug 建置已通過。
-- **LINE 聊天室被 snooze 24 小時**（PR #4）：同一聊天室共用一個通知 key，snooze 後新訊息會被系統吞掉。修法：拿掉 snooze，改成再取消一次，取消不掉就交給後續補掃。舊版留下的 snooze：`releaseOldSnoozes()` 在連上通知存取後執行一次，把 LINE 的 snooze 改成 1 秒後到期；一般 listener 沒有 unsnooze 可用，這是依 AOSP 原始碼推得的做法，三星手機還沒實測。實測：看紀錄的 `SNOOZE released`，卡住的聊天室要恢復收到新訊息；恢復時舊通知可能再響一次。
+## 11/1 v1.1.1（versionCode 13，已發布）
+以下修正都已合併到 main 並發布。除了貼圖文字列，都已實機測過。單元測試和 debug 建置已通過。
+- **貼圖和圖片通知補文字**（取自 PR #6 的第一部分）：SystemUI 只畫 data message 的圖片，所以文字另外加一列，`（圖片）` 佔位文字除外。PR #6 的共用群組和摘要通知沒有收：S26 Ultra 上逐則滑掉都沒有連帶清掉其他聊天室，PR 已由作者關閉。發布時還沒有實機測試結果，要確認文字有顯示、數字沒有多算。
+- **LINE 聊天室被 snooze 24 小時**（PR #4）：同一聊天室共用一個通知 key，snooze 後新訊息會被系統吞掉。修法：拿掉 snooze，改成再取消一次，取消不掉就交給後續補掃。舊版留下的 snooze：`releaseOldSnoozes()` 在連上通知存取後執行一次，把 LINE 的 snooze 改成 1 秒後到期；一般 listener 沒有 unsnooze 可用，這是依 AOSP 原始碼推得的做法，S26 Ultra 實測紀錄有 `SNOOZE released 1`，沒有副作用。確認方式：看紀錄的 `SNOOZE released`，卡住的聊天室要恢復收到新訊息；恢復時舊通知可能再響一次。
 - **貼圖彈出通知閃一下就消失**：貼圖下載後用 `setSilent(true)` 更新，系統會把彈出中的通知收回。修法：貼圖更新改用 `refreshChatSilently(keepHeadsUp = true)`，只設 `setOnlyAlertOnce`。其他靜音路徑不變。實測：連傳兩次同一張貼圖，彈出通知要留著且不重複響鈴；看紀錄的 `alertOnce=true`。
 - **同一批傳多張貼圖只有第一張**：LINE 只發一則通知，Sidepeek 收不到其他張，不用修。
 - 下面兩項的實測：關掉側邊欄後打開 LINE，通知要被清掉；「只在桌面顯示 Peek 條」開啟時，進 LINE 要隱藏，回桌面要出現，在桌面收到 LINE 通知時不能閃掉。

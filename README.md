@@ -10,7 +10,7 @@
 
 - 支援 Android 8.0 以上
 - 主要以 Samsung One UI＋手勢導航、右手單手操作來設計
-- 最新版本：**v1.1.0**（[下載 APK](../../releases/latest)）；之後有新版，App 會自動提醒
+- 最新版本：**v1.1.1**（[下載 APK](../../releases/latest)）；之後有新版，App 會自動提醒
 
 > 📣 為了讓大家之後能更方便地安裝和更新，安卓測試勇士招募中！ [填這份表單](https://docs.google.com/forms/d/e/1FAIpQLSfsvU9cFoQVuzzCDZlKtiaJRV8kQZraA4843LkAQ8KVK_OX_w/viewform)，測試開始時會寄邀請到你的 Gmail。
 
@@ -27,7 +27,7 @@ Sidepeek 想做的事很簡單：把這些該有的功能做好，**完全免費
 - **依聊天室分開**：群組和一對一各自一則通知，不會全部擠在一起。
 - **用 Sidepeek 接管 LINE**（總開關）：每個聊天室整合成一則通知，隱藏 LINE 原本的訊息通知；**來電不會被隱藏**。
 - **通知行為對齊 LINE 原生**：每則新訊息都會提醒；在通知上回覆或按已讀後，通知會跟著更新或消失；把通知滑掉後，下一則只顯示新訊息，不會把舊的帶回來。
-- **看過的通知自己收掉**：點 Sidepeek 的通知進聊天室，那個聊天室的通知會清掉；直接打開 LINE 看訊息，整理好的 LINE 通知會全部清掉（需要開著側邊欄服務）。訊息本身仍留在側邊欄。
+- **看過的通知自己收掉**：點 Sidepeek 的通知進聊天室，那個聊天室的通知會清掉；直接打開 LINE 看訊息，整理好的 LINE 通知會全部清掉（需要開著無障礙服務，首頁的「側邊欄」開關關掉也不影響）。訊息本身仍留在側邊欄。
 - **進階清理（實驗性，預設關閉）**：打開後，在 LINE 裡點進哪個聊天室，就只收掉那個聊天室的通知，其他還沒看的照樣留著。開啟時會先說明並請你同意；只讀 LINE 畫面最上方的聊天室名稱來比對，不讀聊天內容、不儲存。
 - **群組裡分得清楚是誰**：LINE 社群用社群頭貼；一般群組的成員顯示自己的照片；沒附頭貼的人顯示名字第一個字，依名字固定一種顏色（12 種）。
 - **換 LINE 通知鈴聲**：在「設定」分頁的「通知外觀」直接選手機內建的通知音、改成靜音，或從「我的檔案」挑自己的 mp3。
@@ -87,6 +87,14 @@ Android 13 以上，從 APK 安裝的 App 預設不能開協助工具。請照�
 - 完整內容見 [隱私權政策](docs/privacy.md)（App 內首頁最下方也有）。
 
 ## 更新紀錄
+
+### v1.1.1
+- **修正聊天室最長 24 小時收不到通知**：Sidepeek 收掉 LINE 原本的通知時，如果沒有馬上成功，舊版可能讓那個聊天室的新訊息長達 24 小時不跳通知，也不會進側邊欄。現在不會再發生，更新後也會自動解除舊版留下的狀態。感謝 [#4](../../pull/4) 找出原因並提供修正。
+- **貼圖預覽不會跳出來又被收回**：貼圖載入完成後更新通知時，原本可能把正在顯示的預覽收掉；現在會留著。
+- **貼圖和圖片通知也有文字**：對話樣式下原本只顯示圖片，現在會同時顯示「傳送了貼圖」等文字。感謝 [#6](../../pull/6) 回報並提供修正方向。
+- **關掉側邊欄也會清通知**：首頁的「側邊欄」開關關掉時，打開 LINE 原本不會清掉整理好的通知；現在只要無障礙服務開著就會清。
+- **「只在桌面顯示」進 LINE 會隱藏 Peek 條**：原本打開 LINE 時 Peek 條還留在畫面上。
+- **首頁的 LINE 通知清理說明更清楚**：寫明哪些清理項目需要無障礙服務。
 
 ### v1.1.0
 - **Peek 條可以完全透明**：「不透明度」最低可以調到 0%，Peek 條就看不到，截圖和錄影也不會出現；從原本的位置往內滑一樣能打開側邊欄，手指碰到時會短暫亮起。
@@ -185,7 +193,7 @@ Copyright (C) 2026 Sidepeek developers
 
 Setup: install the APK from Releases, open the app, and follow the in-app setup guide. On Android 13+, if the accessibility service is blocked as a "restricted setting", try enabling it first, then go to App info → ⋮ → Allow restricted settings, and enable it again. The app explains the accessibility service and asks for consent before sending you to enable it. By default the service only detects the foreground app, the home screen and keyboard state, and the back key while the panel is open; it does not read on-screen text. The one exception is the experimental, off-by-default "advanced clearing": once you turn it on (it asks for your consent first), it reads only the chat name in the title bar of LINE screens to clear that one chat's notification. It never reads message contents and stores nothing.
 
-New in v1.1.0: tidied LINE notifications are cleared when you open LINE, the Peek bar can be fully transparent, LINE communities show their own picture, members without a picture get a colored initial, and you can pick the LINE notification sound inside the app.
+New in v1.1.1: fixes chats that could stop notifying for up to 24 hours, keeps sticker previews from being pulled back, adds text to sticker and image notifications, clears tidied notifications with the side panel switched off, and hides the Peek bar in LINE when it is set to the home screen only.
 
 ### Why
 

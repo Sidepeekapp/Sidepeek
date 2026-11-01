@@ -626,7 +626,7 @@ class MainActivity : AppCompatActivity() {
         }
         a11yBox.visibility = vis((!wizardActive || showAll) && Prefs.edgePanel(this) && !a11y)
 
-        // LINE 通知清理: both "clear on open" modes come from the side-panel service.
+        // LINE 通知清理: both "clear on open" modes need the accessibility service, not the panel switch.
         val clearOn = Prefs.clearOnLineOpen(this)
         findViewById<View>(R.id.statusLineClearA11y).visibility = vis(clearOn && !a11y)
         findViewById<SwitchCompat>(R.id.swSmartClear).isEnabled = clearOn

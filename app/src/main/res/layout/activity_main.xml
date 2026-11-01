@@ -261,7 +261,7 @@
                 <TextView style="@style/Hint"
                     android:text="看過的訊息，Sidepeek 會幫你把通知收掉，不會一直掛在通知欄。訊息本身仍留在側邊欄。
 
-注意：第 2、3 點要開著側邊欄服務才會清；沒開的話，只有第 1 點會清。" />
+注意：第 2、3 點要開著無障礙服務（無障礙設定裡的「Sidepeek 側邊欄」）才會清；沒開的話，只有第 1 點會清。首頁的「側邊欄」開關關掉也不影響清理。" />
 
                 <LinearLayout style="@style/StepRow">
                     <TextView style="@style/StepBadge" android:text="1" />
@@ -271,22 +271,22 @@
                 <LinearLayout style="@style/StepRow">
                     <TextView style="@style/StepBadge" android:text="2" />
                     <TextView style="@style/StepText"
-                        android:text="直接打開 LINE 看訊息\nLINE 不會告訴 Sidepeek 你看了哪個聊天室，所以會把整理好的 LINE 通知全部清掉。（需要開側邊欄服務）" />
+                        android:text="直接打開 LINE 看訊息\nLINE 不會告訴 Sidepeek 你看了哪個聊天室，所以會把整理好的 LINE 通知全部清掉。（需要開無障礙服務）" />
                 </LinearLayout>
                 <LinearLayout style="@style/StepRow">
                     <TextView style="@style/StepBadge" android:text="3" />
                     <TextView style="@style/StepText"
-                        android:text="打開「進階清理」的話\n只清你正在看的那個聊天室，其他聊天室的通知會留著。（需要開側邊欄服務）" />
+                        android:text="打開「進階清理」的話\n只清你正在看的那個聊天室，其他聊天室的通知會留著。（需要開無障礙服務）" />
                 </LinearLayout>
 
                 <TextView android:id="@+id/statusLineClearA11y" style="@style/Status"
                     android:visibility="gone"
-                    android:text="⚠️ 側邊欄服務沒開，直接打開 LINE 時不會清掉通知欄的聊天室通知
+                    android:text="⚠️ 無障礙服務沒開，直接打開 LINE 時不會清掉通知欄的聊天室通知
 只有點 Sidepeek 通知進去的那個聊天室會清。到無障礙設定打開「Sidepeek 側邊欄」就會恢復。" />
 
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swClearOnLine" style="@style/Sw"
                     android:minHeight="52dp" android:layout_marginTop="8dp"
-                    android:text="打開 LINE 時清掉整理好的 LINE 通知（需要側邊欄服務）" />
+                    android:text="打開 LINE 時清掉整理好的 LINE 通知（需要無障礙服務）" />
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swSmartClear" style="@style/Sw"
                     android:minHeight="52dp"
                     android:text="進階清理（實驗性）：只清正在看的聊天室" />

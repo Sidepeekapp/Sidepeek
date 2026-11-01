@@ -143,11 +143,14 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## v1.1.1 待修
 PR #4 已合併到 main，其餘修正在分支 `fix/v1.1.1-notifications`，尚未實機測試。單元測試和 debug 建置已通過。
-- **LINE 聊天室被 snooze 24 小時**（PR #4）：同一聊天室共用一個通知 key，snooze 後新訊息會被系統吞掉。修法：拿掉 snooze，改成再取消一次，取消不掉就交給後續補掃。已被 snooze 的 key 無法立刻清掉，最多 24 小時後恢復。
+- **LINE 聊天室被 snooze 24 小時**（PR #4）：同一聊天室共用一個通知 key，snooze 後新訊息會被系統吞掉。修法：拿掉 snooze，改成再取消一次，取消不掉就交給後續補掃。舊版留下的 snooze：`releaseOldSnoozes()` 在連上通知存取後執行一次，把 LINE 的 snooze 改成 1 秒後到期；一般 listener 沒有 unsnooze 可用，這是依 AOSP 原始碼推得的做法，三星手機還沒實測。實測：看紀錄的 `SNOOZE released`，卡住的聊天室要恢復收到新訊息；恢復時舊通知可能再響一次。
 - **貼圖彈出通知閃一下就消失**：貼圖下載後用 `setSilent(true)` 更新，系統會把彈出中的通知收回。修法：貼圖更新改用 `refreshChatSilently(keepHeadsUp = true)`，只設 `setOnlyAlertOnce`。其他靜音路徑不變。實測：連傳兩次同一張貼圖，彈出通知要留著且不重複響鈴；看紀錄的 `alertOnce=true`。
+- **同一批傳多張貼圖只有第一張**：LINE 只發一則通知，Sidepeek 收不到其他張，不用修。
 - 下面兩項的實測：關掉側邊欄後打開 LINE，通知要被清掉；「只在桌面顯示 Peek 條」開啟時，進 LINE 要隱藏，回桌面要出現，在桌面收到 LINE 通知時不能閃掉。
 - **側邊欄開關不應該影響 LINE 通知清理**：無障礙服務開著、但 App 裡的側邊欄開關關掉時，「打開 LINE 時清掉通知」和進階清理都不會動作。原因是 `PanelAccessibilityService.kt:97` 的 `val c = controller ?: return`，關掉側邊欄時 `controller` 是 null，後面的 `onLineScreen` 就不會執行。修法：偵測 LINE 畫面這段改成不依賴 `controller`，只有 Peek 條、側邊欄相關的處理才需要它。無障礙服務仍然是清理的前提。
 - **「只在桌面顯示 Peek 條」時，Peek 條在 LINE 裡不會消失**（從 1.0 就有，跟清理無關；其他 App 正常）：`PanelController.kt:175` 的 `IGNORED_FG` 把 LINE、LINE Lite 列為不算離開桌面，`onForegroundApp`（`:291`）遇到 LINE 直接 return，`foregroundPkg` 還停在桌面；`:391` 的讀取使用情況路徑也一樣。修法：把 LINE 從 `IGNORED_FG` 拿掉。當初加的原因是怕 LINE 的頂部通知或 App 內通知搶走前景判斷，修完要實測：在桌面收到 LINE 通知時，Peek 條不能閃掉；進 LINE 時要隱藏。
 
 ## 觀察項（先不修）
+- **貼圖通知數字顯示 2**：紀錄的 `unread=1`，但畫面顯示 2。數字超過 10 時也停在 10（通知只帶 10 則），所以 One UI 很可能是算 MessagingStyle 的項目數，不是 `setNumber`。曾試過「貼圖有快取時第一次就帶圖發送」，原因不確定，沒有收進 v1.1.1。
+- **詳細通知有時不跳**：00:38:16 的系統紀錄抓到一次：補掃（`sweep`，+0.5、+2、+8 秒）用 `silent = true` 處理到剛進來的新訊息，第一次發送就帶 `ONLY_ALERT_ONCE`，系統判定 `suppressive group alert behavior` 並收回彈出。修法方向：補掃遇到剛發出的新訊息照正常提醒。另一個已證實的原因是系統行為：00:54:50 碰到彈出通知（`panel_open_peek`）後，之後 Sidepeek 的通知都被判定 `PEEK suppressed: package snoozed`，三張貼圖都沒彈出，這不是 Sidepeek 能控制的。23:08、23:58 的案例是 `silent=false`，很可能也是這個，但紀錄已沒有了。查法：接 adb 後，失敗幾分鐘內匯出 `dumpsys activity service com.android.systemui/.SystemUIService buffers`，看 `VisualInterruptionDecisionProvider` 和 `NotifHeadsUpLog`。
 - **LINE 取消後重發同一則訊息，2 秒倒數可能不會撤銷**：`LineListenerService.kt:378` 在 LINE 取消通知後開始 2 秒倒數，撤銷在 `:639`，但重複訊息會在 `:587`、`:588`、`:591`、`:635` 先返回。理論上 Sidepeek 通知會被誤清，聊天室也會被標成已讀。目前沒有使用者回報；兩份診斷紀錄共 372 次 LINE 取消訊息通知，其中 40 次在 2 秒內又發通知，但沒有一次是同一則重發。等紀錄出現 `REMOVED_BY_APP` 後 2 秒內接 `POSTED`、再接 `skip seen`，或有人回報通知被誤清時再處理。

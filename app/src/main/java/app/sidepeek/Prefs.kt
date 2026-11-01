@@ -225,6 +225,10 @@ object Prefs {
     const val KEY_A11Y_LATER = "a11y_setup_later"
     fun a11yLater(ctx: Context) = sp(ctx).getBoolean(KEY_A11Y_LATER, false)
 
+    /** LINE snoozes left by versions before 1.1.1 were released (done once). */
+    const val KEY_SNOOZE_RELEASED = "snooze_released_v1"
+    fun snoozeReleased(ctx: Context) = sp(ctx).getBoolean(KEY_SNOOZE_RELEASED, false)
+
     /** Last observed LINE notification channel (from RankingMap). -1 = not seen yet. */
     const val KEY_LINE_CH_ID = "line_ch_id"
     const val KEY_LINE_CH_IMP = "line_ch_imp"

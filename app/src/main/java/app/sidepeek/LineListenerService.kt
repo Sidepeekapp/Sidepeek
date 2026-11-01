@@ -106,6 +106,25 @@ class LineListenerService : NotificationListenerService() {
         main.removeCallbacks(healthRunnable)
         main.postDelayed(healthRunnable, 30_000L)
         worker.execute { recoverOrphans("connect") }
+        worker.execute { releaseOldSnoozes() }
+    }
+
+    /**
+     * Versions before 1.1.1 snoozed LINE notifications for 24h, which swallows that chat's new
+     * messages. A listener cannot unsnooze, but snoozing a snoozed key replaces the time left.
+     */
+    private fun releaseOldSnoozes() {
+        if (Prefs.snoozeReleased(this)) return
+        try {
+            val keys = snoozedNotifications.orEmpty()
+                .filter { it.packageName == LINE_PKG || it.packageName == LINE_LITE_PKG }
+                .map { it.key }
+            keys.forEach { snoozeNotification(it, 1000L) }
+            Prefs.set(this, Prefs.KEY_SNOOZE_RELEASED, true)
+            Diagnostics.note(this, "SNOOZE released ${keys.size} old LINE snooze(s)")
+        } catch (e: Exception) {
+            Diagnostics.fail(this, "SNOOZE release", e)
+        }
     }
 
     override fun onListenerDisconnected() {

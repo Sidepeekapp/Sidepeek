@@ -25,6 +25,9 @@ object Notifier {
     const val ACTION_REPLY = "app.sidepeek.REPLY"
     const val ACTION_MARK_READ = "app.sidepeek.MARK_READ"
     const val ACTION_DISMISS = "app.sidepeek.DISMISS"
+    private const val SUMMARY_TAG = "chat_summary"
+    private const val SUMMARY_ID = 1
+    private const val CHAT_GROUP = "line_preview_chats"
 
     // Android only lets the user change a channel's sound, so picking one in the app moves to a
     // new channel id (CHANNEL_MSG_s1, _s2…) that carries the user's other settings over.
@@ -257,7 +260,7 @@ object Notifier {
     fun refreshChatSilently(ctx: Context, chatKey: String) {
         val id = notificationIdFor(chatKey)
         val showing = try {
-            ctx.getSystemService(android.app.NotificationManager::class.java).activeNotifications.any { it.id == id }
+            ctx.getSystemService(android.app.NotificationManager::class.java).activeNotifications.any { it.id == id && it.tag == null }
         } catch (_: Exception) { false }
         if (!showing) return
         val unread = unreadAfterWatermark(ctx, chatKey, null)
@@ -331,8 +334,7 @@ object Notifier {
             .setOnlyAlertOnce(silent)         // every new message alerts / heads-up again (not on edits)
             .setSilent(silent)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            // A distinct group per chat => Android never auto-bundles them into one stack.
-            .setGroup("line_preview_chat_${latest.chatKey}")
+            .setGroup(CHAT_GROUP)
             .setContentIntent(MessageStore.intentFor(latest.chatKey) ?: fallbackIntent(ctx, latest.pkg))
             .setDeleteIntent(ownPi(ctx, ACTION_DISMISS, latest.chatKey, mutable = false))
             .addExtras(android.os.Bundle().apply { putString(EXTRA_CHAT_KEY, latest.chatKey) })
@@ -423,6 +425,7 @@ object Notifier {
                 Diagnostics.note(ctx, "POST blocked: app notifications disabled chat=${latest.chatKey}")
                 return
             }
+            postChatSummary(ctx, latest)
             NotificationManagerCompat.from(ctx).notify(id, builder.build())
             Diagnostics.note(ctx, "POST ok id=$id chat=${latest.chatKey} style=${Prefs.notifStyle(ctx)} silent=$silent unread=${unread.size}")
         } catch (e: SecurityException) {
@@ -447,6 +450,30 @@ object Notifier {
                 Diagnostics.fail(ctx, "POST plain-fallback chat=${latest.chatKey}", e2)
             }
         }
+    }
+
+    /**
+     * Same shape as LINE's own notifications: all chats share one group with a real summary, so
+     * swiping the collapsed stack clears it while an expanded chat can be swiped alone. Without a
+     * summary Android 16+ folds the chats into its own stack and one swipe clears them all.
+     * No EXTRA_CHAT_KEY: the summary is not a chat preview. Silent; the child does the alerting.
+     */
+    private fun postChatSummary(ctx: Context, latest: LineMessage) {
+        val summary = NotificationCompat.Builder(ctx, msgChannel(ctx))
+            .setSmallIcon(R.drawable.ic_stat_msg)
+            .setColor(Sources.forPackage(latest.pkg)?.color ?: 0xFF16A34A.toInt())
+            .setContentTitle(Sources.displayName(latest.pkg))
+            .setWhen(latest.time)
+            .setShowWhen(true)
+            .setGroup(CHAT_GROUP)
+            .setGroupSummary(true)
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+            .setSilent(true)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setContentIntent(fallbackIntent(ctx, latest.pkg))
+            .build()
+        NotificationManagerCompat.from(ctx).notify(SUMMARY_TAG, SUMMARY_ID, summary)
     }
 
     /** Latest 1–2 messages for the collapsed one-line/two-line summary. */
@@ -499,6 +526,9 @@ object Notifier {
             if (!isGroupChat) chatPerson = p
             val msg = NotificationCompat.MessagingStyle.Message(shown(m), m.time, p)
             imageUri(ctx, m.imagePath)?.let { uri ->
+                // SystemUI draws only the image of a data message, so its caption needs its own row.
+                val caption = shown(m)
+                if (caption.isNotBlank() && caption != "（圖片）") style.addMessage(caption, m.time, p)
                 msg.setData(imageMime(m.imagePath!!), uri)
             }
             style.addMessage(msg)
@@ -595,7 +625,14 @@ object Notifier {
     }
 
     fun cancelChat(ctx: Context, chatKey: String) {
-        NotificationManagerCompat.from(ctx).cancel(notificationIdFor(chatKey))
+        val id = notificationIdFor(chatKey)
+        NotificationManagerCompat.from(ctx).cancel(id)
+        // Only once no chat is left: cancelling a summary also removes the chats under it.
+        val othersLeft = try {
+            ctx.getSystemService(android.app.NotificationManager::class.java).activeNotifications
+                .any { it.id != id && it.notification.extras.getString(EXTRA_CHAT_KEY) != null }
+        } catch (_: Exception) { true }
+        if (!othersLeft) NotificationManagerCompat.from(ctx).cancel(SUMMARY_TAG, SUMMARY_ID)
     }
 
     /** Chat keys of the tidied LINE notifications now showing. */

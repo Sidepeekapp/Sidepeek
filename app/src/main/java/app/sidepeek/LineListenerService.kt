@@ -357,6 +357,7 @@ class LineListenerService : NotificationListenerService() {
                 reason == REASON_CANCEL_ALL || reason == REASON_GROUP_SUMMARY_CANCELED
             if (byUser) MessageStore.markRead(this, key)
             Diagnostics.note(this, "OWN removed reason=$reason read=$byUser chat=$key")
+            Notifier.cancelChat(this, key)   // also drops its group summary
             return
         }
         if (!Sources.isTracked(this, sbn.packageName)) return

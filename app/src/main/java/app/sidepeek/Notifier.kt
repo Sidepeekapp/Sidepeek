@@ -500,6 +500,9 @@ object Notifier {
             if (!isGroupChat) chatPerson = p
             val msg = NotificationCompat.MessagingStyle.Message(shown(m), m.time, p)
             imageUri(ctx, m.imagePath)?.let { uri ->
+                // SystemUI draws only the image of a data message, so its caption needs its own row.
+                val caption = shown(m)
+                if (caption.isNotBlank() && caption != "（圖片）") style.addMessage(caption, m.time, p)
                 msg.setData(imageMime(m.imagePath!!), uri)
             }
             style.addMessage(msg)

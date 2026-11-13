@@ -34,6 +34,9 @@ class LineListenerService : NotificationListenerService() {
             "missed_call", "stopwatch", "location_sharing",
         )
 
+        /** A sweep leaves LINE notifications younger than this to their own post callback. */
+        private const val SWEEP_FRESH_MS = 2000L
+
         @Volatile var connected = false
     }
 
@@ -253,6 +256,18 @@ class LineListenerService : NotificationListenerService() {
         return if (isMessage) null else "not a chat message (category=${n.category})"
     }
 
+    /**
+     * LINE's missed-call notification is posted as category=msg on the 新訊息 channel, tagged
+     * NOTIFICATION_TAG_MISSED_CALL, and later missed calls re-post the same notification, often
+     * unchanged. It is mirrored like a message (so it alerts on Sidepeek's channel even when the
+     * user silenced LINE's 訊息提醒), but each re-post counts as a new call: see [handle].
+     */
+    private fun isMissedCall(sbn: StatusBarNotification) =
+        isLinePkg(sbn.packageName) && sbn.tag?.contains("MISSED_CALL", ignoreCase = true) == true
+
+    /** sbn.key -> postTime of the last LINE missed-call post seen (spots further missed calls). */
+    private val lastMissedPost = HashMap<String, Long>()
+
     private fun flagsOf(sbn: StatusBarNotification) =
         "flags=0x${Integer.toHexString(sbn.notification.flags)} summary=${sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY != 0}"
 
@@ -315,15 +330,19 @@ class LineListenerService : NotificationListenerService() {
             Diagnostics.note(this, "SWEEP $tag failed: $e"); return
         }
         val line = active.filter { isLinePkg(it.packageName) }
-        var hidden = 0; var kept = 0
+        var hidden = 0; var kept = 0; var fresh = 0
+        val now = System.currentTimeMillis()
         for (sbn in line) {
             if (keepReason(sbn) != null) { kept++; continue }
+            // Just posted: its onNotificationPosted is on the way and will alert normally. Taking it
+            // here would post it silently and the real post would then be skipped as a duplicate.
+            if (now - sbn.postTime in 0 until SWEEP_FRESH_MS) { fresh++; continue }
             hidden++
             // Silent: these are leftovers / posts missed while disconnected, not fresh alerts.
             processLine(sbn, "sweep:$tag", silent = true)
         }
         if (hidden > 0 || tag.startsWith("connect"))
-            Diagnostics.note(this, "SWEEP $tag: LINE active=${line.size} leftover-hidden=$hidden kept=$kept")
+            Diagnostics.note(this, "SWEEP $tag: LINE active=${line.size} leftover-hidden=$hidden kept=$kept fresh-skipped=$fresh")
     }
 
     /**
@@ -434,6 +453,9 @@ class LineListenerService : NotificationListenerService() {
         // Incoming calls / meeting-started alerts use a full-screen intent or are insistent.
         if (n.fullScreenIntent != null) return
         if (n.flags and Notification.FLAG_INSISTENT != 0) return
+        // LINE missed calls: mirrored like messages, and every further missed call alerts again.
+        val missedCall = isMissedCall(sbn)
+        val prevMissedPost = if (missedCall) synchronized(lastMissedPost) { lastMissedPost.put(sbn.key, sbn.postTime) } else null
 
         val ex = n.extras
         // Downloads, uploads, media playback and similar progress notifications are never messages
@@ -482,6 +504,18 @@ class LineListenerService : NotificationListenerService() {
             dedupeLog("skip unchanged update key=${sbn.key}")
             if (prevWhen != null && n.`when` - prevWhen >= 5_000L &&
                 MessageStore.bumpRepeat(this, chatKey, n.`when`)) dedupeLog("repeat +1 (new when) chat=$chatKey")
+            // LINE re-posts one missed-call notification, often unchanged, for each further missed
+            // call: every real re-post (newer postTime) is counted and alerts again. The same post
+            // seen again by our own paths (asap / post / sweep) keeps its postTime and is skipped.
+            if (missedCall && prevMissedPost != null && sbn.postTime > prevMissedPost &&
+                MessageStore.bumpRepeat(this, chatKey, sbn.postTime)) {
+                dedupeLog("repeat +1 (missed call) chat=$chatKey")
+                if (Prefs.enabled(this)) MessageStore.latestInChat(this, chatKey)?.let { latest ->
+                    try { Notifier.postChat(this, latest, isGroup, silent) } catch (e: Throwable) {
+                        Diagnostics.fail(this, "POST missed call again chat=$chatKey", e)
+                    }
+                }
+            }
             return
         }
         if (lastKeyPostTime[sbn.key] == sbn.postTime && lastContent.containsKey(sbn.key)) {
@@ -530,7 +564,7 @@ class LineListenerService : NotificationListenerService() {
             // Only messages newer than what we've already processed for this chat.
             val seenUntil = lastMsTime[chatKey] ?: MessageStore.lastTimeForChat(this, chatKey)
             for ((idx, m) in msgs.withIndex()) {
-                val sender = m.person?.name?.toString() ?: ms?.user?.name?.toString()?.takeIf { it.isNotBlank() } ?: "我"
+                val sender = m.person?.name?.toString() ?: ms?.user?.name?.toString()?.takeIf { it.isNotBlank() } ?: getString(R.string.msg_me)
                 var text = m.text?.toString()?.trim().orEmpty()
                 val isLast = idx == msgs.lastIndex
                 if (m.timestamp in 1..seenUntil) {
@@ -570,9 +604,9 @@ class LineListenerService : NotificationListenerService() {
                 )
                 if (image == null && isLast) image = notifPicture
                 if (text.isEmpty() && image == null) {
-                    text = if (stickerish) "傳送了貼圖" else "（傳送了一則訊息）"
+                    text = if (stickerish) "傳送了貼圖" else getString(R.string.msg_sent_message)
                 }
-                if (text.isEmpty() && image != null) text = "（圖片）"
+                if (text.isEmpty() && image != null) text = getString(R.string.msg_image)
                 if (stickerish) {
                     if (candidates.isEmpty()) {
                         Diagnostics.note(this, "sticker-candidate EMPTY id=$id" + Diagnostics.sensitive(this, " text=${text.take(20)}") + " keys=${msgDisc?.stickerKeys ?: notifSticker.stickerKeys}")
@@ -615,7 +649,7 @@ class LineListenerService : NotificationListenerService() {
                 }
             }
             newMessages += build(id, sbn.packageName, chatKey, chatTitle, sender,
-                text.ifEmpty { "（圖片）" }, time, picture, memberFallback,
+                text.ifEmpty { getString(R.string.msg_image) }, time, picture, memberFallback,
                 linePic = if (isLine) notifLargeIcon else null)
         }
 

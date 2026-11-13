@@ -18,7 +18,7 @@ object OemGuide {
 
     class Guide(
         val brand: Brand,
-        /** e.g. "小米" — shown in titles. */
+        /** e.g. ctx.getString(R.string.oem_xiaomi) — shown in titles. */
         val name: String,
         /** Needs a separate auto-start / background switch besides battery optimisation. */
         val needsAutostart: Boolean,
@@ -43,43 +43,43 @@ object OemGuide {
 
     private fun c(pkg: String, cls: String) = ComponentName(pkg, cls)
 
-    fun guide(): Guide = when (brand()) {
-        Brand.SAMSUNG -> Guide(Brand.SAMSUNG, "三星", false,
-            "設定 → 電池 → 背景使用限制 → 永不休眠的應用程式 → 加入「Sidepeek」。",
-            "打開三星的電池設定",
+    fun guide(ctx: android.content.Context): Guide = when (brand()) {
+        Brand.SAMSUNG -> Guide(Brand.SAMSUNG, ctx.getString(R.string.oem_samsung), false,
+            ctx.getString(R.string.oem_samsung_steps),
+            ctx.getString(R.string.oem_samsung_btn),
             listOf(c("com.samsung.android.lool", "com.samsung.android.sm.battery.ui.BatteryActivity"),
                 c("com.samsung.android.sm", "com.samsung.android.sm.battery.ui.BatteryActivity")))
-        Brand.XIAOMI -> Guide(Brand.XIAOMI, "小米", true,
-            "設定 → 應用程式 → 管理應用程式 →「Sidepeek」：打開「自動啟動」，「省電策略」選「無限制」。",
-            "打開自動啟動設定",
+        Brand.XIAOMI -> Guide(Brand.XIAOMI, ctx.getString(R.string.oem_xiaomi), true,
+            ctx.getString(R.string.oem_xiaomi_steps),
+            ctx.getString(R.string.oem_autostart_btn),
             listOf(c("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")))
-        Brand.OPPO -> Guide(Brand.OPPO, "OPPO／realme／OnePlus", true,
-            "設定 → 應用程式 → 應用程式管理 →「Sidepeek」→ 耗電管理：允許「自動啟動」和「在背景執行」。",
-            "打開自動啟動設定",
+        Brand.OPPO -> Guide(Brand.OPPO, ctx.getString(R.string.oem_oppo), true,
+            ctx.getString(R.string.oem_oppo_steps),
+            ctx.getString(R.string.oem_autostart_btn),
             listOf(c("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
                 c("com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"),
                 c("com.oplus.safecenter", "com.oplus.safecenter.permission.startup.StartupAppListActivity"),
                 c("com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity")))
         Brand.VIVO -> Guide(Brand.VIVO, "vivo", true,
-            "設定 → 電池 → 背景耗電管理 →「Sidepeek」選「允許背景高耗電」；再到 i管家 → 應用管理 → 自啟動管理，打開「Sidepeek」。",
-            "打開自啟動設定",
+            ctx.getString(R.string.oem_vivo_steps),
+            ctx.getString(R.string.oem_vivo_btn),
             listOf(c("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
                 c("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager")))
-        Brand.HUAWEI -> Guide(Brand.HUAWEI, "華為／榮耀", true,
-            "設定 → 電池 → 應用啟動管理 →「Sidepeek」改成手動管理，打開「自動啟動」「關聯啟動」「在背景活動」。",
-            "打開應用啟動管理",
+        Brand.HUAWEI -> Guide(Brand.HUAWEI, ctx.getString(R.string.oem_huawei), true,
+            ctx.getString(R.string.oem_huawei_steps),
+            ctx.getString(R.string.oem_huawei_btn),
             listOf(c("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
                 c("com.hihonor.systemmanager", "com.hihonor.systemmanager.startupmgr.ui.StartupNormalAppListActivity")))
         Brand.ASUS -> Guide(Brand.ASUS, "ASUS", true,
-            "手機管家 → 自動啟動管理員 → 允許「Sidepeek」。",
-            "打開自動啟動管理員",
+            ctx.getString(R.string.oem_asus_steps),
+            ctx.getString(R.string.oem_asus_btn),
             listOf(c("com.asus.mobilemanager", "com.asus.mobilemanager.autostart.AutoStartActivity")))
-        Brand.OTHER -> Guide(Brand.OTHER, "", false, "", "打開 App 資訊", emptyList())
+        Brand.OTHER -> Guide(Brand.OTHER, "", false, "", ctx.getString(R.string.wiz_open_app_info), emptyList())
     }
 
     /** Opens the brand's screen, else this app's App info page. */
     fun open(ctx: Context): Boolean {
-        for (cn in guide().screens) {
+        for (cn in guide(ctx).screens) {
             try {
                 ctx.startActivity(Intent().setComponent(cn).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return true
             } catch (_: Exception) {}

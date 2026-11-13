@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sidepeek 原創圖示「語言」：地球（圓、經線、緯線），24 格線、2dp 圓角線條，顏色由程式著色 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 1 0 0 -17z" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M12 3.5c-2.4 2.3 -3.5 5.1 -3.5 8.5s1.1 6.2 3.5 8.5M12 3.5c2.4 2.3 3.5 5.1 3.5 8.5s-1.1 6.2 -3.5 8.5" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M4 9.5h16M4 14.5h16" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

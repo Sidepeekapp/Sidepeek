@@ -41,7 +41,7 @@ class GuideVideoView @JvmOverloads constructor(
         addView(texture, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         texture.surfaceTextureListener = this
         zoomTag = TextView(ctx).apply {
-            text = "點一下放大"
+            text = context.getString(R.string.video_zoom)
             textSize = 12f
             setTextColor(Color.WHITE)
             background = GradientDrawable().apply { setColor(0xB3000000.toInt()); cornerRadius = 99f * d }
@@ -55,7 +55,7 @@ class GuideVideoView @JvmOverloads constructor(
                 outline.setRoundRect(0, 0, view.width, view.height, 18f * d)
         }
         clipToOutline = true
-        contentDescription = "操作示範影片，點一下放大"
+        contentDescription = context.getString(R.string.video_desc)
         setOnClickListener { if (fullScreen) (parent as? View)?.performClick() else openFullScreen() }
     }
 
@@ -139,7 +139,7 @@ class GuideVideoView @JvmOverloads constructor(
             setMargins((16 * d).toInt(), (88 * d).toInt(), (16 * d).toInt(), (56 * d).toInt())
         })
         box.addView(TextView(context).apply {
-            text = "點任意處關閉"; setTextColor(0xCCFFFFFF.toInt()); textSize = 14f
+            text = context.getString(R.string.video_close); setTextColor(0xCCFFFFFF.toInt()); textSize = 14f
         }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = (52 * d).toInt() })
         var back: androidx.activity.OnBackPressedCallback? = null

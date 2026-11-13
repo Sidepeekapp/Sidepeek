@@ -19,11 +19,11 @@ object Feedback {
         val listener = try { isListenerEnabled(act) } catch (_: Exception) { false }
         val a11y = PanelHost.a11yActive || PanelHost.a11yEnabledInSettings(act)
         return listOf(
-            "手機：${Build.MANUFACTURER} ${Build.MODEL}",
+            act.getString(R.string.fb_phone, "${Build.MANUFACTURER} ${Build.MODEL}"),
             "Android ${Build.VERSION.RELEASE}（API ${Build.VERSION.SDK_INT}）",
             "Sidepeek ${version(act)}",
-            "通知存取：${if (listener) "已允許" else "未允許"}",
-            "側邊欄服務：${if (a11y) "已開啟" else "未開啟"}",
+            act.getString(R.string.fb_access, act.getString(if (listener) R.string.fb_allowed else R.string.fb_not_allowed)),
+            act.getString(R.string.fb_a11y, act.getString(if (a11y) R.string.fb_on else R.string.fb_off)),
         ).joinToString("\n")
     }
 
@@ -34,7 +34,7 @@ object Feedback {
     fun send(act: Activity, topic: String, withInfo: Boolean = true) {
         val subject = "[Sidepeek ${version(act)}] $topic"
         val body = if (withInfo)
-            "請在這裡寫下問題或建議：\n\n\n\n——\n以下資訊有助於排查問題，不想提供可以刪掉：\n${deviceInfo(act)}\n"
+            act.getString(R.string.fb_body, deviceInfo(act))
         else ""
         // Address/subject/body in the mailto: URI (some mail apps ignore extras), extras too.
         var uri = "mailto:$CONTACT?subject=" + Uri.encode(subject)
@@ -44,7 +44,7 @@ object Feedback {
             .putExtra(Intent.EXTRA_SUBJECT, subject)
         if (body.isNotEmpty()) i.putExtra(Intent.EXTRA_TEXT, body)
         try { act.startActivity(i) } catch (_: Exception) {
-            Toast.makeText(act, "找不到可以寄信的 App，請寄到 $CONTACT", Toast.LENGTH_LONG).show()
+            Toast.makeText(act, act.getString(R.string.fb_no_mail, CONTACT), Toast.LENGTH_LONG).show()
         }
     }
 }

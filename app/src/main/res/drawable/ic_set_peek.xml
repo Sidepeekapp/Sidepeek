@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sidepeek 原創圖示「Peek 條樣式」：24 格線、2dp 圓角線條（來源：設計稿 icons.js），顏色由程式著色 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M21 3v18" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeAlpha="0.45"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M17.5 8.5v7" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="3"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M13 12h-9M7 8.5l-3.5 3.5l3.5 3.5" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

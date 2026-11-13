@@ -24,6 +24,7 @@
         <item name="android:lineSpacingExtra">2dp</item>
     </style>
     <style name="Btn" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAllCaps">false</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">4dp</item>
@@ -101,10 +102,17 @@
         <item name="android:paddingEnd">16dp</item>
         <item name="android:paddingBottom">4dp</item>
         <item name="android:layout_marginBottom">12dp</item>
+        <!-- The header reaches past this padding so its press highlight fills the card width. -->
+        <item name="android:clipToPadding">false</item>
     </style>
     <style name="CollapseHeader" parent="Section">
         <item name="android:layout_marginTop">0dp</item>
         <item name="android:layout_marginBottom">0dp</item>
+        <!-- Cancel the card's side padding (18 / 16dp), keep the text where it was. -->
+        <item name="android:layout_marginStart">-18dp</item>
+        <item name="android:layout_marginEnd">-16dp</item>
+        <item name="android:paddingStart">18dp</item>
+        <item name="android:paddingEnd">16dp</item>
         <item name="android:minHeight">56dp</item>
         <item name="android:gravity">center_vertical</item>
         <item name="android:drawablePadding">8dp</item>
@@ -167,6 +175,21 @@
         <item name="android:textSize">15sp</item>
         <item name="android:textStyle">bold</item>
     </style>
+    <!-- 卡片內的分組小標（例如「大小與位置」、常見問題的「通知」），比 Label 小、品牌色 -->
+    <style name="SubGroup">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">22dp</item>
+        <item name="android:layout_marginBottom">2dp</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textColor">@color/section_text</item>
+        <item name="android:drawablePadding">6dp</item>
+        <item name="android:drawableTint">@color/section_text</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:accessibilityHeading">true</item>
+    </style>
     <style name="Divider">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">1dp</item>
@@ -176,6 +199,7 @@
     </style>
     <!-- 次要按鈕：外框樣式，避免一整排實心綠按鈕 -->
     <style name="BtnOutline" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textAllCaps">false</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">4dp</item>
@@ -183,6 +207,7 @@
         <item name="cornerRadius">12dp</item>
     </style>
     <style name="BtnText" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textAllCaps">false</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:minHeight">48dp</item>
@@ -203,6 +228,7 @@
     </style>
     <!-- 分段按鈕：外觀是一排相連的格子，底下仍是 RadioGroup／RadioButton -->
     <style name="SegGroup">
+        <item name="android:baselineAligned">false</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:orientation">horizontal</item>
@@ -211,7 +237,7 @@
     </style>
     <style name="Seg">
         <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_height">match_parent</item>
         <item name="android:layout_weight">1</item>
         <item name="android:minHeight">44dp</item>
         <item name="android:layout_marginStart">3dp</item>
@@ -230,7 +256,7 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:orientation">horizontal</item>
-        <item name="android:layout_marginTop">14dp</item>
+        <item name="android:layout_marginTop">10dp</item>
         <item name="android:gravity">center_vertical</item>
     </style>
     <style name="SeekName">
@@ -242,10 +268,92 @@
     <style name="SeekValue">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_marginStart">12dp</item>
+        <item name="android:layout_marginStart">8dp</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:gravity">end</item>
         <item name="android:textSize">15sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/section_text</item>
+    </style>
+    <!-- 一列一項：「名稱｜控制項｜數值」，名稱固定寬度讓滑桿對齊 -->
+    <style name="SeekLine">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:layout_marginTop">4dp</item>
+    </style>
+    <style name="LineName">
+        <item name="android:layout_width">76dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:maxLines">2</item>
+    </style>
+    <!-- 窄欄裡的設定：名稱和數值一行，滑桿／選項在下一行用整欄寬度 -->
+    <!-- 「詳細說明 ▾」：點一下展開／收起緊接在後面的 DetailsBody（MainActivity.setupDetailsToggles） -->
+    <style name="DetailsToggle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:textSize">13.5sp</item>
+        <item name="android:textColor">@color/section_text</item>
+        <item name="android:tag">details</item>
+        <item name="android:text">@string/details_more</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+    </style>
+    <style name="DetailsBody" parent="Hint">
+        <item name="android:visibility">gone</item>
+    </style>
+    <!-- 語言選單的一個選項 -->
+    <style name="LangOption">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:paddingStart">8dp</item>
+    </style>
+    <style name="StackHead">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:layout_marginTop">8dp</item>
+    </style>
+    <style name="StackName">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+    <style name="SeekInline">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:minHeight">40dp</item>
+    </style>
+    <style name="SegGroupInline">
+        <item name="android:baselineAligned">false</item>
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">horizontal</item>
+    </style>
+    <!-- 狀態旁的「為什麼？」：點了跳到說明頁、展開對應的那一題 -->
+    <style name="WhyLink">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">40dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/section_text</item>
+        <item name="android:drawableStart">@drawable/ic_tab_help</item>
+        <item name="android:drawableTint">@color/section_text</item>
+        <item name="android:drawablePadding">6dp</item>
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
     </style>
     <style name="Seek">
         <item name="android:layout_width">match_parent</item>

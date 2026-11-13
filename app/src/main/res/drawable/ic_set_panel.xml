@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sidepeek 原創圖示「側邊欄外觀」：24 格線、2dp 圓角線條（來源：設計稿 icons.js），顏色由程式著色 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M8 2.5h8a3 3 0 0 1 3 3v13a3 3 0 0 1 -3 3h-8a3 3 0 0 1 -3 -3v-13a3 3 0 0 1 3 -3z" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M13 7h2.5a1 1 0 0 1 1 1v8a1 1 0 0 1 -1 1h-2.5a1 1 0 0 1 -1 -1v-8a1 1 0 0 1 1 -1z" android:fillColor="#FF000000"/>
+</vector>

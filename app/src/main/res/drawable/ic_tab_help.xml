@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Sidepeek 原創圖示「說明」：24 格線、2dp 圓角線條（來源：設計稿 icons.js），顏色由程式著色 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FF000000" android:pathData="M11,18h2v-2h-2v2zM12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8zM12,6c-2.21,0 -4,1.79 -4,4h2c0,-1.1 0.9,-2 2,-2s2,0.9 2,2c0,2 -3,1.75 -3,5h2c0,-2.25 3,-2.5 3,-5 0,-2.21 -1.79,-4 -4,-4z" />
+    <path android:pathData="M7 4h10a4 4 0 0 1 4 4v5a4 4 0 0 1 -4 4h-5l-4.5 3.5v-3.5h-0.5a4 4 0 0 1 -4 -4v-5a4 4 0 0 1 4 -4z" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M10 9.2a2 2 0 1 1 3 1.7c-0.7 0.4 -1 0.8 -1 1.6" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M12 14.6v0.1" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2.4"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

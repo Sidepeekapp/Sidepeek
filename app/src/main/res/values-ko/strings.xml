@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 한국어 -->
+<resources>
+    <string name="shortcut_open_panel">사이드 패널 열기</string>
+    <string name="widget_name">최근 메시지</string>
+    <string name="widget_description">사이드 패널과 같은 메시지를 홈 화면에서 보기</string>
+    <string name="widget_empty">아직 메시지가 없습니다.\nLINE, Messenger, Instagram 등의 메시지가 여기에 표시됩니다.</string>
+    <string name="a11y_label">Sidepeek 사이드 패널</string>
+    <string name="a11y_summary">상시 알림 없이 메시지 사이드 패널을 표시합니다</string>
+    <string name="a11y_description">이 접근성 서비스는 다음 용도로만 사용됩니다:\n1. 화면 가장자리에 Peek 바(작은 손잡이)와 사이드 패널을 표시합니다(상시 알림도, 시스템의 “다른 앱 위에 표시 중” 알림도 나타나지 않습니다).\n2. 홈 화면에 있는지 판단합니다(“홈 화면에서만 표시”용).\n3. 키보드가 열려 있는지 판단해 Peek 바를 잠시 숨깁니다.\n4. 사이드 패널이 열려 있을 때 “뒤로” 키를 받아 패널을 닫습니다.\n5. LINE을 열면 Sidepeek이 정리한 LINE 알림을 지웁니다.\n\n이 서비스는 기본적으로 “어떤 앱 창이 앞에 있는지”, “키보드 창이 있는지”와 키 입력만 확인하며, 화면의 텍스트나 내용을 읽거나 저장하거나 보내지 않고, 대신 누르거나 조작하지도 않습니다. 앱에서 “고급 지우기”를 따로 켠 경우(기본값은 꺼짐, 켤 때 다시 동의를 받습니다)에만 LINE 화면 맨 위의 채팅방 이름을 읽으며, 휴대폰 안에서만 비교하고 저장하거나 업로드하지 않습니다.</string>
+
+    <!-- 설정 화면 데모 애니메이션(StepDemoView). 채팅방, 이름, 메시지는 예시입니다. -->
+    <string name="demo_clock">1:24</string>
+    <string name="demo_date">11월 8일 (토)</string>
+    <string name="demo_time1">오후 1:22</string>
+    <string name="demo_time2">오후 1:20</string>
+    <string name="demo_time3">오후 1:15</string>
+    <string name="demo_chat1_av">토</string>
+    <string name="demo_chat1_name">토요일 모임</string>
+    <string name="demo_chat1_line">수진: 알겠어 👌</string>
+    <string name="demo_chat2_av">지</string>
+    <string name="demo_chat2_name">지민</string>
+    <string name="demo_chat2_line">내일 몇 시에 출발해?</string>
+    <string name="demo_chat3_av">독</string>
+    <string name="demo_chat3_name">독서 모임</string>
+    <string name="demo_chat3_line">민호: 자료 클라우드에 올렸어</string>
+    <string name="demo_bubble_sender">수진</string>
+    <string name="demo_bubble1">6시에 역에서 봐</string>
+    <string name="demo_bubble_me">좋아, 토요일에 봐!</string>
+    <string name="demo_chats">채팅</string>
+    <string name="demo_no_notifs">알림 없음</string>
+    <string name="demo_step_off">" (꺼짐)"</string>
+    <string name="demo_app_photos">사진</string>
+    <string name="demo_app_info">애플리케이션 정보</string>
+    <string name="demo_wallpaper">배경화면</string>
+    <string name="demo_widgets">위젯</string>
+    <string name="demo_home_settings">설정</string>
+    <string name="demo_unlock">먼저 잠금을 해제하세요</string>
+    <string name="demo_typing">거의 다 왔어</string>
+    <string name="clear_step1_title">알림을 눌러 채팅방 열기</string>
+    <string name="clear_step1_sub">그 채팅방만 지웁니다. 항상 켜져 있습니다.</string>
+    <string name="clear_step1_pill">연 채팅방의 알림만 사라져요</string>
+    <string name="clear_step2_title">LINE 바로 열기</string>
+    <string name="clear_step2_sub">돌아오면 정리된 LINE 알림이 모두 사라집니다.</string>
+    <string name="clear_step2_pill">알림창은 깨끗, 메시지는 그대로</string>
+    <string name="clear_step3_title">고급 지우기</string>
+    <string name="clear_step3_sub">맨 위의 채팅방 이름만 읽고 그 채팅방만 지웁니다.</string>
+    <string name="clear_step3_pill">읽은 채팅방의 알림만 사라져요</string>
+    <string name="open_step1_title">빠른 설정</string>
+    <string name="open_step1_sub">빠른 설정을 내리고 Sidepeek 버튼을 누르세요.</string>
+    <string name="open_step1_pill">쓰던 앱을 떠나지 않아도 돼요</string>
+    <string name="open_step2_title">앱 바로가기</string>
+    <string name="open_step2_sub">Sidepeek 아이콘을 길게 누르고 “사이드 패널 열기”를 홈 화면으로 끌어오세요.</string>
+    <string name="open_step2_pill">홈 화면에서 한 번에 열기</string>
+    <string name="open_step3_title">홈 화면 위젯</string>
+    <string name="open_step3_sub">홈 화면 빈 곳을 길게 누르기 → 위젯 → Sidepeek.</string>
+    <string name="open_step3_pill">패널을 열지 않아도 메시지가 보여요</string>
+    <string name="when_step1_title">홈 화면에서만 표시</string>
+    <string name="when_step1_sub">다른 앱을 열면 Peek 바가 숨겨집니다.</string>
+    <string name="when_step1_pill_on">앱을 열자 Peek 바가 숨었어요</string>
+    <string name="when_step1_pill_off">다른 앱에서도 Peek 바가 보여요</string>
+    <string name="when_step2_title">입력 중에는 숨기기</string>
+    <string name="when_step2_sub">키보드가 열리면 사라졌다가 닫히면 다시 나타납니다.</string>
+    <string name="when_step2_pill_on">입력할 때 방해되지 않아요</string>
+    <string name="when_step2_pill_off">입력 중에도 Peek 바가 보여요</string>
+    <string name="when_step3_title">잠금 화면에도 표시</string>
+    <string name="when_step3_sub">안쪽으로 밀면 먼저 잠금 해제를 요청하며, 내용은 표시하지 않습니다.</string>
+    <string name="when_step3_pill_on">잠금을 해제해야 메시지가 보여요</string>
+    <string name="when_step3_pill_off">잠금 화면에는 Peek 바가 없어요</string>
+
+    <!-- 首頁「怎麼用」三格說明圖（StepsOverviewDrawable）；群組、人名、訊息是示範資料 -->
+    <string name="how_step1_title">대화로 정리</string>
+    <string name="how_step1_sub">채팅방마다\n알림은 하나만</string>
+    <string name="how_step2_title">Peek 바</string>
+    <string name="how_step2_sub">가장자리의 반투명 바\n화면을 가리지 않음</string>
+    <string name="how_step3_title">밀어서 보기</string>
+    <string name="how_step3_sub">Peek 바에서 안쪽으로\n밀어 사이드 패널 열기</string>
+    <string name="how_group">프로젝트</string>
+    <string name="how_group_av">프</string>
+    <string name="how_time">21:05</string>
+    <string name="how_m1_sender">민수</string>
+    <string name="how_m1">보고서 다 됐어?</string>
+    <string name="how_m2_sender">지훈</string>
+    <string name="how_m2">이따 보낼게</string>
+    <string name="how_m3_sender">수아</string>
+    <string name="how_m3">확인</string>
+    <string name="how_avatars">프,엄,지,수,공</string>
+
+    <!-- 首頁動畫的結果膠囊；「認識 Sidepeek」比較圖（EdgeHandlesDrawable）；精靈「打開側邊欄」圖（SidebarStepDrawable） -->
+    <string name="how_pill1">채팅방마다 알림 하나</string>
+    <string name="how_pill2">화면을 가리지 않아요</string>
+    <string name="how_pill3">안쪽으로 밀면 열려요</string>
+    <string name="edge_samsung_title">삼성 엣지 패널 핸들</string>
+    <string name="edge_samsung_sub">시스템·앱 바로가기</string>
+    <string name="edge_peek_title">Sidepeek Peek 바</string>
+    <string name="edge_peek_sub">자주 쓰는 앱의 메시지</string>
+    <string name="edge_note">서로 별개라 위치를 엇갈리게 둘 수 있어요</string>
+    <string name="side_clock">21:06</string>
+    <string name="side_title">Peek 바에서\n안쪽으로 밀기</string>
+    <string name="side_sub">사이드 패널이 가장자리에서 나옵니다</string>
+    <string name="side_c2_av">엄</string>
+    <string name="side_c2_name">엄마</string>
+    <string name="side_c2_time">20:48</string>
+    <string name="side_c2_msg">저녁 먹으러 와?</string>
+    <string name="side_c3_av">지</string>
+    <string name="side_c3_name">지훈</string>
+    <string name="side_c3_time">20:30</string>
+    <string name="side_c3_msg">여기 괜찮아 보여 shop.example</string>
+</resources>

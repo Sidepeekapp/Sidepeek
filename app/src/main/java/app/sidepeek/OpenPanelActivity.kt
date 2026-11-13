@@ -13,12 +13,12 @@ class OpenPanelActivity : Activity() {
         super.onCreate(savedInstanceState)
         if (!PanelHost.open(this) && !Prefs.a11yConsent(this)) {
             // The accessibility disclosure has to be agreed to inside the app first.
-            Toast.makeText(this, "請先在 Sidepeek 裡完成側邊欄設定", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.toast_setup_panel_first), Toast.LENGTH_LONG).show()
             try { startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
         } else if (!PanelHost.a11yActive && !android.provider.Settings.canDrawOverlays(this)) {
             Toast.makeText(
                 this,
-                "請先試開「Sidepeek 側邊欄」；若被拒絕，關閉後再到 App 資訊 ⋮ 允許受限設定，再回來打開",
+                getString(R.string.toast_try_a11y_first),
                 Toast.LENGTH_LONG
             ).show()
             try {
@@ -34,7 +34,13 @@ class OpenPanelActivity : Activity() {
                 startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             } catch (_: Exception) {}
         }
+        // Note: launched from an app shortcut (e.g. Samsung's edge panel), the home screen is
+        // already behind this activity at launch, so the app that was open is not shown again.
+        // Neither moveTaskToBack(), finishing 1 s later, nor an opaque theme made a difference.
+        // The Quick Settings tile keeps the app that was open; the settings hint points users there.
+        Diagnostics.note(this, "PANEL trampoline done (${intent?.action ?: "tile"})")
         finish()
         overridePendingTransition(0, 0)
     }
 }
+

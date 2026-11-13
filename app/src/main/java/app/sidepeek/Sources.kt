@@ -68,6 +68,7 @@ object Sources {
         val copy = HashSet(pkgs).apply { remove(ctx.packageName) }
         Prefs.sp(ctx).edit().putStringSet(KEY_SELECTED, copy).apply()
         selectedCache = copy
+        MessagesWidget.refresh(ctx)
     }
 
     fun isSelected(ctx: Context, pkg: String) = pkg in selected(ctx)

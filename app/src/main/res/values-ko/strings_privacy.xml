@@ -3,7 +3,7 @@
 <resources>
     <string name="privacy_title">개인정보처리방침</string>
     <string name="privacy_heading">Sidepeek 개인정보처리방침</string>
-    <string name="privacy_updated">최종 수정일: 2026년 10월 29일</string>
+    <string name="privacy_updated">최종 수정일: 2026년 11월 14일</string>
     <string name="privacy_topic">개인정보 관련 문의</string>
     <string-array name="privacy_intro">
         <item>Sidepeek(이하 “이 앱”)은 개인이 개발한 비공식 Android 앱으로, LINE 및 LY Corporation과 관련이 없습니다. 이 앱은 휴대폰의 알림을 읽어 LINE 등 채팅 앱의 메시지를 알림과 사이드 패널로 정리합니다. 이 방침은 이 앱이 어떤 데이터를 읽고, 어떻게 쓰며, 어디에 저장하는지 설명합니다.</item>
@@ -26,7 +26,7 @@
         <item>2. 네트워크 연결</item>
         <item>• LINE 스티커 다운로드: 알림에 있는 스티커 번호로 LINE의 공개 스티커 서버(stickershop.line-scdn.net 등 LINE 자체 도메인)에서 스티커 이미지를 내려받습니다. LINE 도메인이 아닌 주소에는 연결하지 않으며, 메시지에 웹 주소가 있다고 자동으로 연결하지도 않습니다. 메시지 내용이나 계정 정보는 보내지 않습니다. LINE 서버는 사용자의 IP 주소를 볼 수 있으며, LINE의 개인정보처리방침에 따라 처리됩니다.</item>
         <item>• 사이드 패널의 웹 주소 버튼을 누르면 휴대폰의 브라우저로 그 주소를 엽니다.</item>
-        <item>• 업데이트 확인: 이 앱을 열 때 하루에 한 번까지 GitHub(api.github.com)에 새 버전이 있는지 묻습니다. 일반적인 네트워크 요청이며 사용자의 데이터는 보내지 않습니다. 설정에서 “새 버전 자동 확인”을 끌 수 있습니다.</item>
+        <item>• 업데이트 확인(GitHub에서 내려받은 버전만): 이 앱을 열 때 하루에 한 번까지 GitHub(api.github.com)에 새 버전이 있는지 묻습니다. 일반적인 네트워크 요청이며 사용자의 데이터는 보내지 않습니다. “설정 → 업데이트 확인”에서 끌 수 있습니다. Google Play에서 설치한 버전은 이렇게 하지 않으며, 업데이트는 Play 스토어가 처리합니다.</item>
     </string-array>
     <string-array name="privacy_section_3">
         <item>3. 수집하지 않는 데이터</item>
@@ -45,7 +45,7 @@
         <item>• 사용 정보 접근(선택): 지금 앞에 있는 앱을 판단해 Peek 바를 표시할지 정합니다.</item>
         <item>• 설치된 앱 조회: 사이드 패널에 모을 앱을 고를 수 있게 하며, 목록은 휴대폰 안에서만 씁니다.</item>
         <item>• 배터리 최적화 해제, 부팅 후 자동 시작, 포그라운드 서비스: 시스템이 앱을 종료해 메시지를 놓치는 것을 막습니다.</item>
-        <item>• 인터넷: LINE 스티커 이미지 다운로드와 업데이트 확인.</item>
+        <item>• 인터넷: LINE 스티커 이미지 다운로드와 업데이트 확인(GitHub 버전만).</item>
         <item>• 진동: 알림.</item>
     </string-array>
     <string-array name="privacy_section_5">

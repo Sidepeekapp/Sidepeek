@@ -5,13 +5,16 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## ⭐ 目前進度（2026-11-13 交接，先讀這段）
 
-**狀態**：分支 `feature/v1.2-reliability-widget`，下面「下一版」那一大段的改動**全部還沒 commit、沒 push**（約 30 個修改檔、60 個新檔、3 個刪除）。版本號還是 1.1.1／versionCode 13，升 1.2.0／14 還沒得到使用者同意。改動前的備份都在 repo 外的 `D:\projects\sidepeek-backups\<名稱>-日期\`。
+**狀態**：分支 `feature/v1.2-reliability-widget`，下面「下一版」那一大段的改動已 commit 成 `54a5874`（本機），**還沒 push**；之後的改動（語言頁提示、github／play flavor、Play 版關掉檢查更新）還沒 commit。版本號還是 1.1.1／versionCode 13，升 1.2.0／14 還沒得到使用者同意。改動前的備份都在 repo 外的 `D:\projects\sidepeek-backups\<名稱>-日期\`。
 
 **等使用者回覆／決定的事**
 1. 新的通透液態玻璃分頁列（`GlassTabBar`）在手機上是否 OK、跟使用者的 Launcher 比夠不夠像；字看不清楚的話可加陰影。
 2. 「Peek 條樣式」頁的手機＋放大鏡預覽（`SettingPreview`）是否 OK。
-3. 語言頁那句「操作示範影片和部分示意圖目前只有中文」（`lang_hint`）：示意圖都已改成程式畫的多語言版，這句至少要改；選項是①把設定精靈的示範影片（`res/raw/guide_*.mp4`）也做成多語言再拿掉②只寫影片③直接拿掉。
-4. Google Play 上架：使用者正在註冊 Play Console 個人帳號（非交易商、開發者名稱用 Sidepeek）。之後可以做：檢查會被退件的權限（無障礙非輔助用途聲明、查詢已安裝 App、電池不受限制、前景服務）、四語商店文字、無障礙聲明與資料安全表單草稿、打包 .aab（Play App Signing 建議上傳現有金鑰，GitHub 版才能直接更新）。新個人帳號要先 12 人封閉測試 14 天。
+3. ~~語言頁提示~~ 已改（11/13，未實機看過）：`lang_hint` 只寫「設定步驟裡的操作示範影片目前只有中文」（四語）。之後若把 `res/raw/guide_*.mp4` 做成多語言，就把這句和 activity_main.xml 那個 TextView 一起拿掉。備份在 `D:\projects\sidepeek-backups\before-lang-hint-20261113\`。
+4. Google Play 上架：使用者正在註冊 Play Console 個人帳號（非交易商、開發者名稱用 Sidepeek）。新個人帳號要先 12 人封閉測試 14 天。Play App Signing 建議上傳現有金鑰，GitHub 版才能直接更新。
+   - **11/13 權限檢查結果**：①`UpdateChecker`（提示去 GitHub 下載 APK）可能違反「只能經 Play 更新」→ **已改（11/14，做法 A）**：`BuildConfig.SELF_UPDATE_CHECK`（github true／play false），`UpdateChecker.enabled()` 在 Play 版永遠 false（不連 GitHub、首頁不出現「前往下載新版」）；設定清單 `settingsItems` 濾掉 `cardOther`「檢查更新」，`setupSettingsPages` 把卡片設 GONE。使用者知道別的 App 用 Google In-App Updates，選擇先不加（做法 B 以後再說）。隱私權政策（四語 `strings_privacy.xml`、`docs/privacy.md`）改成「只有從 GitHub 下載的版本會查詢，Play 版由商店更新」，順便修正關閉位置為「設定 → 檢查更新」，最後更新日改 2026/11/14；網站要 push 後才會更新。備份在 `D:\projects\sidepeek-backups\before-play-update-off-20261114\`。②電池直接請求 → **已改**（見下）。③無障礙要填聲明＋影片（揭露畫面 → 同意 → 不同意與如何再叫出 → 核心功能）；要先解釋 `flagRequestFilterKeyEvents` 只攔返回鍵、`canRetrieveWindowContent` 只為進階清理讀 LINE 聊天室名稱和判斷前景。④`EdgePanelService` specialUse 前景服務要填聲明＋影片，保留（不想開無障礙的替代方案）。⑤沒問題：`<queries>` LAUNCHER（不是 QUERY_ALL_PACKAGES）、使用情況、上層顯示、targetSdk 36；資料安全可填「不收集、不分享」（要隱私權政策網址）；商店標題和圖示不能用 LINE。
+   - **github／play 兩個 flavor（11/13，未實機測試）**：`app/build.gradle.kts` 加 `store` 維度。`BuildConfig.DIRECT_BATTERY_REQUEST`：github＝true（照舊直接跳系統視窗），play＝false（`MainActivity.requestBatteryExemption` 打開 App 資訊頁＋Toast `toast_battery_app_info`「在這頁點「電池」，選「不受限制」」）。`src/play/AndroidManifest.xml` 用 `tools:node="remove"` 拿掉 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`（合併後 manifest 已確認）。CI（build.yml）改成 `testGithubDebugUnitTest`、`assembleGithubRelease`、`apk/github/release/`、`app-github-release-unsigned.apk`，還沒在 GitHub 上跑過。README 的建置指令（`assembleDebug`／`bundleRelease`／`assembleRelease` 現在會兩個 flavor 都編）還沒改。之後 Play 版要關的東西（例如 UpdateChecker）照這個模式加 buildConfigField。備份在 `D:\projects\sidepeek-backups\before-play-battery-20261113\`。
+   - 還可以做：四語商店文字、無障礙／前景服務／資料安全聲明草稿、影片拍攝步驟。
 5. LINE 未接來電轉發（語音、視訊）還沒實機驗證；回覆測試者 Alina 的信由使用者自己寄。
 6. 網站、README 還沒同步多語言、常見問題新內容。
 
@@ -23,7 +26,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 - 不用 LINE 綠 #06C755 或 LINE 對話框造型；品牌綠 #16A34A。用詞「Peek 條」「側邊欄」。
 - 簽章密碼由使用者自己填進 `keystore.properties`，不要印出、寫進 commit 或傳出去。
 - 不用 python；用 node、sed 或編輯工具。改動前先備份到 `D:\projects\sidepeek-backups\`。
-- 不代寄信，只給草稿。改完要建置並把 APK 傳給使用者測（`./gradlew assembleDebug`）。
+- 不代寄信，只給草稿。改完要建置並把 APK 傳給使用者測（`./gradlew assembleGithubDebug`；要測 Play 版行為用 `assemblePlayDebug`）。
 - 使用者的手機：Samsung SM-S9480、One UI、Android 17。
 
 **多語言注意**：字串在 `values/`（英文預設）、`values-zh-rTW/`（不能用 `values-zh`，繁中手機會退回英文）、`values-ja/`、`values-ko/`，各四個 `strings*.xml`。新增文字要四種語言都加，`node tools/i18n-check.js` 檢查是否齊全。
@@ -31,9 +34,9 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 ## 基本
 - 套件名 `app.sidepeek`，minSdk 26，compileSdk/targetSdk 36，AGP 8.11.2、Gradle 8.13、Kotlin 1.9.24。
 - 版本名稱跟著發布版本走（目前 1.1.1，前一版 1.1.0）；versionCode 目前 13，每次發新版都要遞增。發版時 Run workflow 填的版本號要和 versionName 一致。
-- 正式版：根目錄放 `keystore.properties`（不進版控，簽章金鑰在使用者手上）→ `./gradlew :app:assembleRelease` / `:app:bundleRelease`。R8 開啟。
+- 正式版：根目錄放 `keystore.properties`（不進版控，簽章金鑰在使用者手上）→ `./gradlew :app:assembleGithubRelease`（GitHub 用 APK）／ `:app:bundlePlayRelease`（Play 上架 .aab）。R8 開啟。
 - 聯絡信箱 sidepeek.app@gmail.com（App 內「意見回饋」會自動帶手機資訊）。
-- 測試：`./gradlew :app:testDebugUnitTest`（LinkExtractorTest、ProfileLinksTest、ConversationTitlesTest、UpdateCheckerTest）。
+- 測試：`./gradlew :app:testGithubDebugUnitTest`（LinkExtractorTest、ProfileLinksTest、ConversationTitlesTest、UpdateCheckerTest）。
 
 ## 主要檔案
 - `LineListenerService.kt`：讀通知、去重、LINE 接管（重發整理後通知並隱藏原通知）。
@@ -115,7 +118,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 ## 10/28 v1.0.5（versionCode 12）
 - Peek 條不透明度最低改成 0%（`Prefs.OPACITY_MIN`）：看不到、截圖不會拍到，但視窗仍可觸控，往內滑照樣打開；按下時 bar 會短暫變不透明當回饋。
   Android 沒有讓 overlay 只在截圖時隱藏的 API（FLAG_SECURE 會變黑塊或擋截圖、截圖偵測只限 Activity 且是事後通知），所以用 0% 解決。
-- 本機可直接編簽好的正式版（不必等 CI）：根目錄 `keystore.properties` + `sidepeek-release.jks`，`./gradlew :app:testDebugUnitTest :app:assembleRelease`。
+- 本機可直接編簽好的正式版（不必等 CI）：根目錄 `keystore.properties` + `sidepeek-release.jks`，`./gradlew :app:testGithubDebugUnitTest :app:assembleGithubRelease`。
 - 側邊欄列表原本只建最新 50 則（標題卻顯示全部則數）：改成開啟時 50 則（`LIST_PAGE`），捲到離底部約一個畫面時
   `loadMoreMessages()` 往後接 50 則，底部另有「再載入 N 則」可點；新訊息觸發的 refreshList 保留已載入數量。
   「清除」的飛出動畫最多錯開 15 張（`CLEAR_STAGGER_MAX`），其餘一起飛出。

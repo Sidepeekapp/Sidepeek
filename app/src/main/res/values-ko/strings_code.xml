@@ -202,6 +202,7 @@
     <string name="toast_open_line_notif">직접 열어 주세요: 설정 → 애플리케이션 → LINE → 알림</string>
     <string name="toast_open_battery">직접 열어 주세요: 설정 → 애플리케이션 → Sidepeek → 배터리</string>
     <string name="toast_battery_ok">배터리가 이미 “제한 없음”입니다</string>
+    <string name="toast_battery_app_info">이 화면에서 “배터리”를 누르고 “제한 없음”을 선택하세요.</string>
     <string name="diag_subject">Sidepeek 진단 기록</string>
     <string name="diag_share">진단 기록 공유</string>
     <string name="toast_export_failed">내보내지 못했습니다: %1$s</string>
@@ -342,5 +343,5 @@
     <!-- 언어 -->
     <string name="set_language">언어</string>
     <string name="lang_system">휴대폰 언어 따르기</string>
-    <string name="lang_hint">사용 방법 데모 영상과 일부 설명 그림은 아직 중국어로만 되어 있습니다.</string>
+    <string name="lang_hint">설정 단계의 데모 영상은 아직 중국어로만 되어 있습니다.</string>
 </resources>

@@ -474,7 +474,7 @@ class MainActivity : AppCompatActivity() {
         SettingsItem(R.id.cardLanguage, R.id.hdrLanguage, R.id.grpLanguage, getString(R.string.set_language), R.drawable.ic_set_language, getString(R.string.grp_other)) {
             checkedText(R.id.rgLanguage) ?: ""
         },
-    ) }
+    ).filter { BuildConfig.SELF_UPDATE_CHECK || it.cardId != R.id.cardOther } }  // Play 版沒有「檢查更新」
 
     /**
      * 語言：跟著系統，或指定 App 自己的語言。AppCompat 會記住選擇並重建畫面（Android 13 以上
@@ -497,6 +497,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSettingsPages(saved: Bundle?) {
+        // Play 版不在 settingsItems 裡，清單和子頁面都不會碰它，所以這裡直接藏起來。
+        if (!BuildConfig.SELF_UPDATE_CHECK) findViewById<View>(R.id.cardOther).visibility = View.GONE
         onBackPressedDispatcher.addCallback(this, settingsBack)
         // Keep the open page's preview sized to the screen (insets, tab bar, text changes).
         findViewById<ScrollView>(R.id.scroll).viewTreeObserver.addOnGlobalLayoutListener { fitSettingsPreview() }
@@ -1778,6 +1780,14 @@ class MainActivity : AppCompatActivity() {
         if (pm.isIgnoringBatteryOptimizations(packageName)) {
             Toast.makeText(this, getString(R.string.toast_battery_ok), Toast.LENGTH_SHORT).show()
             safeStart(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            return
+        }
+        if (!BuildConfig.DIRECT_BATTERY_REQUEST) {
+            // Play 版：沒有 REQUEST_IGNORE_BATTERY_OPTIMIZATIONS，帶到 App 資訊頁讓使用者自己選。
+            // Android 12 以上（含 One UI）「電池 → 不受限制」同時把 App 加進電池最佳化例外。
+            val ok = safeStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+            if (ok) Toast.makeText(this, getString(R.string.toast_battery_app_info), Toast.LENGTH_LONG).show()
+            else safeStart(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
             return
         }
         val ok = safeStart(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))

@@ -43,7 +43,8 @@ object UpdateChecker {
         (u.tag.isNotBlank() && compareVersions(u.tag, BuildConfig.VERSION_NAME) > 0) ||
             u.build > BuildConfig.VERSION_CODE
 
-    fun enabled(ctx: Context) = Prefs.sp(ctx).getBoolean(KEY_ENABLED, true)
+    /** Play 版（SELF_UPDATE_CHECK=false）一律關閉：不連 GitHub、不提示下載。 */
+    fun enabled(ctx: Context) = BuildConfig.SELF_UPDATE_CHECK && Prefs.sp(ctx).getBoolean(KEY_ENABLED, true)
 
     /** The newer release found by the last check, or null if we are up to date. */
     fun available(ctx: Context): Update? {

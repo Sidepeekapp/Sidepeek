@@ -3,7 +3,7 @@
 <resources>
     <string name="privacy_title">プライバシーポリシー</string>
     <string name="privacy_heading">Sidepeek プライバシーポリシー</string>
-    <string name="privacy_updated">最終更新日：2026年10月29日</string>
+    <string name="privacy_updated">最終更新日：2026年11月14日</string>
     <string name="privacy_topic">プライバシーに関するお問い合わせ</string>
     <string-array name="privacy_intro">
         <item>Sidepeek（以下「本アプリ」）は個人が開発した非公式の Android アプリで、LINE および LY Corporation とは関係ありません。本アプリは端末上の通知を読み取り、LINE などのチャットアプリのメッセージを通知とサイドパネルに整理します。このポリシーでは、本アプリが読み取るデータ、その使い方、保存場所を説明します。</item>
@@ -26,7 +26,7 @@
         <item>2. ネットワーク接続</item>
         <item>• LINE スタンプのダウンロード：通知にあるスタンプ番号をもとに、LINE が公開しているスタンプサーバー（stickershop.line-scdn.net など LINE 自身のドメイン）からスタンプ画像をダウンロードします。LINE 以外のドメインには接続せず、メッセージに URL があるだけで自動的に接続することもありません。メッセージの内容やアカウント情報は送信しません。LINE のサーバーにはあなたの IP アドレスが伝わり、LINE のプライバシーポリシーに従って扱われます。</item>
         <item>• サイドパネルの URL ボタンをタップすると、端末のブラウザでその URL を開きます。</item>
-        <item>• アップデートの確認：本アプリを開いたとき、1 日 1 回まで GitHub（api.github.com）に新しいバージョンがあるか問い合わせます。通常のネットワークリクエストで、あなたのデータは送信しません。設定で「新しいバージョンを自動で確認」をオフにできます。</item>
+        <item>• アップデートの確認（GitHub からダウンロードした版のみ）：本アプリを開いたとき、1 日 1 回まで GitHub（api.github.com）に新しいバージョンがあるか問い合わせます。通常のネットワークリクエストで、あなたのデータは送信しません。「設定 → アップデートの確認」でオフにできます。Google Play からインストールした版はこれを行わず、更新は Play ストアが行います。</item>
     </string-array>
     <string-array name="privacy_section_3">
         <item>3. 収集しないデータ</item>
@@ -45,7 +45,7 @@
         <item>• 使用状況へのアクセス（任意）：前面にあるアプリを判断し、Peekバーを表示するか決めます。</item>
         <item>• インストール済みアプリの参照：サイドパネルに入れるアプリを選べるようにします。一覧は端末内でのみ使います。</item>
         <item>• 電池の最適化の除外、起動時の自動起動、フォアグラウンドサービス：システムに終了されてメッセージを見逃すのを防ぎます。</item>
-        <item>• インターネット：LINE スタンプ画像のダウンロードと、アップデートの確認。</item>
+        <item>• インターネット：LINE スタンプ画像のダウンロードと、アップデートの確認（GitHub 版のみ）。</item>
         <item>• バイブレーション：通知のお知らせ。</item>
     </string-array>
     <string-array name="privacy_section_5">

@@ -202,6 +202,7 @@
     <string name="toast_open_line_notif">Please open it yourself: Settings → Apps → LINE → Notifications</string>
     <string name="toast_open_battery">Please open it yourself: Settings → Apps → Sidepeek → Battery</string>
     <string name="toast_battery_ok">Battery is already Unrestricted</string>
+    <string name="toast_battery_app_info">Tap “Battery” here, then choose “Unrestricted”.</string>
     <string name="diag_subject">Sidepeek diagnostic log</string>
     <string name="diag_share">Share diagnostic log</string>
     <string name="toast_export_failed">Export failed: %1$s</string>
@@ -342,7 +343,7 @@
     <!-- Language -->
     <string name="set_language">Language</string>
     <string name="lang_system">Use phone language</string>
-    <string name="lang_hint">The demo videos and some illustrations are only in Chinese for now.</string>
+    <string name="lang_hint">The demo videos in the setup steps are only in Chinese for now.</string>
     <!-- Language names are written in their own language and not translated -->
     <string name="lang_zh" translatable="false">繁體中文</string>
     <string name="lang_en" translatable="false">English</string>

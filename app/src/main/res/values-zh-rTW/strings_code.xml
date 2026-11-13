@@ -202,6 +202,7 @@
     <string name="toast_open_line_notif">請手動打開：設定 → 應用程式 → LINE → 通知</string>
     <string name="toast_open_battery">請手動打開：設定 → 應用程式 → Sidepeek → 電池</string>
     <string name="toast_battery_ok">電池已經是不受限制了</string>
+    <string name="toast_battery_app_info">在這頁點「電池」，選「不受限制」。</string>
     <string name="diag_subject">Sidepeek 診斷記錄</string>
     <string name="diag_share">分享診斷記錄</string>
     <string name="toast_export_failed">匯出失敗：%1$s</string>
@@ -342,5 +343,5 @@
     <!-- 語言 -->
     <string name="set_language">語言</string>
     <string name="lang_system">跟著手機系統</string>
-    <string name="lang_hint">操作示範影片和部分示意圖目前只有中文。</string>
+    <string name="lang_hint">設定步驟裡的操作示範影片目前只有中文。</string>
 </resources>

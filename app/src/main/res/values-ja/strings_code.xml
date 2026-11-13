@@ -202,6 +202,7 @@
     <string name="toast_open_line_notif">手動で開いてください：設定 → アプリ → LINE → 通知</string>
     <string name="toast_open_battery">手動で開いてください：設定 → アプリ → Sidepeek → バッテリー</string>
     <string name="toast_battery_ok">バッテリーはすでに「制限なし」です</string>
+    <string name="toast_battery_app_info">この画面で「バッテリー」をタップし、「制限なし」を選んでください。</string>
     <string name="diag_subject">Sidepeek 診断ログ</string>
     <string name="diag_share">診断ログを共有</string>
     <string name="toast_export_failed">書き出しに失敗しました：%1$s</string>
@@ -342,5 +343,5 @@
     <!-- 言語 -->
     <string name="set_language">言語</string>
     <string name="lang_system">端末の言語に合わせる</string>
-    <string name="lang_hint">操作のデモ動画と一部の説明図は、今のところ中国語のみです。</string>
+    <string name="lang_hint">設定手順のデモ動画は、今のところ中国語のみです。</string>
 </resources>

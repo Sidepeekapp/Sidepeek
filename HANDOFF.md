@@ -5,7 +5,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## ⭐ 目前進度（2026-11-14 交接，先讀這段）
 
-**狀態**：分支 `feature/v1.2-reliability-widget`，下面「下一版」那一大段的改動已 commit 成 `54a5874`，語言頁提示、github／play flavor、Play 版關掉檢查更新已 commit 成 `ee5a99b`，Play 上架草稿（`store/`）、主題圖片、四種語言的設定示範影片也已 commit；全部都在本機，**還沒 push**。版本號還是 1.1.1／versionCode 13，升 1.2.0／14 還沒得到使用者同意。改動前的備份都在 repo 外的 `D:\projects\sidepeek-backups\<名稱>-日期\`。
+**狀態**：分支 `feature/v1.2-reliability-widget`，下面「下一版」那一大段的改動已 commit 成 `54a5874`，語言頁提示、github／play flavor、Play 版關掉檢查更新已 commit 成 `ee5a99b`，Play 上架草稿（`store/`）、主題圖片、四種語言的設定示範影片也已 commit；11/15 已 push 到 GitHub（同名分支，還沒開 PR）。版本號已升 1.2.0／versionCode 14（11/15 使用者同意），本機打包過簽好名的 `bundlePlayRelease`（.aab）和 `assembleGithubRelease`（APK）。改動前的備份都在 repo 外的 `D:\projects\sidepeek-backups\<名稱>-日期\`。
 
 **等使用者回覆／決定的事**
 1. 新的通透液態玻璃分頁列（`GlassTabBar`）在手機上是否 OK、跟使用者的 Launcher 比夠不夠像；字看不清楚的話可加陰影。

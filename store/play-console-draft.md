@@ -134,6 +134,6 @@ The Peek bar disappears from the screen edge and the user can no longer open the
 
 ## 還沒做
 
-- 四種語言的商店文字已寫在 `play-listing-draft.md`；主題圖片和截圖還沒做。
+- 四種語言的商店文字已寫在 `play-listing-draft.md`；主題圖片在 `feature-graphic/`，手機截圖還沒做。
 - 實際錄影和上傳。
 - 網站 `privacy.html` 要 push 到 main 後才會更新。

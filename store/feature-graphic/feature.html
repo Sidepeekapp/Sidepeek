@@ -1,6 +1,7 @@
 <!doctype html>
 <!--
   Play 商店主題圖片（Feature graphic，1024×500）。
+  呈現兩個主要功能：①通知依聊天室整理（左手機：通知欄）②Peek 條＋側邊欄（右手機）。
   用 Chrome 無頭模式截圖產生四種語言的 PNG：node store/feature-graphic/render.js
   語言用網址 #zh-TW / #en / #ja / #ko 切換。畫面裡的名字、訊息都是假資料。
 -->
@@ -18,46 +19,66 @@
   body[data-lang="ja"]    { font-family: "Segoe UI", "Yu Gothic UI", "Meiryo UI", sans-serif; }
   body[data-lang="ko"]    { font-family: "Segoe UI", "Malgun Gothic", sans-serif; }
 
-  /* 背景的淡圓，增加層次 */
   .glow { position: absolute; border-radius: 50%; background: rgba(255,255,255,.08); }
-  .g1 { width: 520px; height: 520px; right: -120px; top: -180px; }
+  .g1 { width: 560px; height: 560px; right: -140px; top: -200px; }
   .g2 { width: 300px; height: 300px; left: -90px; bottom: -160px; background: rgba(0,0,0,.08); }
 
-  .left { position: absolute; left: 72px; top: 0; bottom: 0; width: 470px;
+  .left { position: absolute; left: 60px; top: 0; bottom: 0; width: 420px;
           display: flex; flex-direction: column; justify-content: center; }
-  .brand { display: flex; align-items: center; gap: 18px; }
-  .brand svg { width: 84px; height: 84px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.22)); }
-  .name { font-size: 58px; font-weight: 700; letter-spacing: -.5px; }
-  .tag { margin-top: 26px; font-size: 31px; font-weight: 600; line-height: 1.35; }
-  .tag span { display: block; }
-  .sub { margin-top: 14px; font-size: 19px; opacity: .88; line-height: 1.4; }
+  .brand { display: flex; align-items: center; gap: 16px; }
+  .brand svg { width: 76px; height: 76px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.22)); }
+  .name { font-size: 54px; font-weight: 700; letter-spacing: -.5px; }
+  .feat { margin-top: 26px; display: flex; flex-direction: column; gap: 12px; }
+  .feat div { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 600; line-height: 1.25; }
+  .feat b { flex: none; width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #15803D;
+            font-size: 19px; display: flex; align-items: center; justify-content: center; }
+  .sub { margin-top: 20px; font-size: 17px; opacity: .88; }
 
-  /* 手機 */
-  .phone { position: absolute; left: 640px; top: 46px; width: 262px; height: 520px;
-           border-radius: 38px; background: #0F172A; padding: 10px; box-sizing: border-box;
-           box-shadow: 0 24px 48px rgba(0,0,0,.30); transform: rotate(4deg); }
-  .screen { position: relative; width: 100%; height: 100%; border-radius: 29px; overflow: hidden;
-            background: linear-gradient(170deg, #E0F2FE 0%, #F1F5F9 55%, #DCFCE7 100%); }
-  .clock { position: absolute; left: 22px; top: 40px; color: #334155; font-size: 40px; font-weight: 300; }
-  .apps { position: absolute; left: 20px; bottom: 34px; display: grid;
-          grid-template-columns: repeat(4, 34px); gap: 14px 16px; }
-  .apps i { width: 34px; height: 34px; border-radius: 10px; background: rgba(51,65,85,.16); display: block; }
+  /* 手機共用 */
+  .phone { position: absolute; top: 40px; width: 236px; height: 500px; border-radius: 36px;
+           background: #0F172A; padding: 9px; box-sizing: border-box; box-shadow: 0 24px 48px rgba(0,0,0,.30); }
+  .screen { position: relative; width: 100%; height: 100%; border-radius: 28px; overflow: hidden; }
+  .badge { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); z-index: 2;
+           width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #15803D;
+           font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+           box-shadow: 0 4px 10px rgba(0,0,0,.2); }
 
-  /* 側邊欄 */
-  .panel { position: absolute; right: 0; top: 72px; width: 196px; bottom: 92px;
-           background: rgba(255,255,255,.97); border-radius: 20px 0 0 20px;
-           box-shadow: -8px 0 22px rgba(15,23,42,.18); padding: 14px 12px 0 14px; box-sizing: border-box; }
-  .panel h4 { margin: 0 0 10px; color: #0F172A; font-size: 13px; font-weight: 700; }
-  .row { display: flex; gap: 9px; align-items: flex-start; margin-bottom: 11px; }
-  .av { flex: none; width: 30px; height: 30px; border-radius: 50%; color: #fff;
-        font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  /* ① 通知欄 */
+  .pA { left: 488px; transform: rotate(-4deg); }
+  .pA .screen { background: #E2E8F0; }
+  .bar { display: flex; justify-content: space-between; padding: 12px 18px 0; color: #334155; font-size: 12px; font-weight: 600; }
+  .qs { display: flex; gap: 9px; padding: 12px 14px 10px; }
+  .qs i { flex: 1; height: 30px; border-radius: 15px; background: rgba(51,65,85,.14); }
+  .qs i:first-child { background: #16A34A; opacity: .85; }
+  .card { margin: 0 9px 8px; background: #fff; border-radius: 16px; padding: 10px 11px; color: #0F172A; }
+  .ch { display: flex; align-items: center; gap: 8px; }
+  .ch .av { width: 26px; height: 26px; font-size: 12px; }
+  .ct { font-size: 12.5px; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tm { font-size: 10px; color: #94A3B8; }
+  .ln { margin: 5px 0 0 34px; font-size: 11px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ln s { text-decoration: none; color: #0F172A; font-weight: 700; margin-right: 4px; }
+
+  /* ② Peek 條＋側邊欄 */
+  .pB { left: 748px; transform: rotate(4deg); }
+  .pB .screen { background: linear-gradient(170deg, #E0F2FE 0%, #F1F5F9 55%, #DCFCE7 100%); }
+  .clock { position: absolute; left: 20px; top: 36px; color: #334155; font-size: 36px; font-weight: 300; }
+  .apps { position: absolute; left: 18px; bottom: 30px; display: grid;
+          grid-template-columns: repeat(4, 32px); gap: 13px 14px; }
+  .apps i { width: 32px; height: 32px; border-radius: 10px; background: rgba(51,65,85,.16); display: block; }
+  .panel { position: absolute; right: 0; top: 66px; width: 176px; bottom: 96px;
+           background: rgba(255,255,255,.97); border-radius: 18px 0 0 18px;
+           box-shadow: -8px 0 22px rgba(15,23,42,.18); padding: 13px 10px 0 12px; box-sizing: border-box; }
+  .panel h4 { margin: 0 0 10px; color: #0F172A; font-size: 12.5px; font-weight: 700; }
+  .row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 10px; }
   .txt { min-width: 0; }
-  .who { color: #0F172A; font-size: 12px; font-weight: 700; }
-  .msg { color: #475569; font-size: 11px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 128px; }
-  /* Peek 條 */
-  .peek { position: absolute; right: 200px; top: 190px; width: 6px; height: 74px; border-radius: 3px;
+  .who { color: #0F172A; font-size: 11.5px; font-weight: 700; }
+  .msg { color: #475569; font-size: 10.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 118px; }
+  .peek { position: absolute; right: 180px; top: 178px; width: 6px; height: 70px; border-radius: 3px;
           background: #16A34A; box-shadow: 0 0 0 3px rgba(22,163,74,.18); }
-  .hint { position: absolute; right: 214px; top: 214px; color: #16A34A; font-size: 22px; font-weight: 700; }
+  .hint { position: absolute; right: 193px; top: 199px; color: #16A34A; font-size: 21px; font-weight: 700; }
+
+  .av { flex: none; width: 28px; height: 28px; border-radius: 50%; color: #fff;
+        font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 </style>
 </head>
 <body>
@@ -78,44 +99,87 @@
     </svg>
     <div class="name">Sidepeek</div>
   </div>
-  <div class="tag"><span id="t1"></span><span id="t2"></span></div>
+  <div class="feat">
+    <div><b>1</b><span id="f1"></span></div>
+    <div><b>2</b><span id="f2"></span></div>
+  </div>
   <div class="sub" id="sub"></div>
 </div>
 
-<div class="phone"><div class="screen">
+<!-- ① 通知依聊天室整理 -->
+<div class="phone pA"><div class="badge">1</div><div class="screen">
+  <div class="bar"><span>9:41</span><span>▾</span></div>
+  <div class="qs"><i></i><i></i><i></i><i></i></div>
+  <div id="cards"></div>
+</div></div>
+
+<!-- ② Peek 條＋側邊欄 -->
+<div class="phone pB"><div class="badge">2</div><div class="screen">
   <div class="clock">9:41</div>
   <div class="apps"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   <div class="peek"></div><div class="hint">‹</div>
-  <div class="panel">
-    <h4 id="ph"></h4>
-    <div id="rows"></div>
-  </div>
+  <div class="panel"><h4 id="ph"></h4><div id="rows"></div></div>
 </div></div>
 
 <script>
 const T = {
-  "zh-TW": { t1: "訊息依聊天室整理", t2: "從邊緣一滑就看到", sub: "全部在手機上處理・不需註冊・沒有廣告", ph: "最近訊息",
+  "zh-TW": { f1: "通知依聊天室整理", f2: "從邊緣一滑看最近訊息", sub: "全部在手機上處理・不需註冊・沒有廣告", ph: "最近訊息", now: "現在",
+    group: "專案", cards: [
+      ["專案", [["Tom", "投影片好了"], ["Ann", "我來訂會議室"], ["Mia", "明天十點開會"]]],
+      ["Ann", [["", "照片我傳到群組了"], ["", "你看一下"]]],
+      ["Tom", [["", "晚上一起吃飯嗎？"]]]],
     rows: [["Tom", "晚上一起吃飯嗎？"], ["Ann", "照片我傳到群組了"], ["專案", "Mia：明天十點開會"], ["Mia", "收到，謝謝！"]] },
-  "en": { t1: "Messages sorted by chat.", t2: "Swipe in from the edge.", sub: "Runs on your phone · No sign-up · No ads", ph: "Recent",
+  "en": { f1: "Notifications sorted by chat", f2: "Swipe in from the edge", sub: "Runs on your phone · No sign-up · No ads", ph: "Recent", now: "now",
+    cards: [
+      ["Project", [["Tom", "Slides are ready"], ["Ann", "I'll book the room"], ["Mia", "Meeting at 10 tomorrow"]]],
+      ["Ann", [["", "Photos are in the group"], ["", "Take a look"]]],
+      ["Tom", [["", "Dinner tonight?"]]]],
     rows: [["Tom", "Dinner tonight?"], ["Ann", "Photos are in the group"], ["Project", "Mia: Meeting at 10"], ["Mia", "Got it, thanks!"]] },
-  "ja": { t1: "メッセージをトークごとに整理", t2: "画面の端からスワイプで確認", sub: "処理はスマホの中だけ・登録不要・広告なし", ph: "最近のメッセージ",
+  "ja": { f1: "通知をトークごとに整理", f2: "画面の端からスワイプで確認", sub: "処理はスマホの中だけ・登録不要・広告なし", ph: "最近のメッセージ", now: "今",
+    cards: [
+      ["プロジェクト", [["Tom", "スライドできたよ"], ["Ann", "会議室とっておくね"], ["Mia", "明日10時に会議"]]],
+      ["Ann", [["", "写真をグループに送ったよ"], ["", "見てみて"]]],
+      ["Tom", [["", "今夜ご飯どう？"]]]],
     rows: [["Tom", "今夜ご飯どう？"], ["Ann", "写真をグループに送ったよ"], ["プロジェクト", "Mia：明日10時に会議"], ["Mia", "了解、ありがとう！"]] },
-  "ko": { t1: "메시지를 채팅방별로 정리", t2: "가장자리에서 밀어 바로 확인", sub: "모든 처리는 휴대폰 안에서 · 가입 없음 · 광고 없음", ph: "최근 메시지",
+  "ko": { f1: "알림을 채팅방별로 정리", f2: "가장자리에서 밀어 바로 확인", sub: "모든 처리는 휴대폰 안에서 · 가입 없음 · 광고 없음", ph: "최근 메시지", now: "지금",
+    cards: [
+      ["프로젝트", [["Tom", "슬라이드 다 했어"], ["Ann", "회의실은 내가 잡을게"], ["Mia", "내일 10시 회의"]]],
+      ["Ann", [["", "사진 그룹에 올렸어"], ["", "한번 봐줘"]]],
+      ["Tom", [["", "오늘 저녁 같이 먹을래?"]]]],
     rows: [["Tom", "오늘 저녁 같이 먹을래?"], ["Ann", "사진 그룹에 올렸어"], ["프로젝트", "Mia: 내일 10시 회의"], ["Mia", "알겠어, 고마워!"]] },
 };
-const COLORS = ["#2563EB", "#DB2777", "#7C3AED", "#EA580C"];
+const COLOR = { Tom: "#2563EB", Ann: "#DB2777", Mia: "#EA580C" };
+const GROUP_COLOR = "#7C3AED";
 const lang = (location.hash.slice(1) || "zh-TW");
 const d = T[lang] || T["zh-TW"];
 document.documentElement.lang = lang;
 document.body.dataset.lang = lang;
-for (const k of ["t1", "t2", "sub", "ph"]) document.getElementById(k).textContent = d[k];
-document.getElementById("rows").innerHTML = d.rows.map(([who, msg], i) =>
-  `<div class="row"><div class="av" style="background:${COLORS[i]}">${who[0]}</div>` +
-  `<div class="txt"><div class="who"></div><div class="msg"></div></div></div>`).join("");
-document.querySelectorAll("#rows .row").forEach((r, i) => {
-  r.querySelector(".who").textContent = d.rows[i][0];
-  r.querySelector(".msg").textContent = d.rows[i][1];
-});
+for (const k of ["f1", "f2", "sub", "ph"]) document.getElementById(k).textContent = d[k];
+
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const avatar = (name) => { const a = el("div", "av", name[0]); a.style.background = COLOR[name] || GROUP_COLOR; return a; };
+
+const cards = document.getElementById("cards");
+for (const [title, lines] of d.cards) {
+  const c = el("div", "card"), h = el("div", "ch");
+  h.append(avatar(title), el("div", "ct", title), el("div", "tm", d.now));
+  c.append(h);
+  for (const [who, msg] of lines) {
+    const l = el("div", "ln");
+    if (who) l.append(el("s", null, who));
+    l.append(document.createTextNode(msg));
+    c.append(l);
+  }
+  cards.append(c);
+}
+
+const rows = document.getElementById("rows");
+for (const [who, msg] of d.rows) {
+  const r = el("div", "row"), t = el("div", "txt");
+  t.append(el("div", "who", who), el("div", "msg", msg));
+  r.append(avatar(who), t);
+  rows.append(r);
+}
 </script>
 </body>
 </html>

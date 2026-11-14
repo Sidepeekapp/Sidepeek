@@ -43,7 +43,7 @@ object Notifier {
             val older = (seq - 1 downTo 0).map { msgChannelId(it) } + OLD_CHANNELS_MSG
             val old = if (nm.getNotificationChannel(id) == null)
                 older.firstNotNullOfOrNull { nm.getNotificationChannel(it) } else null
-            createMsgChannel(nm, id, old)
+            createMsgChannel(ctx, nm, id, old)
             if (old != null) older.forEach { try { nm.deleteNotificationChannel(it) } catch (_: Exception) {} }
         }
         // v2.5: own silent channel for the fallback foreground-service notification. Users can turn
@@ -51,8 +51,8 @@ object Notifier {
         try { nm.deleteNotificationChannel(OLD_CHANNEL_PANEL) } catch (_: Exception) {}
         if (nm.getNotificationChannel(CHANNEL_PANEL) == null) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_PANEL, "側邊欄常駐通知（備用模式，可關閉）", NotificationManager.IMPORTANCE_MIN).apply {
-                    description = "未開啟無障礙服務時，側邊欄需要的常駐通知。關閉此類別即可隱藏，側邊欄仍會運作。"
+                NotificationChannel(CHANNEL_PANEL, ctx.getString(R.string.ch_panel_name), NotificationManager.IMPORTANCE_MIN).apply {
+                    description = ctx.getString(R.string.ch_panel_desc)
                     setShowBadge(false)
                     setSound(null, null)
                     enableVibration(false)
@@ -65,12 +65,12 @@ object Notifier {
 
     /** [old]'s user settings carried over; [sound] replaces its sound when [changeSound]. */
     private fun createMsgChannel(
-        nm: NotificationManager, id: String, old: NotificationChannel?,
+        ctx: Context, nm: NotificationManager, id: String, old: NotificationChannel?,
         changeSound: Boolean = false, sound: android.net.Uri? = null,
     ) {
         nm.createNotificationChannel(
-            NotificationChannel(id, "LINE 訊息預覽", old?.importance ?: NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "每個 LINE 聊天室一則通知，未讀訊息逐行顯示（浮動通知）"
+            NotificationChannel(id, ctx.getString(R.string.ch_msg_name), old?.importance ?: NotificationManager.IMPORTANCE_HIGH).apply {
+                description = ctx.getString(R.string.ch_msg_desc)
                 enableVibration(old?.shouldVibrate() ?: true)
                 vibrationPattern = MSG_VIBRATION
                 setShowBadge(old?.canShowBadge() ?: true)
@@ -100,7 +100,7 @@ object Notifier {
         val seq = sp.getInt(KEY_MSG_CHANNEL_SEQ, 0)
         val old = nm.getNotificationChannel(msgChannelId(seq))
         sp.edit().putInt(KEY_MSG_CHANNEL_SEQ, seq + 1).commit()
-        createMsgChannel(nm, msgChannelId(seq + 1), old, changeSound = true, sound = sound)
+        createMsgChannel(ctx, nm, msgChannelId(seq + 1), old, changeSound = true, sound = sound)
         try { nm.deleteNotificationChannel(msgChannelId(seq)) } catch (_: Exception) {}
         Diagnostics.note(ctx, "SOUND changed -> ${msgChannelId(seq + 1)} silent=${sound == null}")
     }
@@ -176,7 +176,7 @@ object Notifier {
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                 (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
             val pi = PendingIntent.getActivity(ctx, ("link:" + latest.id).hashCode(), view, flags)
-            chosen += NotificationCompat.Action.Builder(0, "開啟連結", pi).build()
+            chosen += NotificationCompat.Action.Builder(0, ctx.getString(R.string.action_open_link), pi).build()
         }
         mark?.let { m ->
             if (chosen.size < 3) {
@@ -291,7 +291,7 @@ object Notifier {
         /** Text for a message line; image-only rows use 「[圖片]」 when not shown as BigPicture. */
         fun textOf(m: LineMessage, bigPictureMode: Boolean): String {
             if (!m.imagePath.isNullOrBlank() && !messaging && !bigPictureMode) {
-                return shown(m).ifBlank { "[圖片]" }
+                return shown(m).ifBlank { ctx.getString(R.string.msg_image_short) }
             }
             return shown(m)
         }
@@ -301,7 +301,7 @@ object Notifier {
             if (!showSender(m)) return t
             val sb = android.text.SpannableStringBuilder()
             sb.append(m.sender, android.text.style.StyleSpan(android.graphics.Typeface.BOLD), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            sb.append("：").append(t)
+            sb.append(ctx.getString(R.string.name_sep)).append(t)
             return sb
         }
 
@@ -320,11 +320,11 @@ object Notifier {
         }
         val title = latest.chatTitle.ifBlank { latest.sender.ifBlank { Sources.displayName(latest.pkg) } }
         val builder = NotificationCompat.Builder(ctx, msgChannel(ctx))
-            .setSmallIcon(R.drawable.ic_stat_msg)
+            .setSmallIcon(NotifIcons.current(ctx))
             .setColor(Sources.forPackage(latest.pkg)?.color ?: 0xFF16A34A.toInt())
             .setContentTitle(title)
             // Collapsed fallback (OEMs that ignore MessagingStyle): show the latest 2 messages.
-            .setContentText(collapsedSummary(unread, isGroupChat))
+            .setContentText(collapsedSummary(ctx, unread, isGroupChat))
             .setWhen(latest.time)
             .setShowWhen(true)
             .setNumber(unread.size)
@@ -383,7 +383,7 @@ object Notifier {
             val style = NotificationCompat.InboxStyle().setBigContentTitle(title)
             shown.forEach { style.addLine(line(it, keepNewlines = false)) }
             val more = unread.size - shown.size
-            if (more > 0) style.setSummaryText("還有 $more 則較早的訊息")
+            if (more > 0) style.setSummaryText(ctx.getString(R.string.notif_more_older, more))
             builder.setStyle(style)
         } else {
             // 完整文字 (default): every message wraps fully, separated by a gap (setting 「訊息之間的間距」).
@@ -400,7 +400,7 @@ object Notifier {
             }
             val older = unread.size - fit
             val big = android.text.SpannableStringBuilder()
-            if (older > 0) { big.append("（還有 $older 則較早的訊息）"); appendGap(big, gap) }
+            if (older > 0) { big.append(ctx.getString(R.string.notif_more_older_paren, older)); appendGap(big, gap) }
             lines.takeLast(fit).forEachIndexed { i, l -> if (i > 0) appendGap(big, gap); big.append(l) }
             builder.setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(title).bigText(big))
         }
@@ -409,10 +409,10 @@ object Notifier {
         builder.setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 NotificationCompat.Builder(ctx, msgChannel(ctx))
-                    .setSmallIcon(R.drawable.ic_stat_msg)
+                    .setSmallIcon(NotifIcons.current(ctx))
                     .setColor(Sources.forPackage(latest.pkg)?.color ?: 0xFF16A34A.toInt())
                     .setContentTitle(Sources.displayName(latest.pkg))
-                    .setContentText("${unread.size} 則新訊息")
+                    .setContentText(ctx.getString(R.string.notif_new_count, unread.size))
                     .setNumber(unread.size)
                     .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                     .build()
@@ -433,7 +433,7 @@ object Notifier {
             // Last-resort plain notification without a fancy style.
             try {
                 val plain = NotificationCompat.Builder(ctx, msgChannel(ctx))
-                    .setSmallIcon(R.drawable.ic_stat_msg)
+                    .setSmallIcon(NotifIcons.current(ctx))
                     .setContentTitle(title)
                     .setContentText(shown(latest))
                     .setStyle(NotificationCompat.BigTextStyle().bigText(shown(latest)))
@@ -451,15 +451,15 @@ object Notifier {
     }
 
     /** Latest 1–2 messages for the collapsed one-line/two-line summary. */
-    private fun collapsedSummary(unread: List<LineMessage>, isGroupChat: Boolean): CharSequence {
+    private fun collapsedSummary(ctx: Context, unread: List<LineMessage>, isGroupChat: Boolean): CharSequence {
         val last = unread.takeLast(2)
         if (last.isEmpty()) return ""
         fun one(m: LineMessage): CharSequence {
-            val t = if (!m.imagePath.isNullOrBlank()) shown(m).ifBlank { "[圖片]" } else shown(m)
+            val t = if (!m.imagePath.isNullOrBlank()) shown(m).ifBlank { ctx.getString(R.string.msg_image_short) } else shown(m)
             if (!(isGroupChat && m.sender.isNotBlank() && m.sender != m.chatTitle)) return t
             val sb = android.text.SpannableStringBuilder()
             sb.append(m.sender, android.text.style.StyleSpan(android.graphics.Typeface.BOLD), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            sb.append("：").append(t)
+            sb.append(ctx.getString(R.string.name_sep)).append(t)
             return sb
         }
         if (last.size == 1) return one(last[0])
@@ -478,13 +478,13 @@ object Notifier {
         ctx: Context, builder: NotificationCompat.Builder, latest: LineMessage, title: String,
         shown: List<LineMessage>, isGroupChat: Boolean,
     ) {
-        val me = androidx.core.app.Person.Builder().setName("我").setKey("me").build()
+        val me = androidx.core.app.Person.Builder().setName(ctx.getString(R.string.msg_me)).setKey("me").build()
         val style = NotificationCompat.MessagingStyle(me).setGroupConversation(isGroupChat)
         if (isGroupChat) style.setConversationTitle(title)
         val people = LinkedHashMap<String, androidx.core.app.Person>()
         var chatPerson: androidx.core.app.Person? = null
         for (m in shown) {
-            val name = (if (isGroupChat) m.sender else m.sender.takeIf { it.isNotBlank() && it != "我" } ?: title).ifBlank { title }
+            val name = (if (isGroupChat) m.sender else m.sender.takeIf { it.isNotBlank() && it != ctx.getString(R.string.msg_me) } ?: title).ifBlank { title }
             val p = people.getOrPut(name) {
                 androidx.core.app.Person.Builder().setName(name).setKey("${m.chatKey}|$name").apply {
                     // Person icon only for group chats; 1:1 relies on shortcut/largeIcon. When
@@ -502,7 +502,7 @@ object Notifier {
             imageUri(ctx, m.imagePath)?.let { uri ->
                 // SystemUI draws only the image of a data message, so its caption needs its own row.
                 val caption = shown(m)
-                if (caption.isNotBlank() && caption != "（圖片）") style.addMessage(caption, m.time, p)
+                if (caption.isNotBlank() && caption != ctx.getString(R.string.msg_image)) style.addMessage(caption, m.time, p)
                 msg.setData(imageMime(m.imagePath!!), uri)
             }
             style.addMessage(msg)
@@ -513,7 +513,8 @@ object Notifier {
                 else MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, latest.chatKey))
                     ?: MessageStore.loadBitmap(latest.avatarPath)
             val id = "chat_" + latest.chatKey.hashCode().toUInt().toString(16)
-            val avatarFile = MessageStore.chatAvatarPath(ctx, latest.chatKey)?.let { java.io.File(it) }
+            val avatarFile = (if (isGroupChat) MessageStore.customGroupPicPath(ctx, latest.chatKey) else null)?.let { java.io.File(it) }
+                ?: MessageStore.chatAvatarPath(ctx, latest.chatKey)?.let { java.io.File(it) }
                 ?: latest.avatarPath?.let { java.io.File(it) }
             val mtime = avatarFile?.takeIf { it.exists() }?.lastModified() ?: 0L
             val snap = ShortcutSnap(title, mtime)
@@ -571,7 +572,8 @@ object Notifier {
      * shown that its large icon follows the sender instead (see GroupPicture).
      */
     private fun groupPicture(ctx: Context, chatKey: String): android.graphics.Bitmap? =
-        if (MessageStore.groupPicture(ctx, chatKey) == GroupPicture.Verdict.SENDER) null
+        MessageStore.loadBitmap(MessageStore.customGroupPicPath(ctx, chatKey))   // the user's choice wins
+        ?: if (MessageStore.groupPicture(ctx, chatKey) == GroupPicture.Verdict.SENDER) null
         else MessageStore.loadBitmap(MessageStore.chatAvatarPath(ctx, chatKey))
 
     /**
@@ -582,10 +584,14 @@ object Notifier {
         return AvatarBadge.bitmap(name.ifBlank { "群" }, AVATAR_PX)
     }
 
+    /** The group picture a LINE group's notification shows (custom, LINE's, or the initial), round. */
+    fun groupAvatar(ctx: Context, chatKey: String, title: String, px: Int = AVATAR_PX): android.graphics.Bitmap =
+        circle(groupPicture(ctx, chatKey) ?: groupIcon(title), px)
+
     private fun isLine(pkg: String): Boolean =
         pkg == LineListenerService.LINE_PKG || pkg == LineListenerService.LINE_LITE_PKG
 
-    private fun circle(src: android.graphics.Bitmap, outPx: Int = AVATAR_PX): android.graphics.Bitmap {
+    fun circle(src: android.graphics.Bitmap, outPx: Int = AVATAR_PX): android.graphics.Bitmap {
         val s = minOf(src.width, src.height)
         val out = android.graphics.Bitmap.createBitmap(outPx, outPx, android.graphics.Bitmap.Config.ARGB_8888)
         val c = android.graphics.Canvas(out)
@@ -597,6 +603,15 @@ object Notifier {
         c.drawBitmap(src, android.graphics.Rect(l, t, l + s, t + s), android.graphics.Rect(0, 0, outPx, outPx), p)
         return out
     }
+
+    /**
+     * The chat's tap target, read back from its notification in the shade. Our in-memory copies of
+     * app PendingIntents are gone after a process restart, but the posted notification keeps one.
+     */
+    fun shownIntent(ctx: Context, chatKey: String): PendingIntent? = try {
+        ctx.getSystemService(android.app.NotificationManager::class.java).activeNotifications
+            .firstOrNull { it.notification.extras.getString(EXTRA_CHAT_KEY) == chatKey }?.notification?.contentIntent
+    } catch (_: Exception) { null }
 
     fun cancelChat(ctx: Context, chatKey: String) {
         NotificationManagerCompat.from(ctx).cancel(notificationIdFor(chatKey))
@@ -636,13 +651,13 @@ object Notifier {
         // A small group chat that shows off what the app does: several senders, a link button,
         // a user name that only looks like a URL (no button), and a long message shown in full.
         // The four names get four different badge colours (AvatarBadge.colorFor).
-        val title = "測試｜週六聚餐"
+        val title = ctx.getString(R.string.test_title)
         val lines = listOf(
-            "家豪" to "這週六聚餐還 OK 嗎？",
-            "怡君" to "OK！餐廳在這 https://example.com/dinner",
-            "思妤" to "我先訂位，6 個人、晚上 6 點半，套餐一人 680 含飲料。我先刷卡，大家再轉給我，帳號晚點貼上來，記得週五前喔",
-            "宗翰" to "甜點可以參考 IG 上 cake.daily 的推薦",
-            "怡君" to "收到 👌",
+            ctx.getString(R.string.test_p1) to ctx.getString(R.string.test_m1),
+            ctx.getString(R.string.test_p2) to ctx.getString(R.string.test_m2),
+            ctx.getString(R.string.test_p3) to ctx.getString(R.string.test_m3),
+            ctx.getString(R.string.test_p4) to ctx.getString(R.string.test_m4),
+            ctx.getString(R.string.test_p2) to ctx.getString(R.string.test_m5),
         )
         var last: LineMessage? = null
         lines.forEachIndexed { i, (who, t) ->

@@ -52,9 +52,11 @@ object MessageStore {
     private val listeners = LinkedHashSet<() -> Unit>()
     private val main = Handler(Looper.getMainLooper())
     private var loaded = false
+    @Volatile private var appCtx: Context? = null
 
     @Synchronized
     fun ensureLoaded(ctx: Context) {
+        if (appCtx == null) appCtx = ctx.applicationContext
         if (loaded) return
         loaded = true
         try {
@@ -134,6 +136,18 @@ object MessageStore {
     fun setGroupPicture(ctx: Context, chatKey: String, v: GroupPicture.Verdict) {
         if (v != GroupPicture.Verdict.UNKNOWN && v != groupPicture(ctx, chatKey)) groupPictures(ctx).edit().putString(chatKey, v.name).apply()
     }
+
+    /** LINE groups: a picture the user chose for this group (side panel long-press), or null. */
+    fun customGroupPicPath(ctx: Context, chatKey: String): String? =
+        File(File(ctx.filesDir, "groupav"), chatKey.hashCode().toUInt().toString() + ".png").takeIf { it.exists() }?.absolutePath
+
+    fun setCustomGroupPic(ctx: Context, chatKey: String, bmp: Bitmap?): Boolean {
+        if (bmp == null) { customGroupPicPath(ctx, chatKey)?.let { File(it).delete() }; return true }
+        return saveBitmap(ctx, "groupav", chatKey.hashCode().toUInt().toString(), bmp, 256) != null
+    }
+
+    /** Settings → 全部恢復預設. */
+    fun clearCustomGroupPics(ctx: Context) { File(ctx.filesDir, "groupav").deleteRecursively() }
 
     fun chatAvatarPath(ctx: Context, chatKey: String): String? =
         File(File(ctx.filesDir, "chatav"), chatKey.hashCode().toUInt().toString() + ".png").takeIf { it.exists() }?.absolutePath
@@ -409,6 +423,7 @@ object MessageStore {
     private fun notifyListeners() {
         val copy = synchronized(listeners) { listeners.toList() }
         main.post { copy.forEach { it() } }
+        appCtx?.let { MessagesWidget.refresh(it) }
     }
 
     /** Save a bitmap (scaled down) into filesDir/<dir>/<name>.png and return its path. */

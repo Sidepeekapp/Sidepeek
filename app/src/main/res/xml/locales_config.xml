@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App 支援的語言（Android 13 以上的「應用程式語言」設定會列出這些）。新增語言時也要加 values-xx 和 MainActivity.setupLanguage 的選項。 -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="zh-TW" />
+    <locale android:name="en" />
+    <locale android:name="ja" />
+    <locale android:name="ko" />
+</locale-config>

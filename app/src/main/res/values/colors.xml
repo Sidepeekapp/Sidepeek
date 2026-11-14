@@ -8,4 +8,12 @@
     <color name="brand_on_accent">#FFFFFF</color>
     <color name="section_text">#15803D</color>
     <color name="brand_tint">#2616A34A</color>
+    <!-- The widget matches the side panel, which is dark in both themes. -->
+    <color name="widget_bg">#F21C1C1E</color>
+    <color name="widget_text">#FFFFFF</color>
+    <color name="widget_text_dim">#8E8E93</color>
+    <color name="widget_sender">#4ADE80</color>
+    <color name="widget_bubble">#2E3136</color>
+    <color name="widget_bubble_text">#F2F2F7</color>
+    <color name="widget_repeat_text">#052E16</color>
 </resources>

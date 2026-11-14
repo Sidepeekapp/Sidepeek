@@ -6,7 +6,6 @@ import android.graphics.Outline
 import android.graphics.SurfaceTexture
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
-import android.net.Uri
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.Surface
@@ -41,7 +40,7 @@ class GuideVideoView @JvmOverloads constructor(
         addView(texture, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         texture.surfaceTextureListener = this
         zoomTag = TextView(ctx).apply {
-            text = "點一下放大"
+            text = context.getString(R.string.video_zoom)
             textSize = 12f
             setTextColor(Color.WHITE)
             background = GradientDrawable().apply { setColor(0xB3000000.toInt()); cornerRadius = 99f * d }
@@ -55,7 +54,7 @@ class GuideVideoView @JvmOverloads constructor(
                 outline.setRoundRect(0, 0, view.width, view.height, 18f * d)
         }
         clipToOutline = true
-        contentDescription = "操作示範影片，點一下放大"
+        contentDescription = context.getString(R.string.video_desc)
         setOnClickListener { if (fullScreen) (parent as? View)?.performClick() else openFullScreen() }
     }
 
@@ -82,7 +81,11 @@ class GuideVideoView @JvmOverloads constructor(
         if (rawRes == 0 || player != null || !isAttachedToWindow) return
         try {
             player = MediaPlayer().apply {
-                setDataSource(context, Uri.parse("android.resource://${context.packageName}/$rawRes"))
+                // 經由這個 View 的 resources 開檔，才會照 App 內選的語言挑 raw-en／raw-ja／raw-ko 的影片
+                // （android.resource:// 網址可能只看系統語言）。
+                context.resources.openRawResourceFd(rawRes).use { fd ->
+                    setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
+                }
                 setSurface(s)
                 isLooping = true
                 setVolume(0f, 0f)
@@ -139,7 +142,7 @@ class GuideVideoView @JvmOverloads constructor(
             setMargins((16 * d).toInt(), (88 * d).toInt(), (16 * d).toInt(), (56 * d).toInt())
         })
         box.addView(TextView(context).apply {
-            text = "點任意處關閉"; setTextColor(0xCCFFFFFF.toInt()); textSize = 14f
+            text = context.getString(R.string.video_close); setTextColor(0xCCFFFFFF.toInt()); textSize = 14f
         }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = (52 * d).toInt() })
         var back: androidx.activity.OnBackPressedCallback? = null

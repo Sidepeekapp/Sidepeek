@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 日本語 -->
+<resources>
+    <string name="shortcut_open_panel">サイドパネルを開く</string>
+    <string name="widget_name">最近のメッセージ</string>
+    <string name="widget_description">サイドパネルと同じメッセージをホーム画面に表示</string>
+    <string name="widget_empty">メッセージはまだありません。\nLINE、Messenger、Instagram などのメッセージがここに表示されます。</string>
+    <string name="a11y_label">Sidepeek サイドパネル</string>
+    <string name="a11y_summary">常駐通知なしでメッセージのサイドパネルを表示します</string>
+    <string name="a11y_description">このユーザー補助サービスは次の目的にのみ使います：\n1. 画面の端に Peekバー（小さなつまみ）とサイドパネルを表示する（常駐通知も、システムの「他のアプリの上に表示中」通知も出ません）\n2. ホーム画面にいるかどうかを判断する（「ホーム画面でのみ表示」のため）\n3. キーボードが開いているかを判断し、Peekバーを一時的に隠す\n4. サイドパネルが開いているときに「戻る」キーを受け取って閉じる\n5. LINE を開いたときに、Sidepeek が整理した LINE の通知を消す\n\nこのサービスは初期設定では「どのアプリのウィンドウが前面にあるか」「キーボードのウィンドウがあるか」とキー操作だけを確認し、画面上の文字や内容を読み取り・保存・送信することはなく、代わりにタップや操作をすることもありません。アプリで「高度なクリア」を別途オンにした場合（初期設定はオフ。オンにするときに同意を求めます）に限り、LINE 画面上部のトーク名を読み取り、端末内で照合するだけで、保存やアップロードはしません。</string>
+
+    <!-- 設定画面のデモアニメーション（StepDemoView）。トーク名・人名・メッセージはサンプルです。 -->
+    <string name="demo_clock">1:24</string>
+    <string name="demo_date">11月8日(土)</string>
+    <string name="demo_time1">午後1:22</string>
+    <string name="demo_time2">午後1:20</string>
+    <string name="demo_time3">午後1:15</string>
+    <string name="demo_chat1_av">食</string>
+    <string name="demo_chat1_name">土曜の食事会</string>
+    <string name="demo_chat1_line">優子：了解 👌</string>
+    <string name="demo_chat2_av">美</string>
+    <string name="demo_chat2_name">美咲</string>
+    <string name="demo_chat2_line">明日何時に出発する？</string>
+    <string name="demo_chat3_av">読</string>
+    <string name="demo_chat3_name">読書会</string>
+    <string name="demo_chat3_line">健太：資料をクラウドに上げたよ</string>
+    <string name="demo_bubble_sender">優子</string>
+    <string name="demo_bubble1">6時に駅でね</string>
+    <string name="demo_bubble_me">OK、土曜日にね！</string>
+    <string name="demo_chats">トーク</string>
+    <string name="demo_no_notifs">通知はありません</string>
+    <string name="demo_step_off">（オフ）</string>
+    <string name="demo_app_photos">フォト</string>
+    <string name="demo_app_info">アプリ情報</string>
+    <string name="demo_wallpaper">壁紙</string>
+    <string name="demo_widgets">ウィジェット</string>
+    <string name="demo_home_settings">設定</string>
+    <string name="demo_unlock">ロックを解除してください</string>
+    <string name="demo_typing">もうすぐ着く</string>
+    <string name="clear_step1_title">通知からトークを開く</string>
+    <string name="clear_step1_sub">そのトークだけ消えます。常にオン。</string>
+    <string name="clear_step1_pill">開いたトークの通知だけ消える</string>
+    <string name="clear_step2_title">LINE を直接開く</string>
+    <string name="clear_step2_sub">戻ると、整理した LINE の通知がすべて消えます。</string>
+    <string name="clear_step2_pill">通知欄はすっきり、メッセージは残る</string>
+    <string name="clear_step3_title">高度なクリア</string>
+    <string name="clear_step3_sub">上部のトーク名だけを読み取り、そのトークだけ消します。</string>
+    <string name="clear_step3_pill">読んだトークの通知だけ消える</string>
+    <string name="open_step1_title">クイック設定</string>
+    <string name="open_step1_sub">クイック設定を下ろして Sidepeek のタイルをタップ。</string>
+    <string name="open_step1_pill">使っているアプリを離れずに開ける</string>
+    <string name="open_step2_title">アプリのショートカット</string>
+    <string name="open_step2_sub">Sidepeek のアイコンを長押しし、「サイドパネルを開く」をホーム画面へドラッグ。</string>
+    <string name="open_step2_pill">ホーム画面からワンタップ</string>
+    <string name="open_step3_title">ホーム画面のウィジェット</string>
+    <string name="open_step3_sub">ホーム画面の空いている所を長押し → ウィジェット → Sidepeek。</string>
+    <string name="open_step3_pill">パネルを開かなくてもメッセージが見える</string>
+    <string name="when_step1_title">ホーム画面でのみ表示</string>
+    <string name="when_step1_sub">ほかのアプリを開くと Peekバーが隠れます。</string>
+    <string name="when_step1_pill_on">アプリを開くと Peekバーが隠れた</string>
+    <string name="when_step1_pill_off">ほかのアプリでも Peekバーが見える</string>
+    <string name="when_step2_title">入力中は隠す</string>
+    <string name="when_step2_sub">キーボードが開くとフェードアウトし、閉じると戻ります。</string>
+    <string name="when_step2_pill_on">入力のじゃまにならない</string>
+    <string name="when_step2_pill_off">入力中も Peekバーが表示される</string>
+    <string name="when_step3_title">ロック画面にも表示</string>
+    <string name="when_step3_sub">内側へスワイプするとまずロック解除を求め、内容は表示しません。</string>
+    <string name="when_step3_pill_on">ロックを解除しないと見えない</string>
+    <string name="when_step3_pill_off">ロック画面に Peekバーは出ない</string>
+
+    <!-- 首頁「怎麼用」三格說明圖（StepsOverviewDrawable）；群組、人名、訊息是示範資料 -->
+    <string name="how_step1_title">会話にまとめる</string>
+    <string name="how_step1_sub">トークごとに\n通知は1つだけ</string>
+    <string name="how_step2_title">Peekバー</string>
+    <string name="how_step2_sub">端の半透明のバー\n画面のじゃまをしない</string>
+    <string name="how_step3_title">スワイプで見る</string>
+    <string name="how_step3_sub">Peekバーから内側へ\nスワイプして開く</string>
+    <string name="how_group">プロジェクト</string>
+    <string name="how_group_av">プ</string>
+    <string name="how_time">21:05</string>
+    <string name="how_m1_sender">翔太</string>
+    <string name="how_m1">レポートできた？</string>
+    <string name="how_m2_sender">花子</string>
+    <string name="how_m2">あとで送るね</string>
+    <string name="how_m3_sender">美紀</string>
+    <string name="how_m3">了解</string>
+    <string name="how_avatars">プ,母,花,美,公</string>
+
+    <!-- 首頁動畫的結果膠囊；「認識 Sidepeek」比較圖（EdgeHandlesDrawable）；精靈「打開側邊欄」圖（SidebarStepDrawable） -->
+    <string name="how_pill1">トークごとに通知は1つ</string>
+    <string name="how_pill2">画面のじゃまをしない</string>
+    <string name="how_pill3">内側へスワイプで開く</string>
+    <string name="edge_samsung_title">Galaxy のエッジパネル</string>
+    <string name="edge_samsung_sub">システムとアプリのショートカット</string>
+    <string name="edge_peek_title">Sidepeek の Peekバー</string>
+    <string name="edge_peek_sub">よく使うアプリのメッセージ</string>
+    <string name="edge_note">別々なので位置をずらせます</string>
+    <string name="side_clock">21:06</string>
+    <string name="side_title">Peekバーから\n内側へスワイプ</string>
+    <string name="side_sub">サイドパネルが端から出てきます</string>
+    <string name="side_c2_av">母</string>
+    <string name="side_c2_name">お母さん</string>
+    <string name="side_c2_time">20:48</string>
+    <string name="side_c2_msg">今夜ごはん食べる？</string>
+    <string name="side_c3_av">花</string>
+    <string name="side_c3_name">花子</string>
+    <string name="side_c3_time">20:30</string>
+    <string name="side_c3_msg">このお店よさそう shop.example</string>
+</resources>

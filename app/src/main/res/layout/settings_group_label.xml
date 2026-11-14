@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 設定清單的分組標題（通知／側邊欄／其他），由 MainActivity.setupSettingsPages() 加入 -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/GroupLabel" />

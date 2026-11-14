@@ -88,7 +88,7 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
 .fp::before, .fp::after { content: ""; position: absolute; border: 2.5px solid var(--blue-ink); border-radius: 50%; }
 .fp::before { inset: 10px; } .fp::after { inset: 20px; }
 .toast { left: 50%; bottom: 96px; transform: translateX(-50%); background: #3a3a3d; color: #fff; font-size: 13.5px; padding: 10px 18px; border-radius: 20px;
-  white-space: nowrap; z-index: 9; }
+  width: max-content; max-width: 270px; text-align: center; line-height: 1.35; z-index: 9; }
 .perm .item { display: grid; grid-template-columns: 26px 1fr; gap: 10px; margin-top: 14px; text-align: left; }
 .perm .item i { width: 22px; height: 22px; border-radius: 50%; background: rgba(127,176,255,.18); position: relative; margin-top: 2px; }
 .perm .item i::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--blue-ink); }
@@ -96,6 +96,14 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
 .finger { width: 46px; height: 46px; border-radius: 50%; z-index: 10; pointer-events: none;
   background: rgba(255,255,255,.22); border: 3px solid var(--brand-soft); box-sizing: border-box; box-shadow: 0 0 0 6px rgba(74,222,128,.18); }
 .home { left: 50%; bottom: 8px; width: 120px; height: 4px; border-radius: 2px; background: #8d8d92; transform: translateX(-50%); z-index: 6; }
+/* 其他語言的字型（錄影在 Windows 上做，用系統內建字型） */
+html[lang="en"] { --sans: "Segoe UI", Roboto, system-ui, sans-serif; }
+html[lang="ja"] { --sans: "Yu Gothic UI", "Meiryo UI", "Noto Sans JP", system-ui, sans-serif; }
+html[lang="ko"] { --sans: "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif; }
+html[lang="ko"] .stage { word-break: keep-all; }
+/* 長字串：標題列和說明列都保持一行，放不下就縮小字（fitText） */
+.bar b { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; }
+.cap .t { white-space: nowrap; }
 </style>
 
 <div class="head">
@@ -105,7 +113,166 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
 <div class="grid" id="grid"></div>
 
 <script>
+// ---- 文字（語言用網址 #zh-TW / #en / #ja / #ko 切換，預設繁中）
+// 系統畫面的字照各語言 One UI／原生 Android 的用詞；en/ja/ko 是依記憶寫的，要用實機截圖核對。
+// 標題列（cap）是 Sidepeek 自己的說明，可以自由改寫。
+window.GUIDE_TEXT = {
+  "zh-TW": {
+    step: (n) => `第 ${n} 步`,
+    a11y: "協助工具", oneuiNew: "One UI 9 最新功能", talkback: "TalkBack", vision: "視覺輔助", hearing: "聽力輔助", interaction: "互動與敏銳度",
+    a11yShortcut: "協助工具捷徑", installed: "已安裝的應用程式", appsCount: "3 個應用程式", aboutA11y: "關於協助工具", contactUs: "與我們聯絡",
+    svc: "Sidepeek 側邊欄", off: "關", on: "開",  offShort: "關",
+    naTitle: "通知存取", naDesc: "",
+    naQ: "允許 Sidepeek 存取通知？",
+    naBody1: "Sidepeek 將可讀取所有通知，包含聯絡人姓名與收到的訊息內容等個人資訊。此應用程式也能將通知延遲或關閉或針對通知內容採取行動，包含接聽來電。",
+    naBody2: "此設定可供應用程式開啟或關閉 [請勿打擾] 功能與變更相關設定。",
+    deny: "拒絕", allow: "允許",
+    cap1: ["往下找到 Sidepeek，打開開關", "按「允許」", "開好了，回到 Sidepeek"],
+    rTitle: "閱讀、回覆及控制通知", rAllowed: "允許", rNotAllowed: "不允許", rGrant: "授予通知存取權", rControlled: "由受限制的設定控管",
+    rTypes: "允許的通知類型", rTypeList: ["即時", "對話", "通知", "靜音"],
+    rAppInfo: "應用程式資訊", rOpen: "開啟", rUninstall: "解除安裝", rForceStop: "強制停止",
+    rNotif: "通知", rNotifOff: "關閉", rPerms: "權限", rNoPerms: "未取得任何授權", rBatt: "應用程式電池用量", rBattSub: "自上次充電完成後使用了 0%",
+    deniedTitle: "應用程式存取權已遭拒絕", deniedP1: "如果授予這項權限，你的個人資訊和財務資訊可能會面臨風險。",
+    deniedP2: "如果未取得這項受限制權限，應用程式可能無法正常運作。", deniedLink: "瞭解如何授予權限", close: "關閉",
+    rMenuAllow: "允許受限制的設定", rMenuUninstallUpd: "解除安裝更新",
+    verifyT: "驗證身分", verifyP: "使用指紋或螢幕鎖定確認是你本人",
+    rSheetQ: "要允許 Sidepeek 存取通知嗎？", rSheetBody: "Sidepeek 將可讀取所有通知，包括聯絡人名稱、相片和你收到的訊息內容等個人資訊。",
+    rDontAllow: "不允許",
+    cap1r: ["在「不允許」裡點 Sidepeek", "開關是灰的，點一下", "被拒絕是正常的，按「關閉」", "到 App 資訊，點右上角「⋮」",
+      "點「允許受限制的設定」", "用指紋或密碼驗證", "回到通知存取，打開開關", "開好了，回到 Sidepeek"],
+    cap4: ["點「已安裝的應用程式」", "點「Sidepeek 側邊欄」", "被拒絕是正常的，按「關閉」", "接著到 App 資訊，允許受限設定"],
+    appInfo: "應用程式資訊", installedState: "已安裝", privacy: "隱私設定", notif: "通知", notifAllowed: "已允許", perms: "權限",
+    permsList: "通知和鄰近裝置", manageUnused: "管理未使用的應用程式", usage: "用量", mobileData: "行動數據", noData: "未使用數據",
+    battery: "電池", battSub: "上次完全充電後已使用 0%", menuAllow: "允許受限設定", uninstall: "解除安裝", forceStop: "強制停止",
+    toast: "允許限制 Sidepeek 的設定。",
+    cap5: ["點右上角的「⋮」", "點「允許受限設定」", "用指紋或密碼驗證", "看到這行提示＝完成"],
+    shortcut: "Sidepeek 側邊欄 捷徑", appInfoRow: "應用程式資訊",
+    desc: "此無障礙服務只用來：<br>1. 在螢幕邊緣顯示 Peek 條（螢幕邊緣的小把手）與側邊欄（不需要常駐通知，也不會出現「正重疊顯示在其他應用程式上方」的系統通知）；<br>2. 判斷目前是否在桌面（主畫面），以便「只在桌面顯示側邊欄」；<br>3. 判斷鍵盤是否出現，以便暫時隱藏 Peek 條；<br>4. 側邊欄打開時接收「返回鍵」，用來關閉側邊欄；<br>5. 打開 LINE 時，清掉 Sidepeek 整理好的 LINE 通知。",
+    permQ: "要將裝置的完整控制權授予「Sidepeek 側邊欄」嗎？",
+    permP: "如果你有無障礙服務需求，建議可將完整控制權授予具有相關功能的應用程式，但請勿將完整控制權授予大多數的應用程式。",
+    viewCtrl: "查看及控制螢幕", viewCtrlD: "可讀取螢幕上的所有內容，並在其他應用程式上顯示內容。",
+    viewAct: "查看及執行動作", viewActD: "可追蹤你與應用程式或硬體感應器的互動，並代表你與應用程式進行互動。",
+    cap6: ["點「已安裝的應用程式」", "點「Sidepeek 側邊欄」", "打開開關", "按「允許」", "開好了，回到 Sidepeek"],
+  },
+  "en": {
+    step: (n) => `Step ${n}`,
+    a11y: "Accessibility", oneuiNew: "What's new in One UI 9", talkback: "TalkBack", vision: "Vision enhancements", hearing: "Hearing enhancements", interaction: "Interaction and dexterity",
+    a11yShortcut: "Accessibility shortcuts", installed: "Installed apps", appsCount: "3 apps", aboutA11y: "About Accessibility", contactUs: "Contact us",
+    svc: "Sidepeek side panel", off: "Off", on: "On", offShort: "Off",
+    naTitle: "Notification access", naDesc: "",   // One UI 9 實機：標題只有這樣，沒有說明列
+    naQ: "Allow Sidepeek",
+    naBody1: "Sidepeek will be able to read all notifications, including personal information such as contact names and the text of messages you receive. This app will also be able to snooze or dismiss notifications or take action on buttons in notifications, including answering phone calls.",
+    naBody2: "This will also give the app the ability to turn Do not disturb on or off and change related settings.",
+    deny: "Deny", allow: "Allow",
+    cap1: ["Scroll to Sidepeek and turn it on", "Tap “Allow”", "Done. Go back to Sidepeek"],
+    rTitle: "Notification read, reply & control", rAllowed: "Allowed", rNotAllowed: "Not allowed", rGrant: "Allow notification access", rControlled: "Controlled by Restricted Setting",
+    rTypes: "Allowed notification types", rTypeList: ["Real-time", "Conversations", "Notifications", "Silent"],
+    rAppInfo: "App info", rOpen: "Open", rUninstall: "Uninstall", rForceStop: "Force stop",
+    rNotif: "Notifications", rNotifOff: "Off", rPerms: "Permissions", rNoPerms: "No permissions granted", rBatt: "App battery usage", rBattSub: "0% use since last full charge",
+    deniedTitle: "App was denied access", deniedP1: "Access to this permission can put your personal and financial info at risk.",
+    deniedP2: "It’s possible the app won’t work properly without this restricted permission. ", deniedLink: "Learn how to allow access", close: "Close",
+    rMenuAllow: "Allow restricted settings", rMenuUninstallUpd: "Uninstall updates",
+    verifyT: "Verify it's you", verifyP: "Use your fingerprint or screen lock",
+    rSheetQ: "Allow notification access for Sidepeek?", rSheetBody: "Sidepeek will be able to read all notifications, including personal information such as contact names, photos, and the text of messages you receive.",
+    rDontAllow: "Don't allow",
+    cap1r: ["Under “Not allowed”, tap Sidepeek", "The switch is gray. Tap it", "Being denied is normal. Tap “Close”", "In App info, tap “⋮” at the top right",
+      "Tap “Allow restricted settings”", "Verify with your fingerprint or PIN", "Now turn on the switch", "Done. Go back to Sidepeek"],
+    cap4: ["Tap “Installed apps”", "Tap “Sidepeek side panel”", "Being denied is normal. Tap “Close”", "Next: allow restricted settings"],
+    appInfo: "App info", installedState: "Installed", privacy: "Privacy", notif: "Notifications", notifAllowed: "Allowed", perms: "Permissions",
+    permsList: "Notifications, Usage data access", manageUnused: "Manage app if unused", usage: "Usage", mobileData: "Mobile data", noData: "No data used",
+    battery: "Battery", battSub: "None since device last fully charged", menuAllow: "Allow restricted settings", uninstall: "Uninstall", forceStop: "Force stop",
+    toast: "Restricted settings allowed for Sidepeek.",
+    cap5: ["Tap “⋮” at the top right", "Tap “Allow restricted settings”", "Verify with your fingerprint or PIN", "This message means you're done"],
+    shortcut: "Sidepeek side panel shortcut", appInfoRow: "App info",
+    desc: "This accessibility service is only used to:<br>1. Show the Peek bar (a small handle at the screen edge) and the side panel, without a persistent notification and without the system’s “displaying over other apps” notice;<br>2. Tell whether you are on the home screen, for “Show only on home screen”;<br>3. Tell whether the keyboard is open, to hide the Peek bar for a while;<br>4. Receive the Back key while the side panel is open, to close it;<br>5. Clear the LINE notifications Sidepeek organized when you open LINE.",
+    permQ: "Allow Sidepeek side panel to have full control of your device?",
+    permP: "Full control is appropriate for apps that help you with accessibility needs, but not for most apps.",
+    viewCtrl: "View and control screen", viewCtrlD: "It can read all content on the screen and display content over other apps.",
+    viewAct: "View and perform actions", viewActD: "It can track your interactions with an app or a hardware sensor, and interact with apps on your behalf.",
+    cap6: ["Tap “Installed apps”", "Tap “Sidepeek side panel”", "Turn on the switch", "Tap “Allow”", "Done. Go back to Sidepeek"],
+  },
+  "ja": {
+    step: (n) => `ステップ ${n}`,
+    a11y: "ユーザー補助", oneuiNew: "One UI 9の新機能", talkback: "TalkBack", vision: "視認性向上", hearing: "聴覚補助", interaction: "制御と操作",
+    a11yShortcut: "ユーザー補助ショートカット", installed: "インストール済みアプリ", appsCount: "3件のアプリ", aboutA11y: "ユーザー補助について", contactUs: "お問い合わせ",
+    svc: "Sidepeek サイドパネル", off: "OFF", on: "ON", offShort: "OFF",
+    naTitle: "通知へのアクセス", naDesc: "",
+    naQ: "Sidepeek に通知へのアクセスを許可しますか？",
+    naBody1: "Sidepeek はすべての通知を読み取ることができます。通知には、連絡先名などの個人情報や受信したメッセージの本文も含まれます。また、通知のスヌーズや非表示、電話に出るなど通知内のボタン操作もできるようになります。",
+    naBody2: "アプリがマナーモード（サイレント）の ON / OFF を切り替えたり、関連する設定を変更したりできるようになります。",
+    deny: "拒否", allow: "許可",
+    cap1: ["Sidepeek までスクロールしてオンにする", "「許可」をタップ", "完了。Sidepeek に戻る"],
+    rTitle: "通知の読み取り、返信、操作", rAllowed: "許可", rNotAllowed: "許可しない", rGrant: "通知へのアクセスを許可", rControlled: "制限付き設定で管理されています",
+    rTypes: "許可されている通知の種類", rTypeList: ["リアルタイム", "会話", "通知", "サイレント"],
+    rAppInfo: "アプリ情報", rOpen: "開く", rUninstall: "アンインストール", rForceStop: "強制停止",
+    rNotif: "通知", rNotifOff: "OFF", rPerms: "権限", rNoPerms: "権限が付与されていません", rBatt: "アプリのバッテリー使用量", rBattSub: "前回のフル充電以降 0% 使用",
+    deniedTitle: "アプリのアクセスが拒否されました", deniedP1: "この権限を付与すると、個人情報や金融情報が危険にさらされるおそれがあります。",
+    deniedP2: "この制限付きの権限がないと、アプリが正常に動作しない可能性があります。", deniedLink: "アクセス権を付与する方法", close: "閉じる",
+    rMenuAllow: "制限付き設定を許可", rMenuUninstallUpd: "アップデートのアンインストール",
+    verifyT: "本人確認", verifyP: "指紋認証または画面ロックを使用してください",
+    rSheetQ: "Sidepeek に通知へのアクセスを許可しますか？", rSheetBody: "Sidepeek はすべての通知を読み取ることができます。通知には、連絡先名、写真、受信したメッセージの本文などの個人情報も含まれます。",
+    rDontAllow: "許可しない",
+    cap1r: ["「許可しない」の Sidepeek をタップ", "スイッチがグレー。タップする", "拒否されるのは正常。「閉じる」をタップ", "アプリ情報で右上の「⋮」をタップ",
+      "「制限付き設定を許可」をタップ", "指紋か画面ロックで確認", "通知へのアクセスに戻ってオンにする", "完了。Sidepeek に戻る"],
+    cap4: ["「インストール済みアプリ」をタップ", "「Sidepeek サイドパネル」をタップ", "拒否されるのは正常。「閉じる」をタップ", "次にアプリ情報で制限付き設定を許可"],
+    appInfo: "アプリ情報", installedState: "インストール済み", privacy: "プライバシー", notif: "通知", notifAllowed: "許可", perms: "権限",
+    permsList: "通知、付近のデバイス", manageUnused: "使用していない場合アプリを管理", usage: "使用量", mobileData: "モバイルデータ", noData: "データ未使用",
+    battery: "バッテリー", battSub: "前回の充電完了時から0%使用", menuAllow: "制限付き設定を許可", uninstall: "削除", forceStop: "強制終了",
+    toast: "Sidepeekの制限付き設定を許可しました。",
+    cap5: ["右上の「⋮」をタップ", "「制限付き設定を許可」をタップ", "指紋か画面ロックで確認", "このメッセージが出たら完了"],
+    shortcut: "[Sidepeek サイドパネル]のショートカット", appInfoRow: "アプリ情報",
+    desc: "このユーザー補助サービスは次の目的にのみ使います：<br>1. 画面の端に Peekバー（小さなつまみ）とサイドパネルを表示する（常駐通知も、システムの「他のアプリの上に表示中」通知も出ません）<br>2. ホーム画面にいるかどうかを判断する（「ホーム画面でのみ表示」のため）<br>3. キーボードが開いているかを判断し、Peekバーを一時的に隠す<br>4. サイドパネルが開いているときに「戻る」キーを受け取って閉じる<br>5. LINE を開いたときに、Sidepeek が整理した LINE の通知を消す",
+    permQ: "「Sidepeek サイドパネル」にデバイスのフル コントロールを許可しますか？",
+    permP: "フル コントロールは、ユーザー補助機能を必要とするユーザーをサポートするアプリには適していますが、ほとんどのアプリには適していません。",
+    viewCtrl: "画面の表示と操作", viewCtrlD: "画面上のすべてのコンテンツを読み取り、他のアプリでコンテンツを表示できます。",
+    viewAct: "操作の表示と実行", viewActD: "アプリやハードウェア センサーの操作を記録したり、ユーザーの代わりにアプリを操作したりできます。",
+    cap6: ["「インストール済みアプリ」をタップ", "「Sidepeek サイドパネル」をタップ", "スイッチをオンにする", "「許可」をタップ", "完了。Sidepeek に戻る"],
+  },
+  "ko": {
+    step: (n) => `${n}단계`,
+    a11y: "접근성", oneuiNew: "One UI 9의 새로운 기능 확인", talkback: "TalkBack", vision: "시각 보조", hearing: "청각 보조", interaction: "입력 및 동작",
+    a11yShortcut: "접근성 바로가기", installed: "설치된 앱", appsCount: "앱 3개", aboutA11y: "접근성 정보", contactUs: "문의하기",
+    svc: "Sidepeek 사이드 패널", off: "사용 안 함", on: "사용 중", offShort: "사용 안 함",
+    naTitle: "알림 접근 허용", naDesc: "",
+    naQ: "Sidepeek 허용",
+    naBody1: "Sidepeek에서 알림에 포함된 개인정보(연락처 이름, 받은 메시지 내용 등)를 포함한 모든 알림을 읽을 수 있습니다. 앱에서 알림을 끄거나 나중에 다시 알려주도록 설정할 수도 있고, 알림에 제공되는 버튼(전화받기 포함)의 동작을 수행할 수도 있습니다.",
+    naBody2: "또한 앱에서 방해 금지 모드를 켜거나 끌 수 있고 관련 설정을 변경할 수 있습니다.",
+    deny: "거부", allow: "허용",
+    cap1: ["Sidepeek까지 내려서 스위치를 켜세요", "‘허용’을 누르세요", "완료! Sidepeek으로 돌아가세요"],
+    rTitle: "알림 읽기, 답장 및 제어", rAllowed: "허용됨", rNotAllowed: "허용되지 않음", rGrant: "알림 액세스 허용", rControlled: "제한된 설정에 의해 관리됨",
+    rTypes: "허용된 알림 유형", rTypeList: ["실시간", "대화", "알림", "무음"],
+    rAppInfo: "앱 정보", rOpen: "열기", rUninstall: "제거", rForceStop: "강제 중지",
+    rNotif: "알림", rNotifOff: "사용 중지됨", rPerms: "권한", rNoPerms: "부여된 권한 없음", rBatt: "앱 배터리 사용량", rBattSub: "마지막 충전 완료 후 0% 사용",
+    deniedTitle: "앱 액세스가 거부됨", deniedP1: "이 권한을 부여하면 개인 정보 및 금융 정보가 위험해질 수 있습니다.",
+    deniedP2: "이 제한된 권한이 없으면 앱이 제대로 작동하지 않을 수 있습니다. ", deniedLink: "액세스 권한 부여 방법 알아보기", close: "닫기",
+    rMenuAllow: "제한된 설정 허용", rMenuUninstallUpd: "업데이트 제거",
+    verifyT: "본인 확인", verifyP: "지문 또는 화면 잠금을 사용하세요",
+    rSheetQ: "Sidepeek의 알림 액세스를 허용하시겠습니까?", rSheetBody: "Sidepeek에서 연락처 이름, 사진, 받은 메시지 텍스트와 같은 개인 정보를 포함한 모든 알림을 읽을 수 있습니다.",
+    rDontAllow: "허용 안함",
+    cap1r: ["‘허용되지 않음’에서 Sidepeek을 누르세요", "스위치가 회색이에요. 눌러 보세요", "거부되는 게 정상이에요. ‘닫기’를 누르세요", "앱 정보에서 오른쪽 위 ‘⋮’를 누르세요",
+      "‘제한된 설정 허용’을 누르세요", "지문 또는 화면 잠금으로 확인하세요", "알림 액세스로 돌아가 스위치를 켜세요", "완료! Sidepeek으로 돌아가세요"],
+    cap4: ["‘설치된 앱’을 누르세요", "‘Sidepeek 사이드 패널’을 누르세요", "거부되는 게 정상이에요. ‘닫기’를 누르세요", "다음: 제한된 설정을 허용하세요"],
+    appInfo: "애플리케이션 정보", installedState: "설치됨", privacy: "개인정보 보호", notif: "알림", notifAllowed: "허용됨", perms: "권한",
+    permsList: "근처 기기 및 알림", manageUnused: "사용하지 않는 앱 관리", usage: "사용량", mobileData: "모바일 데이터", noData: "데이터 사용 안 함",
+    battery: "배터리", battSub: "충전한 이후로 0% 사용됨", menuAllow: "제한된 설정 허용", uninstall: "삭제", forceStop: "강제 중지",
+    toast: "Sidepeek에서 제한된 설정을 사용할 수 있도록 허용했어요.",
+    cap5: ["오른쪽 위 ‘⋮’를 누르세요", "‘제한된 설정 허용’을 누르세요", "지문 또는 화면 잠금으로 확인하세요", "이 메시지가 보이면 완료"],
+    shortcut: "Sidepeek 사이드 패널 바로가기", appInfoRow: "애플리케이션 정보",
+    desc: "이 접근성 서비스는 다음 용도로만 사용됩니다:<br>1. 화면 가장자리에 Peek 바(작은 손잡이)와 사이드 패널을 표시합니다(상시 알림도, 시스템의 “다른 앱 위에 표시 중” 알림도 나타나지 않습니다).<br>2. 홈 화면에 있는지 판단합니다(“홈 화면에서만 표시”용).<br>3. 키보드가 열려 있는지 판단해 Peek 바를 잠시 숨깁니다.<br>4. 사이드 패널이 열려 있을 때 “뒤로” 키를 받아 패널을 닫습니다.<br>5. LINE을 열면 Sidepeek이 정리한 LINE 알림을 지웁니다.",
+    permQ: "‘Sidepeek 사이드 패널’에서 기기를 완전히 제어하도록 허용할까요?",
+    permP: "완전한 제어는 접근성 관련 도움이 필요한 경우 적합하지만 대부분의 앱에는 적합하지 않습니다.",
+    viewCtrl: "화면 보기 및 제어", viewCtrlD: "화면의 모든 콘텐츠를 읽고 다른 앱 위에 콘텐츠를 표시할 수 있습니다.",
+    viewAct: "작업 보기 및 실행", viewActD: "앱이나 하드웨어 센서와의 상호작용을 추적하고 사용자를 대신해 앱과 상호작용할 수 있습니다.",
+    cap6: ["‘설치된 앱’을 누르세요", "‘Sidepeek 사이드 패널’을 누르세요", "스위치를 켜세요", "‘허용’을 누르세요", "완료! Sidepeek으로 돌아가세요"],
+  },
+};
+</script>
+<script>
 (() => {
+  const LANG = (location.hash.slice(1) || "zh-TW");
+  const L = window.GUIDE_TEXT[LANG] || window.GUIDE_TEXT["zh-TW"];
+  document.documentElement.lang = LANG;
+  const capList = (list, n) => list.map((t) => [L.step(n), t]);
   const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const seg = (t, a, b) => clamp((t - a) / (b - a));
   const eo = (p) => 1 - Math.pow(1 - p, 3);
@@ -181,30 +348,31 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
 
   // ---- the a11y list screens (used by steps 4 and 6)
   const a11yMain = () => h(`<div class="abs scr">
-      <div class="bar"><div class="back"></div><b>協助工具</b></div>
+      <div class="bar"><div class="back"></div><b>${L.a11y}</b></div>
       <div class="body"><div class="list">
         <div class="group">
-          <div class="row"><div class="ic" style="background:#3ba55c">✦</div><div class="lb">One UI 最新功能</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#3ba55c">✦</div><div class="lb">${L.oneuiNew}</div><div></div></div>
         </div>
         <div class="group">
-          <div class="row"><div class="ic" style="background:#6b5bd6">◉</div><div class="lb">視覺輔助</div><div></div></div>
-          <div class="row"><div class="ic" style="background:#2f8f8a">♪</div><div class="lb">聽力輔助</div><div></div></div>
-          <div class="row"><div class="ic" style="background:#d4566b">✋</div><div class="lb">互動與敏銳度</div><div></div></div>
-          <div class="row"><div class="ic" style="background:#3f7fd6">⌁</div><div class="lb">協助工具捷徑</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#6b5bd6">◉</div><div class="lb">${L.vision}</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#7a4fd0">▢</div><div class="lb">${L.talkback}</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#2f8f8a">♪</div><div class="lb">${L.hearing}</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#d4566b">✋</div><div class="lb">${L.interaction}</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#3f7fd6">⌁</div><div class="lb">${L.a11yShortcut}</div><div></div></div>
         </div>
         <div class="group">
-          <div class="row hl" data-k="installed"><div class="ic" style="background:#3f7fd6">▦</div><div><div class="lb">已安裝的應用程式</div><div class="sub">3 個應用程式</div></div><div></div></div>
+          <div class="row hl" data-k="installed"><div class="ic" style="background:#3f7fd6">▦</div><div><div class="lb">${L.installed}</div><div class="sub">${L.appsCount}</div></div><div></div></div>
         </div>
         <div class="group">
-          <div class="row"><div class="ic" style="background:#55585f">i</div><div class="lb">關於協助工具</div><div></div></div>
-          <div class="row"><div class="ic" style="background:#55585f">✉</div><div class="lb">與我們聯絡</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#55585f">i</div><div class="lb">${L.aboutA11y}</div><div></div></div>
+          <div class="row"><div class="ic" style="background:#55585f">✉</div><div class="lb">${L.contactUs}</div><div></div></div>
         </div>
       </div></div></div>`);
   const a11yInstalled = (state) => h(`<div class="abs scr">
-      <div class="bar"><div class="back"></div><b>已安裝的應用程式</b></div>
+      <div class="bar"><div class="back"></div><b>${L.installed}</b></div>
       <div class="body"><div class="list">
         <div class="group">${skRow(52, 22)}${skRow(40, 28)}
-          <div class="row hl" data-k="sp">${appIc(30)}<div><div class="lb">Sidepeek 側邊欄</div><div class="sub gray" data-k="spsub">${state}</div></div><div></div></div>
+          <div class="row hl" data-k="sp">${appIc(30)}<div><div class="lb">${L.svc}</div><div class="sub gray" data-k="spsub">${state}</div></div><div></div></div>
         </div>
       </div></div></div>`);
 
@@ -212,9 +380,9 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
   const SCENES = [
     { id: "step1", label: "第 1 步", title: "允許讀取通知", dur: 9.2, build: (stage) => {
       const scr = h(`<div class="abs scr">
-        <div class="bar"><div class="back"></div><b>通知讀取、回覆和控制</b></div>
+        <div class="bar"><div class="back"></div><b>${L.naTitle}</b></div>
         <div class="body"><div class="list" data-k="list">
-          <div class="desc" style="padding-top:2px">允許下列應用程式讀取通知、回覆訊息和使用通知上的按鈕。</div>
+          ${L.naDesc ? `<div class="desc" style="padding-top:2px">${L.naDesc}</div>` : ""}
           <div class="group">${[[46, 0], [38, 0], [55, 0], [42, 0], [50, 0], [36, 0], [48, 0], [40, 0], [58, 0]].map(([a]) => `<div class="row"><div class="skic"></div><div><div class="sk" style="width:${a}%"></div></div>${tog()}</div>`).join("")}
             <div class="row hl" data-k="sp">${appIc(30)}<div class="lb">Sidepeek</div>${tog()}</div>
             ${[[44, 0], [37, 0]].map(([a]) => `<div class="row"><div class="skic"></div><div><div class="sk" style="width:${a}%"></div></div>${tog()}</div>`).join("")}
@@ -222,12 +390,12 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
         </div></div></div>`);
       stage.appendChild(scr);
       const dim = h(`<div class="abs dim"></div>`), sheet = h(`<div class="abs sheet">
-        <h3>允許 Sidepeek 存取通知？</h3>
-        <p>Sidepeek 將可讀取所有通知，包含聯絡人姓名與收到的訊息內容等個人資訊。此應用程式也能將通知延遲或關閉或針對通知內容採取行動，包含接聽來電。</p>
-        <p>此設定可供應用程式開啟或關閉 [請勿打擾] 功能與變更相關設定。</p>
-        <div class="btns plain"><span>拒絕</span><span data-k="allow">允許</span></div></div>`);
+        <h3>${L.naQ}</h3>
+        <p>${L.naBody1}</p>
+        <p>${L.naBody2}</p>
+        <div class="btns plain"><span>${L.deny}</span><span data-k="allow">${L.allow}</span></div></div>`);
       stage.append(dim, sheet);
-      const { caps, finger } = chrome(stage, [["第 1 步", "往下找到 Sidepeek，打開開關"], ["第 1 步", "按「允許」"], ["第 1 步", "開好了，回到 Sidepeek"]]);
+      const { caps, finger } = chrome(stage, capList(L.cap1, 1));
       const q = (k) => stage.querySelector(`[data-k="${k}"]`);
       const list = q("list"), sp = q("sp"), spTog = sp.querySelector(".tog"), allow = q("allow");
       const otherTogs = [...stage.querySelectorAll(".tog")].filter((x) => x !== spTog);
@@ -246,55 +414,52 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
     // Stock Android (ASUS, Pixel…): sideloaded apps are blocked at notification access too.
     { id: "step1r", label: "第 1 步", title: "通知存取被擋時", dur: 15.0, build: (stage) => {
       const s0 = h(`<div class="abs scr">
-        <div class="bar"><div class="back"></div><b>閱讀、回覆及控制通知</b></div>
+        <div class="bar"><div class="back"></div><b>${L.rTitle}</b></div>
         <div class="body"><div class="list" data-k="list">
-          <div class="sec">允許</div>
+          <div class="sec">${L.rAllowed}</div>
           <div class="group">${[46, 38, 55, 42, 50].map((a) => skRow(a, 0)).join("")}</div>
-          <div class="sec">不允許</div>
+          <div class="sec">${L.rNotAllowed}</div>
           <div class="group">${[40, 52, 36].map((a) => skRow(a, 0)).join("")}
             <div class="row hl" data-k="sp">${appIc(30)}<div class="lb">Sidepeek</div><div></div></div>
             ${skRow(44, 0)}
           </div>
         </div></div></div>`);
       const detail = (blocked) => h(`<div class="abs scr">
-        <div class="bar"><div class="back"></div><b>閱讀、回覆及控制通知</b></div>
+        <div class="bar"><div class="back"></div><b>${L.rTitle}</b></div>
         <div class="body"><div class="list">
           <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0 14px">${appIc(44)}<div style="font-size:16px;font-weight:600">Sidepeek</div></div>
-          <div class="group"><div class="row noic" data-k="grant"><div><div class="lb"${blocked ? ' style="color:var(--ink-3)"' : ""}>授予通知存取權</div>${blocked ? '<div class="sub gray">由受限制的設定控管</div>' : ""}</div>${tog()}</div></div>
-          <div class="sec">允許的通知類型</div>
-          <div class="group">${["即時", "對話", "通知", "靜音"].map((x) => `<div class="row noic"><div class="lb" style="color:var(--ink-3)">${x}</div><div></div></div>`).join("")}</div>
+          <div class="group"><div class="row noic" data-k="grant"><div><div class="lb"${blocked ? ' style="color:var(--ink-3)"' : ""}>${L.rGrant}</div>${blocked ? `<div class="sub gray">${L.rControlled}</div>` : ""}</div>${tog()}</div></div>
+          <div class="sec">${L.rTypes}</div>
+          <div class="group">${L.rTypeList.map((x) => `<div class="row noic"><div class="lb" style="color:var(--ink-3)">${x}</div><div></div></div>`).join("")}</div>
         </div></div></div>`);
       const s1 = detail(true), s3 = detail(false);
       const s2 = h(`<div class="abs scr">
-        <div class="bar"><div class="back"></div><b>應用程式資訊</b><div class="more" data-k="more"><i></i></div></div>
+        <div class="bar"><div class="back"></div><b>${L.rAppInfo}</b><div class="more" data-k="more"><i></i></div></div>
         <div class="body"><div class="list">
           <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0 14px">${appIc(44)}<div style="font-size:16px;font-weight:600">Sidepeek</div></div>
-          <div class="group" style="display:flex;justify-content:space-around;padding:12px 0;font-size:12px;color:var(--ink-2)"><div>開啟</div><div>解除安裝</div><div>強制停止</div></div>
+          <div class="group" style="display:flex;justify-content:space-around;padding:12px 0;font-size:12px;color:var(--ink-2)"><div>${L.rOpen}</div><div>${L.rUninstall}</div><div>${L.rForceStop}</div></div>
           <div class="group">
-            <div class="row noic"><div><div class="lb">通知</div><div class="sub gray">關閉</div></div><div></div></div>
-            <div class="row noic"><div><div class="lb">權限</div><div class="sub gray">未取得任何授權</div></div><div></div></div>
-            <div class="row noic"><div><div class="lb">應用程式電池用量</div><div class="sub gray">自上次充電完成後使用了 0%</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">${L.rNotif}</div><div class="sub gray">${L.rNotifOff}</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">${L.rPerms}</div><div class="sub gray">${L.rNoPerms}</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">${L.rBatt}</div><div class="sub gray">${L.rBattSub}</div></div><div></div></div>
           </div>
         </div></div></div>`);
       stage.append(s0, s1, s2, s3);
       const blockedTog = s1.querySelector(".tog"), grantTog = s3.querySelector(".tog");
       blockedTog.style.opacity = "0.4";
       const dim = h(`<div class="abs dim"></div>`), dlg = h(`<div class="abs center">
-        <div class="shield"></div><h3>應用程式存取權已遭拒絕</h3>
-        <p>如果授予這項權限，你的個人資訊和財務資訊可能會面臨風險。</p>
-        <p>如果未取得這項受限制權限，應用程式可能無法正常運作。<a>瞭解如何授予權限</a></p>
-        <div class="pill" data-k="close">關閉</div></div>`);
-      const menu = h(`<div class="abs menu"><div data-k="allow">允許受限制的設定</div><div style="color:var(--ink-2)">解除安裝更新</div></div>`);
-      const ver = h(`<div class="abs verify"><h3>驗證身分</h3><p>使用指紋或螢幕鎖定確認是你本人</p><div class="fp" data-k="fp"></div></div>`);
+        <div class="shield"></div><h3>${L.deniedTitle}</h3>
+        <p>${L.deniedP1}</p>
+        <p>${L.deniedP2}<a>${L.deniedLink}</a></p>
+        <div class="pill" data-k="close">${L.close}</div></div>`);
+      const menu = h(`<div class="abs menu"><div data-k="allow">${L.rMenuAllow}</div><div style="color:var(--ink-2)">${L.rMenuUninstallUpd}</div></div>`);
+      const ver = h(`<div class="abs verify"><h3>${L.verifyT}</h3><p>${L.verifyP}</p><div class="fp" data-k="fp"></div></div>`);
       const sheet = h(`<div class="abs sheet">
-        <h3>要允許 Sidepeek 存取通知嗎？</h3>
-        <p>Sidepeek 將可讀取所有通知，包括聯絡人名稱、相片和你收到的訊息內容等個人資訊。</p>
-        <div class="btns plain"><span>不允許</span><span data-k="ok">允許</span></div></div>`);
+        <h3>${L.rSheetQ}</h3>
+        <p>${L.rSheetBody}</p>
+        <div class="btns plain"><span>${L.rDontAllow}</span><span data-k="ok">${L.allow}</span></div></div>`);
       stage.append(menu, dim, dlg, ver, sheet);
-      const { caps, finger } = chrome(stage, [
-        ["第 1 步", "在「不允許」裡點 Sidepeek"], ["第 1 步", "開關是灰的，點一下"], ["第 1 步", "被拒絕是正常的，按「關閉」"],
-        ["第 1 步", "到 App 資訊，點右上角「⋮」"], ["第 1 步", "點「允許受限制的設定」"], ["第 1 步", "用指紋或密碼驗證"],
-        ["第 1 步", "回到通知存取，打開開關"], ["第 1 步", "開好了，回到 Sidepeek"]]);
+      const { caps, finger } = chrome(stage, capList(L.cap1r, 1));
       const q = (k) => stage.querySelector(`[data-k="${k}"]`);
       const list = q("list"), sp = q("sp"), close = q("close"), more = q("more"), allow = q("allow"), fp = q("fp"), ok = q("ok");
       return (t) => {
@@ -320,15 +485,15 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
       };
     }},
     { id: "step4", label: "第 4 步", title: "試開側邊欄服務", dur: 8.8, build: (stage) => {
-      const s0 = a11yMain(), s1 = a11yInstalled("關閉");
+      const s0 = a11yMain(), s1 = a11yInstalled(L.off);
       stage.append(s0, s1);
       const dim = h(`<div class="abs dim"></div>`), dlg = h(`<div class="abs center">
-        <div class="shield"></div><h3>應用程式存取權已遭拒絕</h3>
-        <p>如果授予這項權限，你的個人資訊和財務資訊可能會面臨風險。</p>
-        <p>如果未取得這項受限制權限，應用程式可能無法正常運作。<a>瞭解如何授予權限</a></p>
-        <div class="pill" data-k="close">關閉</div></div>`);
+        <div class="shield"></div><h3>${L.deniedTitle}</h3>
+        <p>${L.deniedP1}</p>
+        <p>${L.deniedP2}<a>${L.deniedLink}</a></p>
+        <div class="pill" data-k="close">${L.close}</div></div>`);
       stage.append(dim, dlg);
-      const { caps, finger } = chrome(stage, [["第 4 步", "點「已安裝的應用程式」"], ["第 4 步", "點「Sidepeek 側邊欄」"], ["第 4 步", "被拒絕是正常的，按「關閉」"], ["第 4 步", "接著到 App 資訊，允許受限設定"]]);
+      const { caps, finger } = chrome(stage, capList(L.cap4, 4));
       const inst = s0.querySelector('[data-k="installed"]'), sp = s1.querySelector('[data-k="sp"]'), close = stage.querySelector('[data-k="close"]');
       return (t) => {
         renderCaps(caps, t, [0, 2.2, 4.1, 6.6]);
@@ -341,35 +506,35 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
     }},
     { id: "step5", label: "第 5 步", title: "允許受限設定", dur: 8.6, build: (stage) => {
       const scr = h(`<div class="abs scr">
-        <div class="bar"><div class="back"></div><b>應用程式資訊</b><div class="more" data-k="more"><i></i></div></div>
+        <div class="bar"><div class="back"></div><b>${L.appInfo}</b><div class="more" data-k="more"><i></i></div></div>
         <div class="body"><div class="list">
           <div style="display:flex;align-items:center;gap:14px;padding:4px 10px 10px">
             ${appIc(38)}
-            <div><div style="font-size:16px;font-weight:600">Sidepeek</div><div style="font-size:12.5px;color:var(--ink-3)">已安裝</div></div>
+            <div><div style="font-size:16px;font-weight:600">Sidepeek</div><div style="font-size:12.5px;color:var(--ink-3)">${L.installedState}</div></div>
           </div>
-          <div class="sec">隱私設定</div>
+          <div class="sec">${L.privacy}</div>
           <div class="group">
-            <div class="row noic"><div><div class="lb">通知</div><div class="sub">已允許</div></div><div></div></div>
-            <div class="row noic"><div><div class="lb">權限</div><div class="sub">通知、使用情況存取權</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">${L.notif}</div><div class="sub">${L.notifAllowed}</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">${L.perms}</div><div class="sub">${L.permsList}</div></div><div></div></div>
           </div>
           <div class="group">
-            <div class="row noic"><div class="lb">管理未使用的應用程式</div>${tog()}</div>
+            <div class="row noic"><div class="lb">${L.manageUnused}</div>${tog()}</div>
           </div>
-          <div class="sec">用量</div>
+          <div class="sec">${L.usage}</div>
           <div class="group">
-            <div class="row noic"><div><div class="lb">行動數據</div><div class="sub gray">未使用數據</div></div><div></div></div>
-            <div class="row noic"><div><div class="lb">電池</div><div class="sub gray">上次完全充電後已使用 0%</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">${L.mobileData}</div><div class="sub gray">${L.noData}</div></div><div></div></div>
+            <div class="row noic"><div><div class="lb">${L.battery}</div><div class="sub gray">${L.battSub}</div></div><div></div></div>
           </div>
         </div></div></div>`);
       stage.appendChild(scr);
       setTog(scr.querySelector(".tog"), 1);
-      const menu = h(`<div class="abs menu"><div data-k="allow">允許受限設定</div><div style="color:var(--ink-2)">解除安裝</div></div>`);
-      const dim = h(`<div class="abs dim"></div>`), ver = h(`<div class="abs verify"><h3>驗證身分</h3><p>使用指紋或螢幕鎖定確認是你本人</p><div class="fp" data-k="fp"></div></div>`);
-      const toast = h(`<div class="abs toast">允許限制 Sidepeek 的設定。</div>`);
+      const menu = h(`<div class="abs menu"><div data-k="allow">${L.menuAllow}</div></div>`);
+      const dim = h(`<div class="abs dim"></div>`), ver = h(`<div class="abs verify"><h3>${L.verifyT}</h3><p>${L.verifyP}</p><div class="fp" data-k="fp"></div></div>`);
+      const toast = h(`<div class="abs toast">${L.toast}</div>`);
       const actions = h(`<div class="abs" style="left:70px;right:70px;bottom:22px;background:var(--card-2);border-radius:26px;display:flex;justify-content:space-around;padding:10px 0;font-size:12px;z-index:4">
-        <div style="text-align:center"><div style="font-size:18px">🗑</div>解除安裝</div><div style="text-align:center"><div style="font-size:18px">⊘</div>強制停止</div></div>`);
+        <div style="text-align:center"><div style="font-size:18px">🗑</div>${L.uninstall}</div><div style="text-align:center"><div style="font-size:18px">⊘</div>${L.forceStop}</div></div>`);
       stage.append(actions, menu, dim, ver, toast);
-      const { caps, finger } = chrome(stage, [["第 5 步", "點右上角的「⋮」"], ["第 5 步", "點「允許受限設定」"], ["第 5 步", "用指紋或密碼驗證"], ["第 5 步", "看到這行提示＝完成"]]);
+      const { caps, finger } = chrome(stage, capList(L.cap5, 5));
       const more = stage.querySelector('[data-k="more"]'), allow = stage.querySelector('[data-k="allow"]'), fp = stage.querySelector('[data-k="fp"]');
       return (t) => {
         renderCaps(caps, t, [0, 1.95, 3.7, 5.6]);
@@ -386,23 +551,23 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
       };
     }},
     { id: "step6", label: "第 6 步", title: "再開一次側邊欄服務", dur: 10.6, build: (stage) => {
-      const s0 = a11yMain(), s1 = a11yInstalled("關閉"), s2 = h(`<div class="abs scr">
-        <div class="bar"><div class="back"></div><b>Sidepeek 側邊欄</b></div>
+      const s0 = a11yMain(), s1 = a11yInstalled(L.off), s2 = h(`<div class="abs scr">
+        <div class="bar"><div class="back"></div><b>${L.svc}</b></div>
         <div class="body"><div class="list">
-          <div class="group"><div class="row noic" data-k="main"><div class="lb" style="font-weight:700;color:var(--blue-ink)" data-k="mainlb">關</div>${tog()}</div></div>
-          <div class="group"><div class="row noic"><div class="lb">Sidepeek 側邊欄 捷徑</div>${tog()}</div><div class="row noic"><div class="lb">應用程式資訊</div><div></div></div></div>
-          <div class="desc">此無障礙服務只用來：<br>1. 在螢幕邊緣顯示 Peek 條（螢幕邊緣的小把手）與側邊欄（不需要常駐通知，也不會出現「正重疊顯示在其他應用程式上方」的系統通知）；<br>2. 判斷目前是否在桌面（主畫面），以便「只在桌面顯示側邊欄」；<br>3. 判斷鍵盤是否出現，以便暫時隱藏 Peek 條；<br>4. 側邊欄打開時接收「返回鍵」，用來關閉側邊欄。</div>
+          <div class="group"><div class="row noic" data-k="main"><div class="lb" style="font-weight:700;color:var(--blue-ink)" data-k="mainlb">${L.offShort}</div>${tog()}</div></div>
+          <div class="group"><div class="row noic"><div class="lb">${L.shortcut}</div>${tog()}</div><div class="row noic"><div class="lb">${L.appInfoRow}</div><div></div></div></div>
+          <div class="desc">${L.desc}</div>
         </div></div></div>`);
       stage.append(s0, s1, s2);
       const [mainTog, scTog] = s2.querySelectorAll(".tog"); setTog(scTog, 0);
       const dim = h(`<div class="abs dim"></div>`), perm = h(`<div class="abs sheet perm">
-        <h3>要將裝置的完整控制權授予「Sidepeek 側邊欄」嗎？</h3>
-        <p style="margin-top:8px">如果你有無障礙服務需求，建議可將完整控制權授予具有相關功能的應用程式，但請勿將完整控制權授予大多數的應用程式。</p>
-        <div class="item"><i></i><div><b>查看及控制螢幕</b><span>可讀取螢幕上的所有內容，並在其他應用程式上顯示內容。</span></div></div>
-        <div class="item"><i></i><div><b>查看及執行動作</b><span>可追蹤你與應用程式或硬體感應器的互動，並代表你與應用程式進行互動。</span></div></div>
-        <div class="btns plain"><span>解除安裝</span><span>拒絕</span><span data-k="allow">允許</span></div></div>`);
+        <h3>${L.permQ}</h3>
+        <p style="margin-top:8px">${L.permP}</p>
+        <div class="item"><i></i><div><b>${L.viewCtrl}</b><span>${L.viewCtrlD}</span></div></div>
+        <div class="item"><i></i><div><b>${L.viewAct}</b><span>${L.viewActD}</span></div></div>
+        <div class="btns plain"><span>${L.uninstall}</span><span>${L.deny}</span><span data-k="allow">${L.allow}</span></div></div>`);
       stage.append(dim, perm);
-      const { caps, finger } = chrome(stage, [["第 6 步", "點「已安裝的應用程式」"], ["第 6 步", "點「Sidepeek 側邊欄」"], ["第 6 步", "打開開關"], ["第 6 步", "按「允許」"], ["第 6 步", "開好了，回到 Sidepeek"]]);
+      const { caps, finger } = chrome(stage, capList(L.cap6, 6));
       const inst = s0.querySelector('[data-k="installed"]'), sp = s1.querySelector('[data-k="sp"]'), allow = stage.querySelector('[data-k="allow"]'), lb = s2.querySelector('[data-k="mainlb"]');
       return (t) => {
         renderCaps(caps, t, [0, 1.9, 3.75, 5.3, 7.55]);
@@ -411,7 +576,7 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
         const o = eo(seg(t, 4.95, 5.3)) * (1 - eo(seg(t, 7.1, 7.4)));
         show(dim, o); show(perm, o, (1 - eo(seg(t, 4.95, 5.3))) * 220 + eo(seg(t, 7.1, 7.4)) * 60);
         const on = seg(t, 7.3, 7.6);
-        setTog(mainTog, on); lb.textContent = on > 0.5 ? "開" : "關";
+        setTog(mainTog, on); lb.textContent = on > 0.5 ? L.on : L.offShort;
         renderFinger(stage, finger, t, [{ t: 1.4, el: () => inst, fx: 0.82 }, { t: 3.2, el: () => sp, fx: 0.82 }, { t: 4.75, el: () => mainTog }, { t: 6.9, el: () => allow }]);
       };
     }},
@@ -457,7 +622,13 @@ body { background: var(--page); color: var(--page-ink); font-family: var(--sans)
     seek(id, t) { const p = players.find((x) => x.sc.id === id); p.t = t; p.render(t); },
   };
 
-  const start = () => { fitAll(); players.forEach((p) => p.render(reduce ? p.sc.dur * 0.62 : 0)); requestAnimationFrame(tick); };
+  // shrink one-line texts that do not fit (other languages are longer than Chinese)
+  const fitText = (root) => root.querySelectorAll(".bar b, .cap .t").forEach((el) => {
+    let fs = parseFloat(getComputedStyle(el).fontSize);
+    const min = el.matches(".bar b") ? 14 : 13;
+    while (el.scrollWidth > el.clientWidth + 0.5 && fs > min) { fs -= 0.5; el.style.fontSize = fs + "px"; }
+  });
+  const start = () => { players.forEach((p) => fitText(p.stage)); fitAll(); players.forEach((p) => p.render(reduce ? p.sc.dur * 0.62 : 0)); requestAnimationFrame(tick); };
   (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(start);
 })();
 </script>

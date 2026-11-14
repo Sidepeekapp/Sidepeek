@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Google Play 版：Play 政策只允許核心功能會被 Doze 弄壞的 App 直接請求電池豁免，
+     Sidepeek 改成帶使用者到 App 資訊頁自己選「不受限制」（MainActivity.requestBatteryExemption）。 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission
+        android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+        tools:node="remove" />
+</manifest>

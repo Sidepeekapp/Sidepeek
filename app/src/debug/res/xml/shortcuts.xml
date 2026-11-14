@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Launchers and Samsung's edge panel list this; debug build: targetPackage is the .test package (main/res/xml has the release one). -->
+    <shortcut
+        android:shortcutId="open_panel"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_open_panel"
+        android:shortcutLongLabel="@string/shortcut_open_panel">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="app.sidepeek.test"
+            android:targetClass="app.sidepeek.OpenPanelActivity" />
+    </shortcut>
+</shortcuts>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sidepeek 原創圖示「檢查更新」：24 格線、2dp 圓角線條（來源：設計稿 icons.js），顏色由程式著色 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M19.5 12a7.5 7.5 0 1 1 -2.2 -5.3" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M19.5 3.5v4h-4" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M12 15.5v-6M9.5 12l2.5 -2.5l2.5 2.5" android:fillColor="#00000000"
+        android:strokeColor="#FF000000" android:strokeWidth="2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

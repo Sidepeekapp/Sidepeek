@@ -12,7 +12,7 @@ class PanelTileService : TileService() {
 
     override fun onStartListening() {
         qsTile?.apply {
-            label = "開啟訊息側邊欄"
+            label = getString(R.string.tile_label)
             state = if (PanelHost.running()) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             updateTile()
         }

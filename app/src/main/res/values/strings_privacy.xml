@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Privacy policy (PrivacyActivity). In each privacy_section_N the first item is the heading, the rest the body; 【…】 is a subheading, "• " starts a bullet. -->
+<resources>
+    <string name="privacy_title">Privacy policy</string>
+    <string name="privacy_heading">Sidepeek privacy policy</string>
+    <string name="privacy_updated">Last updated: November 14, 2026</string>
+    <string name="privacy_topic">Privacy question</string>
+    <string-array name="privacy_intro">
+        <item>Sidepeek (“the app”) is an unofficial Android app made by an individual developer and is not affiliated with LINE or LY Corporation. The app reads the notifications on your phone and organizes messages from LINE and other chat apps into notifications and a side panel. This policy explains what data the app reads, how it is used, and where it is stored.</item>
+        <item>In short: everything is processed on your phone. The app has no server and no accounts, and never sends your messages to the developer or any third party.</item>
+    </string-array>
+    <string-array name="privacy_section_1">
+        <item>1. Data read and used</item>
+        <item>【Notification content】</item>
+        <item>• Through Android’s “Notification access”, the app reads notifications from the apps you choose (by default LINE, Instagram, Threads, Messenger and Teams), including chat names, sender names, message text, profile pictures, images attached to notifications, and the reply / mark-as-read buttons on them.</item>
+        <item>• Purpose: posting the organized notifications again, showing them in the side panel, and turning web addresses in messages into buttons.</item>
+        <item>• For apps you haven’t chosen, the app does not read or store notification content.</item>
+        <item>【Data stored on the phone】</item>
+        <item>• Up to the latest 200 messages (text, chat and sender names, time, web addresses), plus profile pictures and image thumbnails.</item>
+        <item>• Diagnostic log: normally only events are recorded (for example which app posted a notification and whether it was organized), not message content. Only for 24 hours after you tap “Start full log” under “Having trouble?” is the full notification content (including message text) recorded. The log stays on the phone (about 600 KB; older parts are deleted automatically) and only leaves the phone when you tap “Export diagnostic log” and choose who to share it with.</item>
+        <item>• Your settings, such as the Peek bar position, the side panel style and which apps to collect.</item>
+        <item>【What you do on notifications】</item>
+        <item>• When you reply or mark as read on a notification, the app uses the buttons provided by the original app (for example LINE). The content goes straight to that app; the app does not keep a copy of your reply.</item>
+    </string-array>
+    <string-array name="privacy_section_2">
+        <item>2. Network connections</item>
+        <item>• Downloading LINE stickers: based on the sticker ID in a notification, the app downloads sticker images from LINE’s public sticker servers (stickershop.line-scdn.net and other domains owned by LINE). Addresses outside LINE’s domains are never contacted, and a web address appearing in a message never triggers a connection by itself. Your message content and account details are not sent. LINE’s servers see your IP address and handle it under LINE’s privacy policy.</item>
+        <item>• When you tap a web address button in the side panel, it opens in your phone’s browser.</item>
+        <item>• Checking for updates (only the version downloaded from GitHub): when you open the app, it asks GitHub (api.github.com) at most once a day whether there is a new version. This is an ordinary web request that sends none of your data; you can turn it off in Settings → Check for updates. The version installed from Google Play never does this; the Play Store handles its updates.</item>
+    </string-array>
+    <string-array name="privacy_section_3">
+        <item>3. Data not collected</item>
+        <item>• No sign-up is needed. No accounts, phone numbers, email addresses, contacts or location (GPS) are collected.</item>
+        <item>• No ads, and no analytics or tracking tools.</item>
+        <item>• By default no text on the screen is read. Only if you turn on “Advanced clearing” yourself does the app read the chat name at the top of LINE’s screen (see “Accessibility” below).</item>
+        <item>• No data is uploaded to servers of the developer or any third party.</item>
+    </string-array>
+    <string-array name="privacy_section_4">
+        <item>4. Permissions</item>
+        <item>• Notification access: reading notifications from the apps you choose; the core function of the app.</item>
+        <item>• Show notifications: posting the organized notifications.</item>
+        <item>• Accessibility service “Sidepeek side panel”: showing the Peek bar and the side panel at the screen edge, telling which app is in front, whether you’re on the home screen and whether the keyboard is open, receiving the Back key to close the side panel, and clearing the LINE notifications Sidepeek organized when you open LINE. The app explains this and asks for your consent before you turn it on. By default it does not read, store or send any text or content on the screen, and never acts for you.</item>
+        <item>• “Advanced clearing” (experimental, off by default; your consent is asked separately when turning it on): inside LINE, reads the text in the title bar at the top of the screen and matches it with the chat names already in Sidepeek’s notifications, so only the chat you are reading is cleared. Chat content, the input field, photos and other apps’ screens are never read. The text is compared on the phone and then discarded, never stored or uploaded. Only when you start a full diagnostic log yourself is the title text written to the log. Turning off the switch stops the reading.</item>
+        <item>• Display over other apps: the fallback for showing the Peek bar and the side panel when accessibility is off.</item>
+        <item>• Usage access (optional): telling which app is in front, to decide whether the Peek bar shows.</item>
+        <item>• Query installed apps: letting you choose which apps go into the side panel; the list is only used on the phone.</item>
+        <item>• Ignore battery optimization, start at boot, foreground service: so the system doesn’t close the app and you don’t miss messages.</item>
+        <item>• Internet: downloading LINE sticker images, and checking for updates (GitHub version only).</item>
+        <item>• Vibration: notification alerts.</item>
+    </string-array>
+    <string-array name="privacy_section_5">
+        <item>5. Keeping and deleting data</item>
+        <item>• Messages in the side panel can be swiped away one by one, or all deleted with “Clear” (can be undone for a few seconds). Clearing also deletes profile pictures, images and the diagnostic log.</item>
+        <item>• Under “Having trouble?” you can “Clear diagnostic log”.</item>
+        <item>• After you turn off notification access or the accessibility service, the app no longer reads notifications.</item>
+        <item>• Uninstalling the app deletes all data stored on the phone.</item>
+        <item>• The app has no accounts and the developer holds none of your data, so there is nothing to request deletion of.</item>
+    </string-array>
+    <string-array name="privacy_section_6">
+        <item>6. Data security</item>
+        <item>• Data is stored in the private space Android keeps separate for each app; other apps can’t read it.</item>
+        <item>• Stickers are downloaded over encrypted HTTPS connections.</item>
+        <item>• An exported diagnostic log contains message content; check who you share it with.</item>
+    </string-array>
+    <string-array name="privacy_section_7">
+        <item>7. Children’s privacy</item>
+        <item>• The app is not designed for children under 13 and does not knowingly collect children’s data.</item>
+    </string-array>
+    <string-array name="privacy_section_8">
+        <item>8. Changes to this policy</item>
+        <item>• When this policy changes, this page is updated along with the “Last updated” date above.</item>
+    </string-array>
+    <string-array name="privacy_section_9">
+        <item>9. Contact</item>
+        <item>For any questions about this policy or how data is handled, email:</item>
+    </string-array>
+</resources>

@@ -81,6 +81,8 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     }
     private val coalescedRefresh = Runnable { if (suppressListRefresh == 0) refreshList() }
     private val REFRESH_COALESCE_MS = 120L
+    /** Longer than the 600ms fallback that removes a closing panel's window. */
+    private val STOP_AFTER_CLOSE_MS = 700L
     var started = false
         private set
 
@@ -112,7 +114,14 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         handleWantVisible = false
     }
 
-    fun open() { if (!started) start(); openPanel() }
+    /**
+     * Opened from outside the Peek bar (tile, shortcut, the app's button). The trampoline activity
+     * finishing and the shade collapsing bring the launcher (or Sidepeek) to the front up to ~0.7s
+     * later; that must not count as the user leaving (seen: closed 0.62–0.70s after opening).
+     */
+    fun open() { if (!started) start(); openPanel(); externalOpenWall = System.currentTimeMillis() }
+    private var externalOpenWall = 0L
+    private val EXTERNAL_OPEN_SETTLE_MS = 2000L
     val isPanelOpen get() = panelRoot != null
 
     /**
@@ -331,6 +340,8 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                         // Accessibility overlays can appear above the lock screen: never leave the
                         // panel (message contents) or the handle there.
                         Intent.ACTION_SCREEN_OFF -> { stopPolling(); closePanel(animate = false); applyVisibility() }
+                        // Rotation: the Peek bar shows in portrait only.
+                        Intent.ACTION_CONFIGURATION_CHANGED -> mainHandler.postDelayed({ applyVisibility() }, 150)
                         Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
                             launcherPkgs = resolveLaunchers(); restartVisibilityTracking()
                         }
@@ -339,6 +350,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             }
             val f = android.content.IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_OFF); addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_USER_PRESENT)
+                addAction(Intent.ACTION_CONFIGURATION_CHANGED)
             }
             ContextCompat.registerReceiver(this, screenReceiver, f, ContextCompat.RECEIVER_NOT_EXPORTED)
         }
@@ -416,7 +428,9 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             else -> foregroundPkg in launcherPkgs
         }
         val lockedOk = Prefs.showOnLock(this) || !keyguardLocked()
-        val show = panelRoot == null && interactive && lockedOk &&
+        // Switched off: the shortcut, tile or preview may still open the panel, but no Peek bar.
+        val portrait = screenSize().let { (w, h) -> h >= w }
+        val show = panelRoot == null && Prefs.edgePanel(this) && interactive && lockedOk && portrait &&
             !(Prefs.hideOnIme(this) && imeVisible) && onHome
         if (show == handleWantVisible && handleFadeAnim == null) {
             // Already at the desired end state — still sync flags if needed.
@@ -526,6 +540,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             in Prefs.PANEL_KEYS -> mainHandler.post {
                 if (panelRoot != null) { val p = previewMode; closePanel(false); previewMode = p; openPanel(animate = false, preview = p) }
             }
+            Prefs.KEY_EDGE_PANEL -> mainHandler.post { applyVisibility() }
             Prefs.KEY_HOME_ONLY, Prefs.KEY_HIDE_ON_IME, Prefs.KEY_SHOW_ON_LOCK -> mainHandler.post { restartVisibilityTracking(); syncShowWhenLockedFlag(); applyVisibility() }
             Prefs.KEY_MSG_GAP -> mainHandler.post { refreshList() }
         }
@@ -648,7 +663,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                 dragMode = true
                 container.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
                 handleBar?.animate()?.scaleX(1.8f)?.alpha(1f)?.setDuration(120)?.start()
-                Toast.makeText(this, "可以拖了，上下移動調整位置", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.panel_drag_ready), Toast.LENGTH_SHORT).show()
             }
         }
         fun endDrag() {
@@ -659,6 +674,11 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             dragMode = false
         }
         container.setOnTouchListener { _, e ->
+            // Switched off (or hidden): an invisible Peek bar must never open the panel, even if
+            // the window has not caught up with FLAG_NOT_TOUCHABLE yet.
+            if (e.actionMasked == MotionEvent.ACTION_DOWN && (!handleWantVisible || !Prefs.edgePanel(this))) {
+                syncHandleTouchFlags(false); return@setOnTouchListener false
+            }
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     downX = e.rawX; downY = e.rawY; startY = lp.y
@@ -705,7 +725,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                         restoreBarVisual(80)
                         // Held almost long enough then drifted / released without dragMode.
                         if (!consumed && heldMs > 200L) {
-                            Toast.makeText(this, "按住不動約半秒再拖", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, getString(R.string.panel_hold_to_drag), Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -725,31 +745,11 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     }
 
     // ---------------------------------------------------------------- panel
-    fun openPanel(animate: Boolean = true, preview: Boolean = false) {
-        if (panelRoot != null) return
-        if (!preview) { previewMode = false; mainHandler.removeCallbacks(previewClose) }
-        // Never show message contents on the lock screen. With 「鎖定畫面也顯示 Peek 條」 on, a swipe
-        // there asks to unlock first and opens the panel afterwards (UnlockPanelActivity).
-        if (keyguardLocked()) {
-            val now = android.os.SystemClock.uptimeMillis()
-            if (!preview && Prefs.showOnLock(this) && now - unlockAskedAt > UNLOCK_RETRY_MS) {
-                unlockAskedAt = now
-                log("open while locked -> ask to unlock first")
-                try {
-                    startActivity(Intent(this, UnlockPanelActivity::class.java)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                    return
-                } catch (e: Exception) { log("unlock request failed: $e") }
-            }
-            log("open refused: device locked")
-            Toast.makeText(this, "請先解鎖", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val (sw, sh) = screenSize()
-        val textScale = Prefs.panelTextScale(this)
-        log("open requested (animate=$animate)")
-        openedAt = android.os.SystemClock.uptimeMillis()
-        openedWall = System.currentTimeMillis()
+    /**
+     * Builds the panel views (scrim root and card with header, list and undo bar) for a screen of
+     * [sw] × [sh] px, without adding a window. Used by [openPanel] and [buildMiniature].
+     */
+    private fun buildPanel(sw: Int, sh: Int, textScale: Float): Triple<SwipeFrame, LinearLayout, Int> {
         val root = SwipeFrame(this).apply {
             // Dim the rest of the screen so the "tap outside to close" area is obvious.
             setBackgroundColor(if (Prefs.panelScrim(this@PanelController)) 0x66000000 else 0x00000000)
@@ -813,12 +813,15 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         val title = TextView(this).apply {
             setTextColor(Color.WHITE); textSize = 19f * textScale
             typeface = Typeface.DEFAULT_BOLD
-            maxLines = 1; ellipsize = TextUtils.TruncateAt.END
+            maxLines = 1
+            // Long titles in some languages shrink to fit the narrow panel instead of being cut off.
+            androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                this, 12, (19f * textScale).toInt().coerceAtLeast(13), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
         }
         titleView = title
-        header.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        header.addView(title, LinearLayout.LayoutParams(0, (19f * textScale * resources.displayMetrics.scaledDensity * 1.4f).toInt(), 1f))
         val clear = TextView(this).apply {
-            text = "清除"; setTextColor(0xFFB4B4BA.toInt()); textSize = 13.5f * textScale
+            text = getString(R.string.panel_clear); setTextColor(0xFFB4B4BA.toInt()); textSize = 13.5f * textScale
             maxLines = 1
             background = GradientDrawable().apply {
                 cornerRadius = dp(14f).toFloat()
@@ -826,7 +829,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
                 setStroke(dp(1f).coerceAtLeast(1), 0x33FFFFFF)
             }
             setPadding(dp(12f), dp(5f), dp(12f), dp(5f))
-            contentDescription = "清除全部訊息（可以復原）"
+            contentDescription = getString(R.string.panel_clear_desc)
             setOnClickListener { clearAllOneUi() }
         }
         clearButton = clear
@@ -852,11 +855,11 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             setPadding(dp(14f), dp(10f), dp(14f), dp(10f))
             visibility = View.GONE
             addView(TextView(this@PanelController).apply {
-                text = "已刪除"; setTextColor(0xFFE8E8E8.toInt()); textSize = 14f * textScale
+                text = getString(R.string.panel_deleted); setTextColor(0xFFE8E8E8.toInt()); textSize = 14f * textScale
                 undoLabel = this
             }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             addView(TextView(this@PanelController).apply {
-                text = "・復原"; setTextColor(0xFF4ADE80.toInt()); textSize = 14f * textScale
+                text = getString(R.string.panel_undo); setTextColor(0xFF4ADE80.toInt()); textSize = 14f * textScale
                 typeface = Typeface.DEFAULT_BOLD
             })
             setOnClickListener { undoDelete() }
@@ -864,11 +867,57 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         card.addView(undo, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(8f) })
         undoBar = undo
+        return Triple(root, card, panelW)
+    }
+
+    /**
+     * The real panel for the settings page's live preview: the same views as [openPanel] builds,
+     * with the newest few messages, laid out for a screen of [sw] × [sh] px and never added as a
+     * window. The caller scales it down and keeps touches away from it. Use a throwaway
+     * controller that was never [start]ed.
+     */
+    fun buildMiniature(sw: Int, sh: Int): View {
+        MessageStore.ensureLoaded(this)
+        val (root, _, _) = buildPanel(sw, sh, Prefs.panelTextScale(this))
+        listShown = MINIATURE_MESSAGES
+        refreshList()
+        listFooter?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        return root
+    }
+    private val MINIATURE_MESSAGES = 8
+
+    fun openPanel(animate: Boolean = true, preview: Boolean = false) {
+        if (panelRoot != null) return
+        if (!preview) { previewMode = false; mainHandler.removeCallbacks(previewClose) }
+        // Never show message contents on the lock screen. With 「鎖定畫面也顯示 Peek 條」 on, a swipe
+        // there asks to unlock first and opens the panel afterwards (UnlockPanelActivity).
+        if (keyguardLocked()) {
+            val now = android.os.SystemClock.uptimeMillis()
+            if (!preview && Prefs.showOnLock(this) && now - unlockAskedAt > UNLOCK_RETRY_MS) {
+                unlockAskedAt = now
+                log("open while locked -> ask to unlock first")
+                try {
+                    startActivity(Intent(this, UnlockPanelActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    return
+                } catch (e: Exception) { log("unlock request failed: $e") }
+            }
+            log("open refused: device locked")
+            Toast.makeText(this, getString(R.string.panel_unlock_first), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val (sw, sh) = screenSize()
+        val textScale = Prefs.panelTextScale(this)
+        log("open requested (animate=$animate)")
+        openedAt = android.os.SystemClock.uptimeMillis()
+        openedWall = System.currentTimeMillis()
+        val (root, card, panelW) = buildPanel(sw, sh, textScale)
+        val left = isLeft
 
         // One-time tip so the user knows where to close (cards take most of the panel).
         if (!Prefs.sp(this).getBoolean(Prefs.KEY_PANEL_HINT_SHOWN, false)) {
             val tip = TextView(this).apply {
-                text = "點外面、往外滑或按返回鍵關閉・卡片往左滑刪除"
+                text = getString(R.string.panel_hint)
                 setTextColor(0xFFB0B0B4.toInt()); textSize = 12f * textScale
                 gravity = Gravity.CENTER; setPadding(dp(8f), dp(8f), dp(8f), dp(4f))
                 tag = "close-zone"
@@ -975,7 +1024,9 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
 
     /** Accessibility fallback: the user left to another app while the panel was open (e.g. back/home). */
     fun onForegroundLeft(pkg: String) {
-        if (panelRoot != null && System.currentTimeMillis() - openedWall > 600) {
+        val now = System.currentTimeMillis()
+        if (pkg == packageName || now - externalOpenWall < EXTERNAL_OPEN_SETTLE_MS) return
+        if (panelRoot != null && now - openedWall > 600) {
             log("BACK/nav fallback: foreground changed to $pkg while open -> close")
             closePanel(animate = false)
         }
@@ -1069,7 +1120,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     /** 「最近訊息  12」: count in smaller gray text; 「清除」 only when there is something to clear. */
     private fun updateHeader(count: Int) {
         val t = titleView ?: return
-        val sb = android.text.SpannableStringBuilder("最近訊息")
+        val sb = android.text.SpannableStringBuilder(getString(R.string.panel_title))
         if (count > 0) {
             val start = sb.length
             sb.append("  ").append(count.toString())
@@ -1079,7 +1130,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         }
         t.text = sb
         // While a clear can still be undone, keep the button hidden too (the undo bar is the action).
-        clearButton?.visibility = if (count > 0 && clearedAll == null) View.VISIBLE else View.INVISIBLE
+        clearButton?.visibility = if (count > 0 && clearedAll == null) View.VISIBLE else View.GONE
     }
 
     /**
@@ -1119,7 +1170,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             val shown = removed.count { Sources.isSelected(this@PanelController, it.pkg) }
             Diagnostics.note(this@PanelController, "PANEL cleared ${removed.size} message(s) (undo window open)")
             refreshList()
-            showUndo("已清除 $shown 則", UNDO_CLEAR_MS)
+            showUndo(getString(R.string.panel_cleared_n, shown), UNDO_CLEAR_MS)
         }, doneAt)
     }
 
@@ -1134,7 +1185,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         lastDeleted = removed
         Diagnostics.note(this, "PANEL deleted message id=${m.id} chat=${m.chatKey}")
         updateChatNotification(removed)
-        showUndo("已刪除", UNDO_SINGLE_MS)
+        showUndo(getString(R.string.panel_deleted), UNDO_SINGLE_MS)
     }
 
     private fun showUndo(label: String, ms: Long) {
@@ -1211,6 +1262,10 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         unregisterBack()
         log("close (animate=$animate swiped=$swiped)")
         applyVisibility()
+        // Opened with the side panel switched off: leave nothing running once it has closed.
+        mainHandler.postDelayed({
+            if (started && panelRoot == null && !Prefs.edgePanel(this)) PanelHost.stop(this)
+        }, STOP_AFTER_CLOSE_MS)
         var removed = false
         val remove = { if (!removed) { removed = true; try { wm.removeView(root) } catch (_: Exception) {} } }
         if (!animate || card == null) { remove(); return }
@@ -1228,12 +1283,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         setOnClickListener { onClick() }
     }
 
-    private val timeFmt = SimpleDateFormat("HH:mm", Locale.TAIWAN)
-    private val dateFmt = SimpleDateFormat("M/d HH:mm", Locale.TAIWAN)
-    private fun formatTime(t: Long) = if (DateUtils.isToday(t)) timeFmt.format(Date(t)) else dateFmt.format(Date(t))
-
-    private fun visibleMessages() =
-        MessageStore.all(this).filter { m -> Sources.isSelected(this, m.pkg) }.sortedByDescending { it.time }
+    private fun visibleMessages() = PanelRows.visibleMessages(this)
 
     private fun refreshList() {
         val list = listContainer ?: return
@@ -1244,7 +1294,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         updateHeader(visible.size)
         if (msgs.isEmpty()) {
             list.addView(TextView(this).apply {
-                text = "目前沒有訊息。\n收到 LINE、Messenger、IG 等訊息後會顯示在這裡。"
+                text = getString(R.string.panel_empty)
                 setTextColor(0xFF9A9A9E.toInt()); textSize = 14f; gravity = Gravity.CENTER
                 setPadding(0, dp(48f), 0, 0)
             })
@@ -1264,7 +1314,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         val list = listContainer ?: return
         if (remaining <= 0) return
         val footer = TextView(this).apply {
-            text = "再載入 ${min(remaining, LIST_PAGE)} 則（還有 $remaining 則）"
+            text = getString(R.string.panel_load_more, min(remaining, LIST_PAGE), remaining)
             setTextColor(0xFF16A34A.toInt()); textSize = 13f; gravity = Gravity.CENTER
             setPadding(0, dp(12f), 0, dp(16f))
             setOnClickListener { loadMoreMessages() }
@@ -1306,30 +1356,16 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         }
         row.tag = m
         val av = if (narrowItems) 32f else 38f
-        val isLineGroup = (m.pkg == LineListenerService.LINE_PKG || m.pkg == LineListenerService.LINE_LITE_PKG) &&
-            m.sender.isNotBlank() && m.sender != m.chatTitle
+        val isLineGroup = PanelRows.isLineGroup(m)
         val avatar = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             setOnClickListener { openProfile(m) }
-            contentDescription = "開啟個人頁面"
+            contentDescription = getString(R.string.panel_open_profile)
             outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: Outline) = outline.setOval(0, 0, view.width, view.height)
             }
             clipToOutline = true
-            // LINE groups: show the picture LINE attached to this message as is (the sender's in ordinary
-            // groups, the community's in communities), so the row never waits for GroupPicture.
-            // Messages saved before linePicPath existed: a community's picture (CHAT) wins, otherwise
-            // the member's own icon; until a second person speaks every message is from one sender,
-            // so the chat's latest large icon is the one LINE gave them.
-            val bmp = if (!isLineGroup) MessageStore.messageAvatar(this@PanelController, m, suppressChatPicture = false)
-            else MessageStore.loadBitmap(m.linePicPath) ?: run {
-                val verdict = MessageStore.groupPicture(this@PanelController, m.chatKey)
-                val chatPic = if (verdict != GroupPicture.Verdict.SENDER)
-                    MessageStore.loadBitmap(MessageStore.chatAvatarPath(this@PanelController, m.chatKey)) else null
-                (if (verdict == GroupPicture.Verdict.CHAT) chatPic else null)
-                    ?: MessageStore.messageAvatar(this@PanelController, m, suppressChatPicture = false)
-                    ?: chatPic
-            }
+            val bmp = PanelRows.picture(this@PanelController, m)
             val appIcon = if (bmp == null && !isLineGroup && Sources.known(m.pkg) == null)
                 try { packageManager.getApplicationIcon(m.pkg) } catch (_: Exception) { null } else null
             when {
@@ -1368,7 +1404,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             })
         }
         meta.addView(TextView(this).apply {
-            text = formatTime(m.time); setTextColor(0xFF8E8E93.toInt()); textSize = 12f * ts
+            text = PanelRows.formatTime(m.time); setTextColor(0xFF8E8E93.toInt()); textSize = 12f * ts
             setPadding(dp(8f), 0, 0, 0); maxLines = 1
         })
         col.addView(if (narrowItems) meta else top)
@@ -1399,7 +1435,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         // so it never competes with the name/badge/time row for width.
         if (m.repeat > 1) {
             bubble.addView(TextView(this).apply {
-                text = "共 ${m.repeat} 則"; textSize = 11.5f * ts; typeface = Typeface.DEFAULT_BOLD
+                text = getString(R.string.repeat_count, m.repeat); textSize = 11.5f * ts; typeface = Typeface.DEFAULT_BOLD
                 setTextColor(0xFF052E16.toInt()); maxLines = 1
                 background = rounded(0xFF4ADE80.toInt(), 999f)
                 setPadding(dp(8f), dp(1f), dp(8f), dp(2f))
@@ -1424,7 +1460,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         } else if (m.pkg == LineListenerService.LINE_PKG && StickerLoader.looksLikeStickerText(m.text)) {
             // P0-3: LINE-only glyph placeholder when sticker text but enrich failed / no imagePath.
             bubble.addView(TextView(this).apply {
-                text = "🎟  貼圖"
+                text = getString(R.string.panel_sticker)
                 setTextColor(0xFFE8E8ED.toInt())
                 textSize = 16f * ts
                 typeface = Typeface.DEFAULT_BOLD
@@ -1482,7 +1518,7 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
             val i = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(i)
         } catch (e: Exception) {
-            Toast.makeText(this, "無法開啟連結", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.panel_link_failed), Toast.LENGTH_SHORT).show()
             Diagnostics.note(this, "openUrl fail $url: $e")
         }
         closePanel()
@@ -1492,9 +1528,9 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
         try {
             val cm = getSystemService(ClipboardManager::class.java)
             cm.setPrimaryClip(ClipData.newPlainText("url", url))
-            Toast.makeText(this, "已複製連結", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.panel_link_copied), Toast.LENGTH_SHORT).show()
         } catch (_: Exception) {
-            Toast.makeText(this, "複製失敗", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.panel_copy_failed), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1509,7 +1545,8 @@ class PanelController(host: Context, val accessibilityMode: Boolean) : ContextWr
     }
 
     private fun openMessage(m: LineMessage) {
-        val pi = MessageStore.intentForMessage(m.id) ?: MessageStore.intentFor(m.chatKey) ?: Notifier.fallbackIntent(this, m.pkg)
+        val pi = MessageStore.intentForMessage(m.id) ?: MessageStore.intentFor(m.chatKey)
+            ?: Notifier.shownIntent(this, m.chatKey) ?: Notifier.fallbackIntent(this, m.pkg)
         closePanel()
         if (pi == null) return
         try {

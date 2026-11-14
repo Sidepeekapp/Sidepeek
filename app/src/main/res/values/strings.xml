@@ -1,6 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English (default for every language without its own values-xx folder). Chinese is in values-zh. -->
 <resources>
-    <string name="app_name">Sidepeek</string>
-    <string name="a11y_label">Sidepeek 側邊欄</string>
-    <string name="a11y_summary">顯示訊息側邊欄，並隱藏常駐通知</string>
-    <string name="a11y_description">此無障礙服務只用來：\n1. 在螢幕邊緣顯示 Peek 條（螢幕邊緣的小把手）與側邊欄（不需要常駐通知，也不會出現「正重疊顯示在其他應用程式上方」的系統通知）；\n2. 判斷目前是否在桌面（主畫面），以便「只在桌面顯示側邊欄」；\n3. 判斷鍵盤是否出現，以便暫時隱藏 Peek 條；\n4. 側邊欄打開時接收「返回鍵」，用來關閉側邊欄；\n5. 打開 LINE 時，清掉 Sidepeek 整理好的 LINE 通知。\n\n本服務預設只查看「目前是哪個 App 的視窗在前景」、「是否有鍵盤視窗」與按鍵，不會讀取、儲存或傳送螢幕上的任何文字或內容，也不會代替你點擊或操作。只有你在 App 裡另外打開「進階清理」（預設關閉，開啟時會再請你同意），才會讀取 LINE 畫面最上方的聊天室名稱，只在手機上比對，不儲存、不上傳。</string>
+    <string name="app_name" translatable="false">Sidepeek</string>
+    <string name="shortcut_open_panel">Open side panel</string>
+    <string name="widget_name">Recent messages</string>
+    <string name="widget_description">The same messages as the side panel, on your home screen</string>
+    <string name="widget_empty">No messages yet.\nMessages from LINE, Messenger, Instagram and more will show up here.</string>
+    <string name="a11y_label">Sidepeek side panel</string>
+    <string name="a11y_summary">Shows the message side panel without a persistent notification</string>
+    <string name="a11y_description">This accessibility service is only used to:\n1. Show the Peek bar (a small handle at the screen edge) and the side panel, without a persistent notification and without the system’s “displaying over other apps” notice;\n2. Tell whether you are on the home screen, for “Show only on home screen”;\n3. Tell whether the keyboard is open, to hide the Peek bar for a while;\n4. Receive the Back key while the side panel is open, to close it;\n5. Clear the LINE notifications Sidepeek organized when you open LINE.\n\nBy default the service only checks which app’s window is in front, whether a keyboard window is open, and key presses. It never reads, stores or sends any text or content on the screen, and it never taps or acts for you. Only if you separately turn on “Advanced clearing” in the app (off by default; you are asked to agree when turning it on) does it read the chat name at the top of LINE’s screen, compared on the phone only, never stored or uploaded.</string>
+
+    <!-- Settings demo animations (StepDemoView). Chats, names and messages are sample data; use names that are common in each language. -->
+    <string name="demo_clock">1:24</string>
+    <string name="demo_date">Sat, Nov 8</string>
+    <string name="demo_time1">1:22 PM</string>
+    <string name="demo_time2">1:20 PM</string>
+    <string name="demo_time3">1:15 PM</string>
+    <string name="demo_chat1_av">S</string>
+    <string name="demo_chat1_name">Saturday dinner</string>
+    <string name="demo_chat1_line">Amy: Got it 👌</string>
+    <string name="demo_chat2_av">E</string>
+    <string name="demo_chat2_name">Emma</string>
+    <string name="demo_chat2_line">What time do we leave tomorrow?</string>
+    <string name="demo_chat3_av">B</string>
+    <string name="demo_chat3_name">Book club</string>
+    <string name="demo_chat3_line">Leo: Notes are in the shared folder</string>
+    <string name="demo_bubble_sender">Amy</string>
+    <string name="demo_bubble1">See you at the station at 6</string>
+    <string name="demo_bubble_me">OK, see you Saturday!</string>
+    <string name="demo_chats">Chats</string>
+    <string name="demo_no_notifs">No notifications</string>
+    <string name="demo_step_off">" (off)"</string>
+    <string name="demo_app_photos">Photos</string>
+    <string name="demo_app_info">App info</string>
+    <string name="demo_wallpaper">Wallpaper</string>
+    <string name="demo_widgets">Widgets</string>
+    <string name="demo_home_settings">Settings</string>
+    <string name="demo_unlock">Unlock first</string>
+    <string name="demo_typing">Almost there</string>
+    <string name="clear_step1_title">Tap a notification</string>
+    <string name="clear_step1_sub">Clears that chat only. Always on.</string>
+    <string name="clear_step1_pill">Only the chat you opened is cleared</string>
+    <string name="clear_step2_title">Open LINE directly</string>
+    <string name="clear_step2_sub">When you come back, all organized LINE notifications are cleared.</string>
+    <string name="clear_step2_pill">Shade cleared, messages kept</string>
+    <string name="clear_step3_title">Advanced clearing</string>
+    <string name="clear_step3_sub">Reads only the chat name at the top and clears just that chat.</string>
+    <string name="clear_step3_pill">Only the chat you read is cleared</string>
+    <string name="open_step1_title">Quick Settings</string>
+    <string name="open_step1_sub">Pull down Quick Settings and tap the Sidepeek tile.</string>
+    <string name="open_step1_pill">No need to leave the app you’re in</string>
+    <string name="open_step2_title">App shortcut</string>
+    <string name="open_step2_sub">Long-press the Sidepeek icon and drag “Open side panel” to the home screen.</string>
+    <string name="open_step2_pill">One tap from the home screen</string>
+    <string name="open_step3_title">Home screen widget</string>
+    <string name="open_step3_sub">Long-press an empty spot → Widgets → Sidepeek.</string>
+    <string name="open_step3_pill">See messages at a glance</string>
+    <string name="when_step1_title">Show only on home screen</string>
+    <string name="when_step1_sub">The Peek bar hides when you open other apps.</string>
+    <string name="when_step1_pill_on">Opened an app: the Peek bar hides</string>
+    <string name="when_step1_pill_off">The Peek bar shows in other apps too</string>
+    <string name="when_step2_title">Hide while typing</string>
+    <string name="when_step2_sub">Fades out while the keyboard is open and comes back after.</string>
+    <string name="when_step2_pill_on">Never in the way while typing</string>
+    <string name="when_step2_pill_off">The Peek bar stays while typing</string>
+    <string name="when_step3_title">Show on lock screen</string>
+    <string name="when_step3_sub">Swiping in asks you to unlock first; messages are never shown.</string>
+    <string name="when_step3_pill_on">Unlock first to see messages</string>
+    <string name="when_step3_pill_off">No Peek bar on the lock screen</string>
+
+    <!-- 首頁「怎麼用」三格說明圖（StepsOverviewDrawable）；群組、人名、訊息是示範資料 -->
+    <string name="how_step1_title">Conversations</string>
+    <string name="how_step1_sub">One notification\nper chat</string>
+    <string name="how_step2_title">Peek bar</string>
+    <string name="how_step2_sub">A slim bar at the edge,\nout of your way</string>
+    <string name="how_step3_title">Swipe to read</string>
+    <string name="how_step3_sub">Swipe in from the Peek bar\nto open the side panel</string>
+    <string name="how_group">Project</string>
+    <string name="how_group_av">P</string>
+    <string name="how_time">21:05</string>
+    <string name="how_m1_sender">Tom</string>
+    <string name="how_m1">Is the report done?</string>
+    <string name="how_m2_sender">Ann</string>
+    <string name="how_m2">I’ll send it later</string>
+    <string name="how_m3_sender">Mia</string>
+    <string name="how_m3">Got it</string>
+    <string name="how_avatars">P,M,A,E,W</string>
+
+    <!-- 首頁動畫的結果膠囊；「認識 Sidepeek」比較圖（EdgeHandlesDrawable）；精靈「打開側邊欄」圖（SidebarStepDrawable） -->
+    <string name="how_pill1">One notification per chat</string>
+    <string name="how_pill2">Slim and out of your way</string>
+    <string name="how_pill3">Swipe in to open the panel</string>
+    <string name="edge_samsung_title">Samsung Edge panel handle</string>
+    <string name="edge_samsung_sub">System and app shortcuts</string>
+    <string name="edge_peek_title">Sidepeek Peek bar</string>
+    <string name="edge_peek_sub">Messages from your apps</string>
+    <string name="edge_note">Separate, so you can place them apart</string>
+    <string name="side_clock">21:06</string>
+    <string name="side_title">Swipe in from the Peek bar</string>
+    <string name="side_sub">The side panel slides out from the edge</string>
+    <string name="side_c2_av">M</string>
+    <string name="side_c2_name">Mom</string>
+    <string name="side_c2_time">20:48</string>
+    <string name="side_c2_msg">Home for dinner tonight?</string>
+    <string name="side_c3_av">A</string>
+    <string name="side_c3_name">Ann</string>
+    <string name="side_c3_time">20:30</string>
+    <string name="side_c3_msg">This place looks good shop.example</string>
 </resources>

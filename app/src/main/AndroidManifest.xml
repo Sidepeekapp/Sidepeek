@@ -38,6 +38,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:localeConfig="@xml/locales_config"
         android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.Sidepeek">
 
@@ -45,11 +46,18 @@
             android:name=".PrivacyActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".GroupPicsActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <service
@@ -102,6 +110,14 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- 設定 → 群組頭貼: choose or reset one group's picture. Waits for the picker. -->
+        <activity
+            android:name=".GroupPicActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- Peek-bar swipe on the lock screen: asks to unlock, then opens the panel.
              Not noHistory: it must stay alive behind the unlock prompt to get the result. -->
         <activity
@@ -115,7 +131,7 @@
             android:name=".PanelTileService"
             android:exported="true"
             android:icon="@drawable/ic_stat_msg"
-            android:label="開啟訊息側邊欄"
+            android:label="@string/tile_label"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
@@ -129,6 +145,18 @@
             </intent-filter>
         </receiver>
         <receiver android:name=".NotifActionReceiver" android:exported="false" />
+        <receiver android:name=".MessagesWidget" android:exported="false" android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/messages_widget_info" />
+        </receiver>
+        <service
+            android:name=".MessagesWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"
@@ -138,5 +166,13 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Android 12 以下：讓 AppCompat 自己記住 App 內選的語言 -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data android:name="autoStoreLocales" android:value="true" />
+        </service>
     </application>
 </manifest>

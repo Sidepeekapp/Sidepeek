@@ -141,6 +141,9 @@ object Prefs {
 
     // ---- LINE notification style
     const val KEY_NOTIF_STYLE = "notif_style"
+    /** Status bar / notification small icon: a [NotifIcons] choice id, or [NotifIcons.CUSTOM]. */
+    const val KEY_NOTIF_ICON = "notif_icon"
+    fun notifIcon(ctx: Context) = sp(ctx).getString(KEY_NOTIF_ICON, NotifIcons.DEFAULT) ?: NotifIcons.DEFAULT
     const val STYLE_BIGTEXT = "bigtext"; const val STYLE_INBOX = "inbox"; const val STYLE_MESSAGING = "messaging"
     /** Spacing between messages in the expanded notification / side panel: 0 無, 1 小 (default), 2 大. */
     const val KEY_MSG_GAP = "msg_gap"

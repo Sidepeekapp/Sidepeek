@@ -5,7 +5,7 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 
 ## ⭐ 目前進度（2026-11-14 交接，先讀這段）
 
-**狀態**：分支 `feature/v1.2-reliability-widget`，下面「下一版」那一大段的改動已 commit 成 `54a5874`，語言頁提示、github／play flavor、Play 版關掉檢查更新已 commit 成 `ee5a99b`，Play 上架草稿（`store/`）、主題圖片、四種語言的設定示範影片也已 commit；11/15 已 push 到 GitHub（同名分支，還沒開 PR）。版本號已升 1.2.0／versionCode 14（11/15 使用者同意），本機打包過簽好名的 `bundlePlayRelease`（.aab）和 `assembleGithubRelease`（APK）。改動前的備份都在 repo 外的 `D:\projects\sidepeek-backups\<名稱>-日期\`。
+**狀態**：分支 `feature/v1.2-reliability-widget`，下面「下一版」那一大段的改動已 commit 成 `54a5874`，語言頁提示、github／play flavor、Play 版關掉檢查更新已 commit 成 `ee5a99b`，Play 上架草稿（`store/`）、主題圖片、四種語言的設定示範影片也已 commit；11/15 已 push 到 GitHub，PR #8 已合併到 main。版本號已升 1.2.0／versionCode 14（11/15 使用者同意），本機打包過簽好名的 `bundlePlayRelease`（.aab）和 `assembleGithubRelease`（APK）。改動前的備份都在 repo 外的 `D:\projects\sidepeek-backups\<名稱>-日期\`。
 
 **等使用者回覆／決定的事**
 1. 新的通透液態玻璃分頁列（`GlassTabBar`）在手機上是否 OK、跟使用者的 Launcher 比夠不夠像；字看不清楚的話可加陰影。
@@ -16,7 +16,9 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
    - **github／play 兩個 flavor（11/13，未實機測試）**：`app/build.gradle.kts` 加 `store` 維度。`BuildConfig.DIRECT_BATTERY_REQUEST`：github＝true（照舊直接跳系統視窗），play＝false（`MainActivity.requestBatteryExemption` 打開 App 資訊頁＋Toast `toast_battery_app_info`「在這頁點「電池」，選「不受限制」」）。`src/play/AndroidManifest.xml` 用 `tools:node="remove"` 拿掉 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`（合併後 manifest 已確認）。CI（build.yml）改成 `testGithubDebugUnitTest`、`assembleGithubRelease`、`apk/github/release/`、`app-github-release-unsigned.apk`，還沒在 GitHub 上跑過。README 的建置指令（`assembleDebug`／`bundleRelease`／`assembleRelease` 現在會兩個 flavor 都編）還沒改。之後 Play 版要關的東西（例如 UpdateChecker）照這個模式加 buildConfigField。備份在 `D:\projects\sidepeek-backups\before-play-battery-20261113\`。
    - **上架草稿（11/14）**：`store/play-console-draft.md`＝無障礙 API 聲明、specialUse 前景服務聲明、資料安全（填「不收集、不分享」）、兩支影片的拍攝步驟、其他 Console 欄位，要貼的文字用英文。`store/play-listing-draft.md`＝四語名稱／簡短說明／完整說明（字數都在 30／80／4000 內，node 算過）、圖片規格、6 張截圖計畫（只能用假資料）。日、韓文是初稿，最好請母語者看過。名稱、圖示不能有 LINE、三星商標或 LINE 綠。
    - **主題圖片（11/14）**：`store/feature-graphic/feature-{zh-TW,en,ja,ko}.png`（1024×500、24 位元 PNG 無 alpha），兩支手機呈現兩個主要功能：①通知欄裡依聊天室整理的通知 ②Peek 條＋側邊欄（使用者要求兩個功能都要有）。原始檔 `feature.html`（`#語言` 切換），`node store/feature-graphic/render.js` 用 Chrome 無頭截圖＋ffmpeg 去 alpha 重新產生。圖上刻意不寫「LINE」，名字訊息都是假資料（Tom、Ann、Mia、專案）。還沒在 Play Console 預覽過裁切。
-   - 還沒做：手機截圖、錄兩支聲明影片並上傳 YouTube「不公開」、網站 privacy.html 要 push 到 main 才會更新。
+   - **11/15 PR #8 已合併到 main**（`85e4af1`），網站隱私權政策已跟著更新。使用者決定**先上 Play 封閉測試、GitHub 暫不發布 1.2.0**（要測試者從 Play 裝）。
+   - **商店圖示、封閉測試草稿（11/15）**：`store/icon/icon-512.png`（512×512 RGBA，照自適應圖示中間 72×72，Play 會自己套圓角），原稿 `icon.svg`，`node store/icon/render.js` 重新產生（改 App 圖示時要一起改 icon.svg）。`store/closed-test-draft.md`＝簽署金鑰的選擇（建議上傳現有金鑰）、Console 封閉測試步驟、四語版本說明（各 ≤500 字元，英文 479 接近上限）、寄給表單報名者的中文邀請信。報名表單已經有（README 那份）。
+   - 還沒做：手機截圖、錄兩支聲明影片並上傳 YouTube「不公開」、在 Console 建 App 和封閉測試（使用者自己操作）。
 5. LINE 未接來電轉發（語音、視訊）還沒實機驗證；回覆測試者 Alina 的信由使用者自己寄。
 6. 網站、README 還沒同步多語言、常見問題新內容。
 

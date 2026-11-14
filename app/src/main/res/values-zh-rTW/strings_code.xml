@@ -343,5 +343,4 @@
     <!-- 語言 -->
     <string name="set_language">語言</string>
     <string name="lang_system">跟著手機系統</string>
-    <string name="lang_hint">設定步驟裡的操作示範影片目前只有中文。</string>
 </resources>

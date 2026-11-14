@@ -343,5 +343,4 @@
     <!-- 言語 -->
     <string name="set_language">言語</string>
     <string name="lang_system">端末の言語に合わせる</string>
-    <string name="lang_hint">設定手順のデモ動画は、今のところ中国語のみです。</string>
 </resources>

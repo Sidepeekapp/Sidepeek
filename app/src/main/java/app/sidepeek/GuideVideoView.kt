@@ -6,7 +6,6 @@ import android.graphics.Outline
 import android.graphics.SurfaceTexture
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
-import android.net.Uri
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.Surface
@@ -82,7 +81,11 @@ class GuideVideoView @JvmOverloads constructor(
         if (rawRes == 0 || player != null || !isAttachedToWindow) return
         try {
             player = MediaPlayer().apply {
-                setDataSource(context, Uri.parse("android.resource://${context.packageName}/$rawRes"))
+                // 經由這個 View 的 resources 開檔，才會照 App 內選的語言挑 raw-en／raw-ja／raw-ko 的影片
+                // （android.resource:// 網址可能只看系統語言）。
+                context.resources.openRawResourceFd(rawRes).use { fd ->
+                    setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
+                }
                 setSurface(s)
                 isLooping = true
                 setVolume(0f, 0f)

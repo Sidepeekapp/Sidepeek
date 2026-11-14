@@ -141,6 +141,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:baselineAligned="false"
                 android:paddingTop="8dp">
                 <Button android:id="@+id/btnTest" style="@style/BtnOutline"
                     android:layout_width="0dp" android:layout_weight="1"
@@ -623,7 +624,6 @@
                     <RadioButton android:id="@+id/rbLangJa" style="@style/LangOption" android:text="@string/lang_ja" />
                     <RadioButton android:id="@+id/rbLangKo" style="@style/LangOption" android:text="@string/lang_ko" />
                 </RadioGroup>
-                <TextView style="@style/Hint" android:layout_marginTop="8dp" android:text="@string/lang_hint" />
             </LinearLayout>
             </LinearLayout>
             </LinearLayout>

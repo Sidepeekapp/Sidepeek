@@ -109,7 +109,7 @@
     <string name="wiz_access_btn">Open notification access settings</string>
     <string name="wiz_access_grey_title">Notification access: is the switch greyed out?</string>
     <string name="wiz_access_grey_1">Phones like ASUS and Pixel block apps not installed from a store: the switch is grey, or “App was denied access” appears.</string>
-    <string name="wiz_access_grey_2">Tap “Close” first, then tap “Unlock in App info” below → ⋮ at the top right → “Allow restricted settings”, verify, come back and turn on notification access.</string>
+    <string name="wiz_access_grey_2">" Tap “Close” first, then tap “Unlock in App info” below → ⋮ at the top right → “Allow restricted settings”, verify, come back and turn on notification access."</string>
     <string name="wiz_access_grey_3">\n\nWhile in App info, also turn off “Pause app activity if unused”, so permissions aren’t removed if you don’t open the app for a long time.</string>
     <string name="wiz_access_grey_4">\nIf you just haven’t turned it on yet, tap “Open notification access settings”.</string>
     <string name="wiz_access_unrestrict">Unlock in App info</string>
@@ -121,7 +121,7 @@
     <string name="wiz_panel_hint">A translucent “Peek bar” appears at the screen edge; swipe in from it to read messages (much like Samsung’s Edge panel handle). The next steps help you turn on the service. If now isn’t a good time, tap “Set up the side panel later”; notification organizing works either way.</string>
     <string name="wiz_a11y_title">Try the side panel service</string>
     <string name="wiz_a11y_hint">Tap “Installed apps” → “Sidepeek side panel” → turn it on. If a “denied” window appears, tap Close, then tap Next below.</string>
-    <string name="wiz_a11y_hint_shortcut">(Only turn on the service switch. The “shortcut” below isn’t needed; it adds a floating button to the screen.)</string>
+    <string name="wiz_a11y_hint_shortcut">" (Only turn on the service switch. The “shortcut” below isn’t needed; it adds a floating button to the screen.)"</string>
     <string name="wiz_a11y_btn">Open Accessibility settings</string>
     <string name="wiz_a11y_denied_next">I closed the denied window, next</string>
     <string name="wiz_restricted_title">Allow restricted settings</string>
@@ -130,7 +130,7 @@
     <string name="wiz_restricted_next">I’ve allowed it, next</string>
     <string name="wiz_a11y2_title">Turn on the side panel service again</string>
     <string name="wiz_a11y2_hint">Go back to Accessibility → Installed apps → “Sidepeek side panel” → turn it on. You’ll move to the next step automatically.</string>
-    <string name="wiz_a11y2_hint_shortcut">(The “shortcut” below isn’t needed; it adds a floating button to the screen.)</string>
+    <string name="wiz_a11y2_hint_shortcut">" (The “shortcut” below isn’t needed; it adds a floating button to the screen.)"</string>
     <string name="wiz_battery_title">Turn off battery optimization</string>
     <string name="wiz_battery_hint">Battery saving may close “Sidepeek” and you’d miss messages. Tap below and allow “Unrestricted”.</string>
     <string name="wiz_battery_autostart">" After that, %1$s phones also need “Auto-start”."</string>
@@ -343,7 +343,6 @@
     <!-- Language -->
     <string name="set_language">Language</string>
     <string name="lang_system">Use phone language</string>
-    <string name="lang_hint">The demo videos in the setup steps are only in Chinese for now.</string>
     <!-- Language names are written in their own language and not translated -->
     <string name="lang_zh" translatable="false">繁體中文</string>
     <string name="lang_en" translatable="false">English</string>

@@ -109,7 +109,7 @@
     <string name="wiz_access_btn">알림 접근 설정 열기</string>
     <string name="wiz_access_grey_title">알림 접근: 스위치가 회색인가요?</string>
     <string name="wiz_access_grey_1">ASUS, Pixel 등은 스토어에서 설치하지 않은 앱을 막아서, 스위치가 회색이 되거나 “앱 접근이 거부되었습니다”가 나타납니다.</string>
-    <string name="wiz_access_grey_2">먼저 “닫기”를 누르고, 아래 “애플리케이션 정보에서 제한 해제” → 오른쪽 위 ⋮ → “제한된 설정 허용”을 누른 뒤 인증하고 돌아와 알림 접근을 켜세요.</string>
+    <string name="wiz_access_grey_2">" 먼저 “닫기”를 누르고, 아래 “애플리케이션 정보에서 제한 해제” → 오른쪽 위 ⋮ → “제한된 설정 허용”을 누른 뒤 인증하고 돌아와 알림 접근을 켜세요."</string>
     <string name="wiz_access_grey_3">\n\n애플리케이션 정보에서 “사용하지 않는 앱 활동 일시중지”도 꺼 두면, 오랫동안 앱을 열지 않아도 권한이 사라지지 않습니다.</string>
     <string name="wiz_access_grey_4">\n아직 켜지 않은 것뿐이라면 “알림 접근 설정 열기”를 누르세요.</string>
     <string name="wiz_access_unrestrict">애플리케이션 정보에서 제한 해제</string>
@@ -121,7 +121,7 @@
     <string name="wiz_panel_hint">화면 가장자리에 반투명한 “Peek 바”가 나타나며, 거기서 안쪽으로 밀면 메시지를 볼 수 있습니다(삼성 엣지 패널 핸들과 비슷). 다음 단계에서 서비스를 켜 드립니다. 지금 곤란하다면 “사이드 패널은 나중에 설정”을 눌러도 알림 정리는 그대로 쓸 수 있습니다.</string>
     <string name="wiz_a11y_title">사이드 패널 서비스 켜 보기</string>
     <string name="wiz_a11y_hint">“설치된 앱” → “Sidepeek 사이드 패널” → 켜기. 거부 창이 뜨면 닫고 아래의 다음을 누르세요.</string>
-    <string name="wiz_a11y_hint_shortcut">(서비스 스위치만 켜세요. 아래의 “바로가기”는 필요 없습니다. 켜면 화면에 떠 있는 버튼이 하나 생깁니다.)</string>
+    <string name="wiz_a11y_hint_shortcut">" (서비스 스위치만 켜세요. 아래의 “바로가기”는 필요 없습니다. 켜면 화면에 떠 있는 버튼이 하나 생깁니다.)"</string>
     <string name="wiz_a11y_btn">접근성 설정 열기</string>
     <string name="wiz_a11y_denied_next">거부 창을 닫았어요, 다음</string>
     <string name="wiz_restricted_title">제한된 설정 허용</string>
@@ -130,7 +130,7 @@
     <string name="wiz_restricted_next">허용했어요, 다음</string>
     <string name="wiz_a11y2_title">사이드 패널 서비스 다시 켜기</string>
     <string name="wiz_a11y2_hint">접근성 → 설치된 앱 → “Sidepeek 사이드 패널” → 켜기. 켜면 자동으로 다음 단계로 넘어갑니다.</string>
-    <string name="wiz_a11y2_hint_shortcut">(아래의 “바로가기”는 필요 없습니다. 켜면 화면에 떠 있는 버튼이 하나 생깁니다.)</string>
+    <string name="wiz_a11y2_hint_shortcut">" (아래의 “바로가기”는 필요 없습니다. 켜면 화면에 떠 있는 버튼이 하나 생깁니다.)"</string>
     <string name="wiz_battery_title">배터리 최적화 끄기</string>
     <string name="wiz_battery_hint">절전 기능이 “Sidepeek”을 종료해 메시지를 놓칠 수 있습니다. 아래에서 “제한 없음”을 허용하세요.</string>
     <string name="wiz_battery_autostart">" 이어서 %1$s 휴대폰은 “자동 실행”도 설정해야 합니다."</string>
@@ -343,5 +343,4 @@
     <!-- 언어 -->
     <string name="set_language">언어</string>
     <string name="lang_system">휴대폰 언어 따르기</string>
-    <string name="lang_hint">설정 단계의 데모 영상은 아직 중국어로만 되어 있습니다.</string>
 </resources>

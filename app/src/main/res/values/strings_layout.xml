@@ -18,7 +18,7 @@
     <string name="ui_btn_overlay">Allow display over other apps (fallback)</string>
     <string name="ui_btn_fgs_channel">Hide the fallback’s persistent notification</string>
     <string name="ui_txt_backup_hint">Only if the system won’t let you turn on the side panel service. The downside is an extra persistent notification.</string>
-    <string name="ui_btn_test">Send a test notification</string>
+    <string name="ui_btn_test">Test notification</string>
     <string name="ui_btn_open_panel">Open side panel</string>
     <string name="ui_home_3">How it works</string>
     <string name="ui_home_4">Three steps: notifications become conversations, a Peek bar sits at the screen edge, swipe in from it to open the side panel</string>

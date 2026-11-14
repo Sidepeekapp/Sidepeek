@@ -3,9 +3,9 @@
 Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），加上螢幕邊緣「Peek 條」往內滑打開的側邊欄（可收任何使用者勾選的 App）。
 全部在手機上處理，無伺服器。GitHub：github.com/Sidepeekapp/sidepeek（GPL-3.0；「Sidepeek」名稱與圖示不在授權內）。
 
-## ⭐ 目前進度（2026-11-13 交接，先讀這段）
+## ⭐ 目前進度（2026-11-14 交接，先讀這段）
 
-**狀態**：分支 `feature/v1.2-reliability-widget`，下面「下一版」那一大段的改動已 commit 成 `54a5874`（本機），**還沒 push**；之後的改動（語言頁提示、github／play flavor、Play 版關掉檢查更新）還沒 commit。版本號還是 1.1.1／versionCode 13，升 1.2.0／14 還沒得到使用者同意。改動前的備份都在 repo 外的 `D:\projects\sidepeek-backups\<名稱>-日期\`。
+**狀態**：分支 `feature/v1.2-reliability-widget`，下面「下一版」那一大段的改動已 commit 成 `54a5874`，語言頁提示、github／play flavor、Play 版關掉檢查更新已 commit 成 `ee5a99b`，Play 上架草稿（`store/`）也已 commit；全部都在本機，**還沒 push**。版本號還是 1.1.1／versionCode 13，升 1.2.0／14 還沒得到使用者同意。改動前的備份都在 repo 外的 `D:\projects\sidepeek-backups\<名稱>-日期\`。
 
 **等使用者回覆／決定的事**
 1. 新的通透液態玻璃分頁列（`GlassTabBar`）在手機上是否 OK、跟使用者的 Launcher 比夠不夠像；字看不清楚的話可加陰影。
@@ -14,7 +14,8 @@ Android App「Sidepeek」：LINE 通知依聊天室整理（只接管 LINE），
 4. Google Play 上架：使用者正在註冊 Play Console 個人帳號（非交易商、開發者名稱用 Sidepeek）。新個人帳號要先 12 人封閉測試 14 天。Play App Signing 建議上傳現有金鑰，GitHub 版才能直接更新。
    - **11/13 權限檢查結果**：①`UpdateChecker`（提示去 GitHub 下載 APK）可能違反「只能經 Play 更新」→ **已改（11/14，做法 A）**：`BuildConfig.SELF_UPDATE_CHECK`（github true／play false），`UpdateChecker.enabled()` 在 Play 版永遠 false（不連 GitHub、首頁不出現「前往下載新版」）；設定清單 `settingsItems` 濾掉 `cardOther`「檢查更新」，`setupSettingsPages` 把卡片設 GONE。使用者知道別的 App 用 Google In-App Updates，選擇先不加（做法 B 以後再說）。隱私權政策（四語 `strings_privacy.xml`、`docs/privacy.md`）改成「只有從 GitHub 下載的版本會查詢，Play 版由商店更新」，順便修正關閉位置為「設定 → 檢查更新」，最後更新日改 2026/11/14；網站要 push 後才會更新。備份在 `D:\projects\sidepeek-backups\before-play-update-off-20261114\`。②電池直接請求 → **已改**（見下）。③無障礙要填聲明＋影片（揭露畫面 → 同意 → 不同意與如何再叫出 → 核心功能）；要先解釋 `flagRequestFilterKeyEvents` 只攔返回鍵、`canRetrieveWindowContent` 只為進階清理讀 LINE 聊天室名稱和判斷前景。④`EdgePanelService` specialUse 前景服務要填聲明＋影片，保留（不想開無障礙的替代方案）。⑤沒問題：`<queries>` LAUNCHER（不是 QUERY_ALL_PACKAGES）、使用情況、上層顯示、targetSdk 36；資料安全可填「不收集、不分享」（要隱私權政策網址）；商店標題和圖示不能用 LINE。
    - **github／play 兩個 flavor（11/13，未實機測試）**：`app/build.gradle.kts` 加 `store` 維度。`BuildConfig.DIRECT_BATTERY_REQUEST`：github＝true（照舊直接跳系統視窗），play＝false（`MainActivity.requestBatteryExemption` 打開 App 資訊頁＋Toast `toast_battery_app_info`「在這頁點「電池」，選「不受限制」」）。`src/play/AndroidManifest.xml` 用 `tools:node="remove"` 拿掉 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`（合併後 manifest 已確認）。CI（build.yml）改成 `testGithubDebugUnitTest`、`assembleGithubRelease`、`apk/github/release/`、`app-github-release-unsigned.apk`，還沒在 GitHub 上跑過。README 的建置指令（`assembleDebug`／`bundleRelease`／`assembleRelease` 現在會兩個 flavor 都編）還沒改。之後 Play 版要關的東西（例如 UpdateChecker）照這個模式加 buildConfigField。備份在 `D:\projects\sidepeek-backups\before-play-battery-20261113\`。
-   - 還可以做：四語商店文字、無障礙／前景服務／資料安全聲明草稿、影片拍攝步驟。
+   - **上架草稿（11/14）**：`store/play-console-draft.md`＝無障礙 API 聲明、specialUse 前景服務聲明、資料安全（填「不收集、不分享」）、兩支影片的拍攝步驟、其他 Console 欄位，要貼的文字用英文。`store/play-listing-draft.md`＝四語名稱／簡短說明／完整說明（字數都在 30／80／4000 內，node 算過）、圖片規格、6 張截圖計畫（只能用假資料）。日、韓文是初稿，最好請母語者看過。名稱、圖示不能有 LINE、三星商標或 LINE 綠。
+   - 還沒做：主題圖片（1024×500）和截圖、錄兩支聲明影片並上傳 YouTube「不公開」、網站 privacy.html 要 push 到 main 才會更新。
 5. LINE 未接來電轉發（語音、視訊）還沒實機驗證；回覆測試者 Alina 的信由使用者自己寄。
 6. 網站、README 還沒同步多語言、常見問題新內容。
 

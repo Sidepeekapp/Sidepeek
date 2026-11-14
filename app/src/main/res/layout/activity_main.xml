@@ -359,6 +359,7 @@
 
                 <TextView style="@style/SubGroup" android:drawableStart="@drawable/ic_sg_bell" android:text="@string/ui_look_8" />
                 <Button android:id="@+id/btnSound" style="@style/BtnOutline" android:layout_marginTop="8dp" android:text="@string/ui_btn_sound" />
+                <Button android:id="@+id/btnVibration" style="@style/BtnOutline" android:layout_marginTop="8dp" android:text="@string/ui_btn_vibration" />
                 <TextView style="@style/Hint" android:text="@string/ui_look_9" />
                 <TextView style="@style/DetailsToggle" />
                 <TextView style="@style/DetailsBody"

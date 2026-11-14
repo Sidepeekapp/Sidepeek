@@ -343,4 +343,25 @@
     <!-- 語言 -->
     <string name="set_language">語言</string>
     <string name="lang_system">跟著手機系統</string>
+    <!-- 震動（Vibes.kt） -->
+    <string name="vib_title">LINE 通知震動</string>
+    <string name="vib_lls">一長兩短</string>
+    <string name="vib_short1">短震一下</string>
+    <string name="vib_short2">短震兩下</string>
+    <string name="vib_long">長震一下</string>
+    <string name="vib_default">跟手機預設一樣</string>
+    <string name="vib_off">不震動</string>
+    <string name="vib_custom">自己錄的節奏</string>
+    <string name="vib_record">自己錄一段…</string>
+    <string name="btn_vib_named">震動：%1$s</string>
+    <string name="sum_vib">震動 %1$s</string>
+    <string name="toast_vib_set">已換成這個震動</string>
+    <string name="vib_rec_title">錄自己的震動節奏</string>
+    <string name="vib_rec_hint">按住下面的方塊就會震，放開就停。從第一次按下開始，最長 3 秒。</string>
+    <string name="vib_rec_pad">按住這裡</string>
+    <string name="vib_rec_recording">錄製中…</string>
+    <string name="vib_rec_play">錄好了，點一下試震</string>
+    <string name="vib_rec_use">使用</string>
+    <string name="vib_rec_redo">重錄</string>
+    <string name="vib_rec_empty">還沒錄到節奏</string>
 </resources>

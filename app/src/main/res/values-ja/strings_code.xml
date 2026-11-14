@@ -343,4 +343,25 @@
     <!-- 言語 -->
     <string name="set_language">言語</string>
     <string name="lang_system">端末の言語に合わせる</string>
+    <!-- 震動（Vibes.kt） -->
+    <string name="vib_title">LINE通知のバイブ</string>
+    <string name="vib_lls">長く1回・短く2回</string>
+    <string name="vib_short1">短く1回</string>
+    <string name="vib_short2">短く2回</string>
+    <string name="vib_long">長く1回</string>
+    <string name="vib_default">端末のデフォルト</string>
+    <string name="vib_off">バイブなし</string>
+    <string name="vib_custom">録音したリズム</string>
+    <string name="vib_record">自分で録音…</string>
+    <string name="btn_vib_named">バイブ：%1$s</string>
+    <string name="sum_vib">バイブ %1$s</string>
+    <string name="toast_vib_set">バイブを変更しました</string>
+    <string name="vib_rec_title">バイブのリズムを録音</string>
+    <string name="vib_rec_hint">下の枠を押している間だけ振動し、離すと止まります。最初に押してから最大3秒です。</string>
+    <string name="vib_rec_pad">ここを長押し</string>
+    <string name="vib_rec_recording">録音中…</string>
+    <string name="vib_rec_play">録音完了。タップで確認</string>
+    <string name="vib_rec_use">使う</string>
+    <string name="vib_rec_redo">録り直す</string>
+    <string name="vib_rec_empty">まだ録音されていません</string>
 </resources>

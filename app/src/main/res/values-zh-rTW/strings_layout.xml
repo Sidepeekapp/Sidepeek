@@ -59,9 +59,10 @@
     <string name="ui_look_5">狀態列小圖示</string>
     <string name="ui_look_6">系統會畫成單色，去背或簡單的圖案效果最好。</string>
     <string name="ui_look_7">這是手機最上面一排和通知上的小圖示。選了「自訂」之後再點一次可以換圖。通知右下角的 App 小圖示是系統決定的，沒辦法換。</string>
-    <string name="ui_look_8">鈴聲</string>
+    <string name="ui_look_8">鈴聲和震動</string>
     <string name="ui_btn_sound">選擇鈴聲</string>
-    <string name="ui_look_9">可以用手機內建的通知音，或自己的 mp3。</string>
+    <string name="ui_btn_vibration">選擇震動</string>
+    <string name="ui_look_9">可以用手機內建的通知音，或自己的 mp3。震動可以選現成的模式，或自己錄一段節奏。</string>
     <string name="ui_look_10">只換 Sidepeek 整理好的 LINE 通知。換好後通知會先收起來再出現，訊息都還在。</string>
     <string name="ui_look_11">群組頭貼</string>
     <string name="ui_btn_group_pics">設定群組頭貼</string>

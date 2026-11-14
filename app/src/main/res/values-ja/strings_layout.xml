@@ -59,9 +59,10 @@
     <string name="ui_look_5">ステータスバーのアイコン</string>
     <string name="ui_look_6">システムが単色で表示します。背景を透過した画像やシンプルな図形がおすすめです。</string>
     <string name="ui_look_7">画面最上部と通知に表示される小さなアイコンです。「カスタム」を選んだあと、もう一度タップすると画像を変更できます。通知の右下にあるアプリの小さなアイコンはシステムが決めるため変更できません。</string>
-    <string name="ui_look_8">通知音</string>
+    <string name="ui_look_8">通知音とバイブ</string>
     <string name="ui_btn_sound">通知音を選ぶ</string>
-    <string name="ui_look_9">端末の通知音か、自分の mp3 を使えます。</string>
+    <string name="ui_btn_vibration">バイブを選ぶ</string>
+    <string name="ui_look_9">端末の通知音か、自分の mp3 を使えます。バイブは用意されたパターンから選ぶか、自分でリズムを録音できます。</string>
     <string name="ui_look_10">Sidepeek が整理した LINE の通知だけが変わります。変更後、通知がいったん消えてから再表示されますが、メッセージは残っています。</string>
     <string name="ui_look_11">グループのアイコン</string>
     <string name="ui_btn_group_pics">グループのアイコンを設定</string>

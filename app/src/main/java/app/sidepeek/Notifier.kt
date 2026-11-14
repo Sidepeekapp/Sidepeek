@@ -16,9 +16,8 @@ object Notifier {
     const val CHANNEL_MSG = "line_preview_messages_v4"
     // Newest first: settings are copied from the first one that exists (v2/v3 only on test builds).
     private val OLD_CHANNELS_MSG = listOf("line_preview_messages_v3", "line_preview_messages_v2", "line_preview_messages")
-    // LINE's own channel pattern (one long, two short; read from its channel, LINE 26.16); the
-    // system default single short buzz is easy to miss in a pocket.
-    private val MSG_VIBRATION = longArrayOf(0, 330, 160, 100, 80, 140)
+    // Vibration: Vibes (default 「一長兩短」, LINE's own pattern; the system default single short
+    // buzz is easy to miss in a pocket). The user can pick another one or record a rhythm.
     const val CHANNEL_PANEL = "panel_service_silent"
     private const val OLD_CHANNEL_PANEL = "edge_panel_service"
 
@@ -63,16 +62,27 @@ object Notifier {
         }
     }
 
-    /** [old]'s user settings carried over; [sound] replaces its sound when [changeSound]. */
+    /**
+     * [old]'s user settings carried over; [sound] replaces its sound when [changeSound]. The
+     * vibration pattern is the one chosen in the app ([Vibes]); [vibrationChosen] = the user just
+     * picked it, so it is switched on even if it was off in the system settings.
+     */
     private fun createMsgChannel(
         ctx: Context, nm: NotificationManager, id: String, old: NotificationChannel?,
-        changeSound: Boolean = false, sound: android.net.Uri? = null,
+        changeSound: Boolean = false, sound: android.net.Uri? = null, vibrationChosen: Boolean = false,
     ) {
         nm.createNotificationChannel(
             NotificationChannel(id, ctx.getString(R.string.ch_msg_name), old?.importance ?: NotificationManager.IMPORTANCE_HIGH).apply {
                 description = ctx.getString(R.string.ch_msg_desc)
-                enableVibration(old?.shouldVibrate() ?: true)
-                vibrationPattern = MSG_VIBRATION
+                // setVibrationPattern also switches vibration on, so the on/off goes after it.
+                val pattern = Vibes.pattern(ctx)
+                if (pattern != null && pattern.isEmpty()) {
+                    vibrationPattern = null
+                    enableVibration(false)
+                } else {
+                    vibrationPattern = pattern   // null = the phone's default vibration
+                    enableVibration(vibrationChosen || (old?.shouldVibrate() ?: true))
+                }
                 setShowBadge(old?.canShowBadge() ?: true)
                 lockscreenVisibility = old?.lockscreenVisibility ?: android.app.Notification.VISIBILITY_PRIVATE
                 if (changeSound) setSound(sound, old?.audioAttributes ?: android.media.AudioAttributes.Builder()
@@ -94,15 +104,31 @@ object Notifier {
      * notifications off the shade; the orphan recovery puts unread chats back on the new one.
      */
     fun setMessageSound(ctx: Context, sound: android.net.Uri?) {
+        moveMsgChannel(ctx, "SOUND silent=${sound == null}", changeSound = true, sound = sound)
+    }
+
+    /**
+     * 「震動」 picked in the app: a preset id or [Vibes.CUSTOM] ([recorded] = a new rhythm). Like the
+     * sound, this needs a new channel; the notifications on the shade come back on it.
+     */
+    fun setMessageVibration(ctx: Context, id: String, recorded: LongArray? = null) {
+        Vibes.save(ctx, id, recorded)
+        moveMsgChannel(ctx, "VIBRATION $id ${Vibes.pattern(ctx)?.let { Vibes.encode(it) } ?: "default"}", vibrationChosen = true)
+    }
+
+    private fun moveMsgChannel(
+        ctx: Context, note: String,
+        changeSound: Boolean = false, sound: android.net.Uri? = null, vibrationChosen: Boolean = false,
+    ) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
         ensureChannels(ctx)
         val sp = Prefs.sp(ctx)
         val seq = sp.getInt(KEY_MSG_CHANNEL_SEQ, 0)
         val old = nm.getNotificationChannel(msgChannelId(seq))
         sp.edit().putInt(KEY_MSG_CHANNEL_SEQ, seq + 1).commit()
-        createMsgChannel(ctx, nm, msgChannelId(seq + 1), old, changeSound = true, sound = sound)
+        createMsgChannel(ctx, nm, msgChannelId(seq + 1), old, changeSound, sound, vibrationChosen)
         try { nm.deleteNotificationChannel(msgChannelId(seq)) } catch (_: Exception) {}
-        Diagnostics.note(ctx, "SOUND changed -> ${msgChannelId(seq + 1)} silent=${sound == null}")
+        Diagnostics.note(ctx, "$note -> ${msgChannelId(seq + 1)}")
     }
 
     /**

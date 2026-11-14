@@ -59,9 +59,10 @@
     <string name="ui_look_5">상태 표시줄 아이콘</string>
     <string name="ui_look_6">시스템이 한 가지 색으로 표시합니다. 배경을 지운 이미지나 단순한 모양이 가장 좋습니다.</string>
     <string name="ui_look_7">화면 맨 위 줄과 알림에 보이는 작은 아이콘입니다. “사용자 지정”을 고른 뒤 한 번 더 누르면 이미지를 바꿀 수 있습니다. 알림 오른쪽 아래의 작은 앱 아이콘은 시스템이 정하므로 바꿀 수 없습니다.</string>
-    <string name="ui_look_8">알림음</string>
+    <string name="ui_look_8">알림음 및 진동</string>
     <string name="ui_btn_sound">알림음 선택</string>
-    <string name="ui_look_9">휴대폰의 기본 알림음이나 직접 가진 mp3를 쓸 수 있습니다.</string>
+    <string name="ui_btn_vibration">진동 선택</string>
+    <string name="ui_look_9">휴대폰의 기본 알림음이나 직접 가진 mp3를 쓸 수 있습니다. 진동은 준비된 패턴을 고르거나 리듬을 직접 녹음할 수 있습니다.</string>
     <string name="ui_look_10">Sidepeek이 정리한 LINE 알림에만 적용됩니다. 바꾸면 알림이 잠시 사라졌다가 다시 나타나며, 메시지는 그대로 남아 있습니다.</string>
     <string name="ui_look_11">그룹 사진</string>
     <string name="ui_btn_group_pics">그룹 사진 설정</string>

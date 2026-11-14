@@ -348,4 +348,25 @@
     <string name="lang_en" translatable="false">English</string>
     <string name="lang_ja" translatable="false">日本語</string>
     <string name="lang_ko" translatable="false">한국어</string>
+    <!-- 震動（Vibes.kt） -->
+    <string name="vib_title">LINE notification vibration</string>
+    <string name="vib_lls">One long, two short</string>
+    <string name="vib_short1">One short buzz</string>
+    <string name="vib_short2">Two short buzzes</string>
+    <string name="vib_long">One long buzz</string>
+    <string name="vib_default">Phone default</string>
+    <string name="vib_off">No vibration</string>
+    <string name="vib_custom">My recorded rhythm</string>
+    <string name="vib_record">Record your own…</string>
+    <string name="btn_vib_named">Vibration: %1$s</string>
+    <string name="sum_vib">Vibration: %1$s</string>
+    <string name="toast_vib_set">Vibration changed</string>
+    <string name="vib_rec_title">Record a vibration rhythm</string>
+    <string name="vib_rec_hint">Hold the box to vibrate, let go to stop. You have 3 seconds from the first press.</string>
+    <string name="vib_rec_pad">Press and hold here</string>
+    <string name="vib_rec_recording">Recording…</string>
+    <string name="vib_rec_play">Done. Tap to feel it</string>
+    <string name="vib_rec_use">Use</string>
+    <string name="vib_rec_redo">Redo</string>
+    <string name="vib_rec_empty">Nothing recorded yet</string>
 </resources>

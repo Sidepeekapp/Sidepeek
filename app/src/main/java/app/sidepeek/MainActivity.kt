@@ -278,6 +278,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 .show()
         }
+        findViewById<Button>(R.id.btnVibration).setOnClickListener { pickVibration() }
         findViewById<SwitchCompat>(R.id.swHideIme).apply {
             isChecked = Prefs.hideOnIme(this@MainActivity)
             setOnCheckedChangeListener { _, on -> Prefs.set(this@MainActivity, Prefs.KEY_HIDE_ON_IME, on) }
@@ -427,6 +428,7 @@ class MainActivity : AppCompatActivity() {
                 checkedText(R.id.rgNotifStyle)?.substringBefore('（')?.substringBefore(" ("),
                 checkedText(R.id.rgNotifMax)?.takeWhile { it.isDigit() }?.let { getString(R.string.sum_notif_max, it) },
                 getString(R.string.sum_sound, soundName(Notifier.messageSound(this))),
+                getString(R.string.sum_vib, Vibes.label(this, Vibes.current(this))),
             ).joinToString("・")
         },
         SettingsItem(R.id.cardLineClear, R.id.hdrLineClear, R.id.grpLineClear, getString(R.string.set_line_clear), R.drawable.ic_set_clean, getString(R.string.grp_notif)) {
@@ -877,6 +879,76 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 「震動」: ready-made patterns (each one buzzes when tapped, OK applies it), the rhythm recorded
+     * last time, and 「自己錄一段」 which opens [recordVibration].
+     */
+    private fun pickVibration() {
+        val record = "record"
+        val ids = Vibes.PRESETS.map { it.id } +
+            (if (Vibes.custom(this) != null) listOf(Vibes.CUSTOM) else emptyList()) + record
+        val labels = ids.map { if (it == record) getString(R.string.vib_record) else Vibes.label(this, it) }
+        val now = Vibes.current(this)
+        var sel = ids.indexOf(now).coerceAtLeast(0)
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.vib_title))
+            .setSingleChoiceItems(labels.toTypedArray(), sel) { d, which ->
+                if (ids[which] == record) { d.dismiss(); recordVibration(); return@setSingleChoiceItems }
+                sel = which
+                Vibes.preview(this, Vibes.pattern(this, ids[which]))
+            }
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val id = ids[sel]
+                if (id != record && id != now) applyVibration(id)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setOnDismissListener { Vibes.stop(this) }
+            .show()
+    }
+
+    /** 「自己錄一段」: hold to buzz on [RhythmPad]; 「使用」 saves it, 「重錄」 starts over. */
+    private fun recordVibration() {
+        val pad = RhythmPad(this) {}
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dpx(22f), dpx(6f), dpx(22f), 0)
+            addView(TextView(this@MainActivity).apply {
+                text = getString(R.string.vib_rec_hint)
+                setPadding(0, 0, 0, dpx(12f))
+            })
+            addView(pad, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.vib_rec_title))
+            .setView(box)
+            .setPositiveButton(getString(R.string.vib_rec_use), null)
+            .setNeutralButton(getString(R.string.vib_rec_redo), null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setOnDismissListener { pad.stopRecording(); Vibes.stop(this) }
+            .create()
+        dialog.setOnShowListener {
+            // Set here so these two buttons do not close the dialog.
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                pad.stopRecording()
+                val p = pad.pattern()
+                if (p.size < 2) {
+                    Toast.makeText(this, getString(R.string.vib_rec_empty), Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                applyVibration(Vibes.CUSTOM, p)
+            }
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener { pad.reset() }
+        }
+        dialog.show()
+    }
+
+    private fun applyVibration(id: String, recorded: LongArray? = null) {
+        Notifier.setMessageVibration(this, id, recorded)
+        Toast.makeText(this, getString(R.string.toast_vib_set), Toast.LENGTH_SHORT).show()
+        refresh()
+    }
+
     /** A ringtone as the picker names it; a custom file it cannot read is just 「自訂」. */
     private fun soundName(uri: Uri?): String {
         if (uri == null) return getString(R.string.sound_silent)
@@ -1045,6 +1117,7 @@ class MainActivity : AppCompatActivity() {
         // Only next to the warning (Peek 條 shows everywhere because usage access is missing).
         findViewById<View>(R.id.whyUsage).visibility = vis(!a11y && !usage && Prefs.homeOnly(this))
         findViewById<Button>(R.id.btnSound).text = getString(R.string.btn_sound_named, soundName(Notifier.messageSound(this)))
+        findViewById<Button>(R.id.btnVibration).text = getString(R.string.btn_vib_named, Vibes.label(this, Vibes.current(this)))
 
         val overlay = Settings.canDrawOverlays(this)
         statusOverlay.text = when {

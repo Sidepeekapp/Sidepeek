@@ -59,9 +59,10 @@
     <string name="ui_look_5">Status bar icon</string>
     <string name="ui_look_6">The system draws it in one color; cut-out or simple shapes work best.</string>
     <string name="ui_look_7">This is the small icon in the top row of the screen and on notifications. After choosing “Custom”, tap it again to change the picture. The small app icon at the bottom right of a notification is set by the system and can’t be changed.</string>
-    <string name="ui_look_8">Sound</string>
+    <string name="ui_look_8">Sound and vibration</string>
     <string name="ui_btn_sound">Choose sound</string>
-    <string name="ui_look_9">Use one of the phone’s notification sounds, or your own mp3.</string>
+    <string name="ui_btn_vibration">Choose vibration</string>
+    <string name="ui_look_9">Use one of the phone’s notification sounds or your own mp3. For vibration, pick a pattern or record your own rhythm.</string>
     <string name="ui_look_10">Only changes the LINE notifications Sidepeek organizes. After changing, notifications briefly disappear and come back; no messages are lost.</string>
     <string name="ui_look_11">Group pictures</string>
     <string name="ui_btn_group_pics">Set group pictures</string>

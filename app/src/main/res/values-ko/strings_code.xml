@@ -343,4 +343,25 @@
     <!-- 언어 -->
     <string name="set_language">언어</string>
     <string name="lang_system">휴대폰 언어 따르기</string>
+    <!-- 震動（Vibes.kt） -->
+    <string name="vib_title">LINE 알림 진동</string>
+    <string name="vib_lls">길게 한 번, 짧게 두 번</string>
+    <string name="vib_short1">짧게 한 번</string>
+    <string name="vib_short2">짧게 두 번</string>
+    <string name="vib_long">길게 한 번</string>
+    <string name="vib_default">휴대폰 기본값</string>
+    <string name="vib_off">진동 없음</string>
+    <string name="vib_custom">직접 녹음한 리듬</string>
+    <string name="vib_record">직접 녹음…</string>
+    <string name="btn_vib_named">진동: %1$s</string>
+    <string name="sum_vib">진동 %1$s</string>
+    <string name="toast_vib_set">진동을 바꿨습니다</string>
+    <string name="vib_rec_title">진동 리듬 녹음</string>
+    <string name="vib_rec_hint">아래 상자를 누르고 있으면 진동하고, 떼면 멈춥니다. 처음 누른 뒤 최대 3초입니다.</string>
+    <string name="vib_rec_pad">여기를 길게 누르세요</string>
+    <string name="vib_rec_recording">녹음 중…</string>
+    <string name="vib_rec_play">녹음 완료. 눌러서 확인</string>
+    <string name="vib_rec_use">사용</string>
+    <string name="vib_rec_redo">다시 녹음</string>
+    <string name="vib_rec_empty">아직 녹음되지 않았습니다</string>
 </resources>

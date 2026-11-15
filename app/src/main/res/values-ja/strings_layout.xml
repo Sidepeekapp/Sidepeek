@@ -133,5 +133,6 @@
     <string name="ui_link_website">公式サイト</string>
     <string name="ui_txt_footer">Sidepeek・非公式アプリです。LINE / LY Corporation とは関係ありません</string>
     <string name="ui_widget_avatar_content_description">プロフィールを開く</string>
+    <string name="ui_widget_delete">このメッセージを削除</string>
     <string name="ui_widget_sticker">🎟  スタンプ</string>
 </resources>

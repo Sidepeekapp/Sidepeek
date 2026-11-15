@@ -29,6 +29,32 @@
             android:layout_marginStart="8dp"
             android:textColor="@color/widget_text_dim"
             android:textSize="13sp" />
+
+        <!-- 按 × 刪除一則後顯示幾秒，點了把那則放回去（跟側邊欄的復原列同樣文字） -->
+        <LinearLayout
+            android:id="@+id/widgetUndo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end|bottom"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/panel_deleted"
+                android:textColor="@color/widget_text_dim"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/panel_undo"
+                android:textColor="@color/widget_sender"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
     <FrameLayout

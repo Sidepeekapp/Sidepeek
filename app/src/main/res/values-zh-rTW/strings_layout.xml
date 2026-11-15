@@ -133,5 +133,6 @@
     <string name="ui_link_website">官網</string>
     <string name="ui_txt_footer">Sidepeek・非官方 App，與 LINE / LY Corporation 無關</string>
     <string name="ui_widget_avatar_content_description">開啟個人頁面</string>
+    <string name="ui_widget_delete">刪除這則訊息</string>
     <string name="ui_widget_sticker">🎟  貼圖</string>
 </resources>

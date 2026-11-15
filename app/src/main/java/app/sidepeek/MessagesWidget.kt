@@ -48,6 +48,71 @@ class MessagesWidget : AppWidgetProvider() {
 
         private fun countText(ctx: Context) =
             PanelRows.visibleMessages(ctx).size.takeIf { it > 0 }?.toString().orEmpty()
+
+        // ── 刪除一則＋復原 ─────────────────────────────────────────────────────────
+        // Widgets get taps only, no swipes, so each row has a × instead of the side panel's
+        // swipe-left. Like the panel: the message leaves the list at once, the header shows
+        // 「已刪除・復原」 for a few seconds, and only when that ends are its files deleted.
+        const val ACTION_UNDO = "app.sidepeek.widget.UNDO"
+        private const val UNDO_MS = 4000L
+        @Volatile private var lastDeleted: LineMessage? = null
+        @Volatile private var undoCtx: Context? = null
+        private val endUndo = Runnable { undoCtx?.let(::finishUndo) }
+
+        /** The row's × (through OpenChatActivity, the list's only click target). */
+        fun delete(ctx: Context, msgId: String) {
+            val app = ctx.applicationContext
+            finishUndo(app)                                   // a previous delete becomes final
+            val removed = MessageStore.remove(app, msgId) ?: return   // listeners reload the list
+            lastDeleted = removed
+            undoCtx = app
+            Diagnostics.note(app, "WIDGET deleted message id=$msgId chat=${removed.chatKey}")
+            updateChatNotification(app, removed)
+            setUndoVisible(app, true)
+            main.removeCallbacks(endUndo)
+            main.postDelayed(endUndo, UNDO_MS)
+        }
+
+        private fun undo(ctx: Context) {
+            val app = ctx.applicationContext
+            main.removeCallbacks(endUndo)
+            val m = lastDeleted
+            lastDeleted = null
+            setUndoVisible(app, false)
+            if (m == null) return                             // window already over
+            MessageStore.restore(app, m)
+            Diagnostics.note(app, "WIDGET undo delete id=${m.id}")
+            updateChatNotification(app, m)
+        }
+
+        /** The undo window ended (timeout or another delete): make the deletion final. */
+        private fun finishUndo(ctx: Context) {
+            main.removeCallbacks(endUndo)
+            lastDeleted?.let { MessageStore.purgeFiles(ctx, listOf(it)) }
+            lastDeleted = null
+            setUndoVisible(ctx, false)
+        }
+
+        /** Same as the side panel: the tidied LINE notification drops (or regains) the message. */
+        private fun updateChatNotification(ctx: Context, m: LineMessage) {
+            if (Sources.forPackage(m.pkg) != Sources.LINE || !Prefs.enabled(ctx)) return
+            try { Notifier.refreshChatSilently(ctx, m.chatKey) } catch (e: Exception) {
+                Diagnostics.note(ctx, "WIDGET notif refresh failed: $e")
+            }
+        }
+
+        private fun setUndoVisible(ctx: Context, on: Boolean) {
+            val manager = AppWidgetManager.getInstance(ctx) ?: return
+            val ids = manager.getAppWidgetIds(ComponentName(ctx, MessagesWidget::class.java))
+            if (ids.isEmpty()) return
+            manager.partiallyUpdateAppWidget(ids, RemoteViews(ctx.packageName, R.layout.widget_messages).apply {
+                setViewVisibility(R.id.widgetUndo, if (on) View.VISIBLE else View.GONE)
+            })
+        }
+    }
+
+    override fun onReceive(ctx: Context, intent: Intent) {
+        if (intent.action == ACTION_UNDO) undo(ctx) else super.onReceive(ctx, intent)
     }
 
     override fun onUpdate(ctx: Context, manager: AppWidgetManager, ids: IntArray) {
@@ -71,6 +136,9 @@ class MessagesWidget : AppWidgetProvider() {
                 ctx, id, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE))
             setOnClickPendingIntent(R.id.widgetHeader, PendingIntent.getActivity(
                 ctx, id, panel, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+            setOnClickPendingIntent(R.id.widgetUndo, PendingIntent.getBroadcast(
+                ctx, 0, Intent(ctx, MessagesWidget::class.java).setAction(ACTION_UNDO), PendingIntent.FLAG_IMMUTABLE))
+            setViewVisibility(R.id.widgetUndo, if (lastDeleted != null) View.VISIBLE else View.GONE)
         }
     }
 }
@@ -112,6 +180,7 @@ class MessagesWidgetService : RemoteViewsService() {
             bindImage(row, m)
             row.setOnClickFillInIntent(R.id.widgetRow, target(m))
             row.setOnClickFillInIntent(R.id.widgetAvatar, target(m).putExtra(OpenChatActivity.EXTRA_PROFILE, true))
+            row.setOnClickFillInIntent(R.id.widgetDismiss, target(m).putExtra(OpenChatActivity.EXTRA_DELETE, true))
             return row
         }
 

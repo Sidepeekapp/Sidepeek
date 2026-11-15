@@ -60,6 +60,17 @@
                 android:paddingStart="8dp"
                 android:textColor="@color/widget_text_dim"
                 android:textSize="12sp" />
+
+            <!-- 刪除這則（小工具不能滑動，代替側邊欄的往左滑）；刪除後標題列出現「已刪除・復原」 -->
+            <ImageView
+                android:id="@+id/widgetDismiss"
+                android:layout_width="28dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="-6dp"
+                android:contentDescription="@string/ui_widget_delete"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="4dp"
+                android:src="@drawable/widget_dismiss" />
         </LinearLayout>
 
         <TextView

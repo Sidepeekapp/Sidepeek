@@ -13,6 +13,8 @@ class OpenChatActivity : Activity() {
         const val EXTRA_PKG = "app.sidepeek.PKG"
         const val EXTRA_MSG_ID = "app.sidepeek.MSG_ID"
         const val EXTRA_PROFILE = "app.sidepeek.PROFILE"
+        /** Widget row ×: delete this message instead of opening it. */
+        const val EXTRA_DELETE = "app.sidepeek.DELETE"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,6 +22,12 @@ class OpenChatActivity : Activity() {
         val key = intent.getStringExtra(Notifier.EXTRA_CHAT_KEY)
         val pkg = intent.getStringExtra(EXTRA_PKG) ?: LineListenerService.LINE_PKG
         val msgId = intent.getStringExtra(EXTRA_MSG_ID)
+        if (intent.getBooleanExtra(EXTRA_DELETE, false)) {
+            msgId?.let { MessagesWidget.delete(this, it) }
+            finish()
+            @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+            return
+        }
         if (!(intent.getBooleanExtra(EXTRA_PROFILE, false) && openProfile(msgId))) {
             val pi = msgId?.let { MessageStore.intentForMessage(it) } ?: key?.let { MessageStore.intentFor(it) }
                 ?: key?.let { Notifier.shownIntent(this, it) } ?: Notifier.fallbackIntent(this, pkg)

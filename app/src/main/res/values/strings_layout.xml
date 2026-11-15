@@ -133,5 +133,6 @@
     <string name="ui_link_website">Website</string>
     <string name="ui_txt_footer">Sidepeek · Unofficial app, not affiliated with LINE / LY Corporation</string>
     <string name="ui_widget_avatar_content_description">Open profile</string>
+    <string name="ui_widget_delete">Delete this message</string>
     <string name="ui_widget_sticker">🎟  Sticker</string>
 </resources>

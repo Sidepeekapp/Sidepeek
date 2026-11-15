@@ -1,0 +1,125 @@
+<!doctype html>
+<!--
+  Play 商店手機截圖（1080×1920，9:16）：綠底＋上方標語＋手機外框，裡面放實機截圖。
+  實機截圖放在 raw/<語言>/0N-*.jpg（截圖版 App 的示範資料，假名字 Tom、Ann、Mia、「專案」）。
+  手機原圖是 1440×3120，超過 Play「長邊不能大於短邊兩倍」的限制，所以要放進這個版型。
+  狀態列（電信商、通知圖示）直接裁掉，不入鏡。
+  產生：node store/screenshots/render.js（網址參數 #lang=zh-TW&n=1&file=raw/zh-TW/01-….jpg）
+  風格跟主題圖片 store/feature-graphic/feature.html 一樣。
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  body {
+    background: linear-gradient(160deg, #166534 0%, #16A34A 58%, #22C55E 100%);
+    font-family: "Segoe UI", "Microsoft JhengHei UI", sans-serif;
+    color: #fff; position: relative;
+  }
+  body[data-lang="zh-TW"] { font-family: "Segoe UI", "Microsoft JhengHei UI", "Microsoft JhengHei", sans-serif; }
+  body[data-lang="ja"]    { font-family: "Segoe UI", "Yu Gothic UI", "Meiryo UI", sans-serif; }
+  body[data-lang="ko"]    { font-family: "Segoe UI", "Malgun Gothic", sans-serif; word-break: keep-all; }  /* 韓文只在空格斷行 */
+
+  .glow { position: absolute; border-radius: 50%; background: rgba(255,255,255,.08); }
+  .g1 { width: 900px; height: 900px; right: -380px; top: -420px; }
+  .g2 { width: 620px; height: 620px; left: -300px; bottom: 120px; background: rgba(0,0,0,.08); }
+
+  .cap { position: absolute; left: 70px; right: 70px; top: 110px; height: 200px;
+         display: flex; align-items: center; justify-content: center; text-align: center;
+         font-size: 70px; font-weight: 700; line-height: 1.22; letter-spacing: -.5px;
+         text-shadow: 0 4px 16px rgba(0,0,0,.18); }
+
+  .phone { position: absolute; left: 140px; top: 370px; width: 800px; height: 1640px;
+           border-radius: 78px; background: #0F172A; padding: 16px; box-sizing: border-box;
+           box-shadow: 0 30px 70px rgba(0,0,0,.35); }
+  .screen { position: relative; width: 768px; height: 1608px; border-radius: 62px; overflow: hidden; background: #000; }
+  .screen > img { position: absolute; left: 0; width: 768px; display: block; }
+
+  /* #3：Peek 條很細又半透明，縮小後看不到，用放大圈和標示指出來 */
+  .ring { position: absolute; border: 5px solid #4ADE80; border-radius: 16px;
+          box-shadow: 0 0 0 6px rgba(74,222,128,.25), 0 0 24px rgba(74,222,128,.6); }
+  .mag { position: absolute; width: 340px; height: 340px; border-radius: 50%; overflow: hidden;
+         border: 7px solid #fff; box-shadow: 0 16px 40px rgba(0,0,0,.35); background-repeat: no-repeat; }
+  .tag { position: absolute; background: #16A34A; color: #fff; font-size: 38px; font-weight: 700;
+         padding: 14px 30px; border-radius: 40px; box-shadow: 0 10px 26px rgba(0,0,0,.3); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="glow g1"></div><div class="glow g2"></div>
+<div class="cap" id="cap"></div>
+<div class="phone"><div class="screen" id="screen"></div></div>
+
+<script>
+// 標語：四語，順序對應 raw 檔名開頭的 01～06。日、韓文是初稿，最好請母語者看過。
+const CAP = {
+  "zh-TW": ["每個聊天室一則通知", "從邊緣一滑，看最近訊息", "細細一條，不擋畫面",
+            "大小、位置都能調", "粗細、長短、透明度都能調", "桌面小工具也能看"],
+  "en":    ["One notification per chat", "Swipe in to read recent messages", "Slim and out of the way",
+            "Size and position, your way", "Adjust width, length and opacity", "Also on a home screen widget"],
+  "ja":    ["チャットごとに通知を1つに", "端からスワイプで最近のメッセージ", "細いバーで画面の邪魔をしない",
+            "サイズも位置も自由に", "太さ・長さ・透明度を調整", "ホーム画面のウィジェットでも"],
+  "ko":    ["채팅방마다 알림 하나로", "가장자리에서 밀어 최근 메시지 확인", "얇은 바라 화면을 가리지 않아요",
+            "크기와 위치를 자유롭게", "굵기, 길이, 투명도 조절", "홈 화면 위젯으로도"],
+};
+const TAG = { "zh-TW": "‹ 從這裡往內滑", "en": "‹ Swipe in here", "ja": "‹ ここから内側へスワイプ", "ko": "‹ 여기서 안쪽으로 밀기" };
+
+// 每張要裁掉的上緣（原圖像素）：一般畫面裁狀態列；#1 是通知欄，連「電信商＋圖示」那一列一起裁。
+const CROP = { 1: 250, 2: 150, 3: 150, 4: 150, 5: 150, 6: 150 };
+const RAW_W = 1440, S = 768 / RAW_W;
+
+const q = new URLSearchParams(location.hash.slice(1));
+const lang = q.get("lang") || "zh-TW", n = +(q.get("n") || 1), file = q.get("file");
+document.documentElement.lang = lang;
+document.body.dataset.lang = lang;
+document.getElementById("cap").textContent = (CAP[lang] || CAP["zh-TW"])[n - 1];
+
+const screen = document.getElementById("screen");
+const img = new Image();
+img.src = file;
+img.style.top = (-CROP[n] * S) + "px";
+screen.append(img);
+
+if (n === 3) {
+  // Peek 條在原圖的位置（右緣，x≈1405–1440、y≈2290–2670）；換手機或改 Peek 條位置要重量。
+  const bar = { x0: 1405, x1: 1440, y0: 2290, y1: 2670 };
+  const sx = v => v * S, sy = v => (v - CROP[3]) * S;
+  const cy = (bar.y0 + bar.y1) / 2;
+  // 框住 Peek 條（右邊貼著螢幕邊緣，不要被裁掉）
+  const ring = document.createElement("div");
+  ring.className = "ring";
+  const rl = sx(bar.x0) - 16;
+  Object.assign(ring.style, { left: rl + "px", top: sy(bar.y0) - 14 + "px",
+    width: 768 - 6 - rl + "px", height: sy(bar.y1) - sy(bar.y0) + 28 + "px" });
+  // 放大圈：跟 App 設定頁的預覽一樣，螢幕外面畫成黑色（底色），Peek 條在圈的中間偏右
+  const Z = 3, D = 340, cx = 1395;
+  const mag = document.createElement("div");
+  mag.className = "mag";
+  // 放大圈放在 Peek 條上方的空白桌布（Peek 條靠近螢幕下緣，放下面會蓋到 Dock）
+  const ml = 768 - 40 - D, mt = sy(bar.y0) - 120 - D;
+  Object.assign(mag.style, { left: ml + "px", top: mt + "px", backgroundColor: "#0F172A",
+    backgroundImage: `url("${file}")`, backgroundSize: RAW_W * S * Z + "px auto",
+    backgroundPosition: `${D / 2 - cx * S * Z}px ${D / 2 - cy * S * Z}px` });
+  // 放大圈的邊緣連到框的上緣
+  const ringTop = { x: rl + (768 - 6 - rl) / 2, y: sy(bar.y0) - 14 };
+  const C = { x: ml + D / 2, y: mt + D / 2 };
+  const vx = ringTop.x - C.x, vy = ringTop.y - C.y, len = Math.hypot(vx, vy);
+  const A = { x: C.x + vx / len * (D / 2 + 4), y: C.y + vy / len * (D / 2 + 4) };
+  const L = Math.hypot(ringTop.x - A.x, ringTop.y - A.y);
+  const line = document.createElement("div");
+  Object.assign(line.style, { position: "absolute", left: A.x + "px", top: A.y - 3 + "px",
+    width: L + "px", height: "6px", background: "#fff", borderRadius: "3px", transformOrigin: "0 50%",
+    transform: `rotate(${Math.atan2(ringTop.y - A.y, ringTop.x - A.x)}rad)`, boxShadow: "0 2px 8px rgba(0,0,0,.25)" });
+  const tag = document.createElement("div");
+  tag.className = "tag";
+  tag.textContent = TAG[lang] || TAG["zh-TW"];
+  screen.append(line, ring, mag, tag);
+  // 標示放在放大圈上面，靠右
+  requestAnimationFrame(() => {
+    tag.style.left = Math.max(24, 768 - 30 - tag.offsetWidth) + "px";
+    tag.style.top = mt - 36 - tag.offsetHeight + "px";
+  });
+}
+</script>
+</body>
+</html>

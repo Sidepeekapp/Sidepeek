@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 測試版專用：商店截圖的示範資料（ScreenshotDemo.kt） -->
+<resources>
+    <string name="demo_group">Project</string>
+    <string name="demo_g1">Slides are ready</string>
+    <string name="demo_g2">I\'ll book the room</string>
+    <string name="demo_g3">Meeting at 10 tomorrow</string>
+    <string name="demo_g4">Notes are here https://example.com/slides</string>
+    <string name="demo_mia1">Got it, thanks!</string>
+    <string name="demo_ann1">Photos are in the group</string>
+    <string name="demo_ann2">Take a look</string>
+    <string name="demo_tom1">Dinner tonight?</string>
+    <string name="shortcut_demo_post">Add screenshot demo chats</string>
+    <string name="shortcut_demo_post_short">Demo chats</string>
+    <string name="shortcut_demo_clear">Clear demo chats</string>
+    <string name="shortcut_demo_clear_short">Clear demo</string>
+    <string name="toast_demo_posted">Added 4 demo chats</string>
+    <string name="toast_demo_cleared">Demo chats cleared</string>
+</resources>

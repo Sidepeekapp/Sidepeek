@@ -12,4 +12,27 @@
             android:targetPackage="app.sidepeek.test"
             android:targetClass="app.sidepeek.OpenPanelActivity" />
     </shortcut>
+    <!-- Test build only: fake chats for the Play Store screenshots (ScreenshotDemo.kt). -->
+    <shortcut
+        android:shortcutId="demo_post"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_demo_post_short"
+        android:shortcutLongLabel="@string/shortcut_demo_post">
+        <intent
+            android:action="app.sidepeek.demo.POST"
+            android:targetPackage="app.sidepeek.test"
+            android:targetClass="app.sidepeek.ScreenshotDemoActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="demo_clear"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_demo_clear_short"
+        android:shortcutLongLabel="@string/shortcut_demo_clear">
+        <intent
+            android:action="app.sidepeek.demo.CLEAR"
+            android:targetPackage="app.sidepeek.test"
+            android:targetClass="app.sidepeek.ScreenshotDemoActivity" />
+    </shortcut>
 </shortcuts>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 測試版專用（正式版、Play 的 .aab 沒有）：商店截圖用的示範資料，見 ScreenshotDemo.kt。 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Only started by the test build's own launcher shortcuts, so not exported. -->
+        <activity
+            android:name=".ScreenshotDemoActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    </application>
+</manifest>

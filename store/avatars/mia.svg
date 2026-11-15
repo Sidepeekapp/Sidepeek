@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- Mia：橘底狐狸。 -->
+  <rect width="192" height="192" fill="#EA580C"/>
+  <ellipse cx="96" cy="200" rx="50" ry="40" fill="#FDBA74"/>
+  <ellipse cx="96" cy="196" rx="26" ry="30" fill="#FFF7ED"/>
+  <path d="M44 98 L50 32 L94 70Z" fill="#FDBA74"/>
+  <path d="M148 98 L142 32 L98 70Z" fill="#FDBA74"/>
+  <path d="M48 54 L50 32 L66 46Z" fill="#7C2D12"/>
+  <path d="M144 54 L142 32 L126 46Z" fill="#7C2D12"/>
+  <path d="M38 102 Q42 64 96 62 Q150 64 154 102 Q150 132 96 160 Q42 132 38 102Z" fill="#FDBA74"/>
+  <path d="M54 116 Q76 110 96 128 Q116 110 138 116 Q126 142 96 160 Q66 142 54 116Z" fill="#FFF7ED"/>
+  <circle cx="74" cy="100" r="7" fill="#1F2937"/>
+  <circle cx="118" cy="100" r="7" fill="#1F2937"/>
+  <circle cx="76.4" cy="97.4" r="2.4" fill="#FFFFFF"/>
+  <circle cx="120.4" cy="97.4" r="2.4" fill="#FFFFFF"/>
+  <ellipse cx="62" cy="118" rx="7" ry="4.5" fill="#FDA4AF"/>
+  <ellipse cx="130" cy="118" rx="7" ry="4.5" fill="#FDA4AF"/>
+  <ellipse cx="96" cy="136" rx="7.5" ry="5.5" fill="#1F2937"/>
+</svg>

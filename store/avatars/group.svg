@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- 「專案」群組：紫底火箭（專案上線）。 -->
+  <rect width="192" height="192" fill="#7C3AED"/>
+  <g fill="#FFFFFF">
+    <circle cx="42" cy="58" r="3.5" opacity=".8"/><circle cx="150" cy="44" r="2.5" opacity=".7"/>
+    <circle cx="156" cy="132" r="3" opacity=".6"/><circle cx="36" cy="134" r="2.5" opacity=".6"/>
+  </g>
+  <g transform="rotate(35 96 96)">
+    <path d="M80 134 Q96 184 112 134Z" fill="#FBBF24"/>
+    <path d="M88 134 Q96 162 104 134Z" fill="#F97316"/>
+    <path d="M70 106 L50 140 L72 134Z" fill="#F43F5E"/>
+    <path d="M122 106 L142 140 L120 134Z" fill="#F43F5E"/>
+    <path d="M96 30 Q126 56 124 104 L122 136 L70 136 L68 104 Q66 56 96 30Z" fill="#F8FAFC"/>
+    <path d="M96 30 Q112 42 119 60 L73 60 Q80 42 96 30Z" fill="#F43F5E"/>
+    <circle cx="96" cy="90" r="14" fill="#38BDF8" stroke="#CBD5E1" stroke-width="5"/>
+    <circle cx="91" cy="85" r="4" fill="#E0F2FE"/>
+  </g>
+</svg>

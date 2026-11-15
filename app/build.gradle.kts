@@ -68,6 +68,14 @@ android {
             buildConfigField("boolean", "SELF_UPDATE_CHECK", "false")
         }
     }
+    // 測試版平常叫「Sidepeek Test」（src/debugName）。拍商店截圖時加 -Pshots，名稱就跟正式版一樣叫
+    // 「Sidepeek」，通知上不會出現 Test：./gradlew assemblePlayDebug -Pshots
+    // 截圖用的示範資料（src/debug，長按圖示的捷徑）只在測試版，正式版和 .aab 都沒有。
+    sourceSets {
+        getByName("debug") {
+            if (!project.hasProperty("shots")) res.srcDir("src/debugName/res")
+        }
+    }
     buildFeatures { buildConfig = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

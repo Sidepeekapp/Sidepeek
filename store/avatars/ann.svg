@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- Ann：粉紅底貓。 -->
+  <rect width="192" height="192" fill="#DB2777"/>
+  <ellipse cx="96" cy="198" rx="54" ry="44" fill="#FFF7ED"/>
+  <path d="M46 96 L56 36 L94 70Z" fill="#FFF7ED"/>
+  <path d="M146 96 L136 36 L98 70Z" fill="#FFF7ED"/>
+  <path d="M60 80 L64 52 L82 68Z" fill="#F9A8D4"/>
+  <path d="M132 80 L128 52 L110 68Z" fill="#F9A8D4"/>
+  <ellipse cx="96" cy="110" rx="58" ry="48" fill="#FFF7ED"/>
+  <circle cx="74" cy="104" r="7" fill="#1F2937"/>
+  <circle cx="118" cy="104" r="7" fill="#1F2937"/>
+  <circle cx="76.4" cy="101.4" r="2.4" fill="#FFFFFF"/>
+  <circle cx="120.4" cy="101.4" r="2.4" fill="#FFFFFF"/>
+  <ellipse cx="62" cy="122" rx="8" ry="5" fill="#F9A8D4"/>
+  <ellipse cx="130" cy="122" rx="8" ry="5" fill="#F9A8D4"/>
+  <path d="M90 116 L102 116 L96 123Z" fill="#F472B6"/>
+  <path d="M84 127 Q90 134 96 127 Q102 134 108 127" fill="none" stroke="#1F2937" stroke-width="3" stroke-linecap="round"/>
+  <g stroke="#1F2937" stroke-width="2.4" stroke-linecap="round" opacity=".45">
+    <path d="M36 110 L58 115"/><path d="M36 124 L58 122"/>
+    <path d="M156 110 L134 115"/><path d="M156 124 L134 122"/>
+  </g>
+</svg>

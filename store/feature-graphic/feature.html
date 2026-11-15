@@ -77,8 +77,7 @@
           background: #16A34A; box-shadow: 0 0 0 3px rgba(22,163,74,.18); }
   .hint { position: absolute; right: 193px; top: 199px; color: #16A34A; font-size: 21px; font-weight: 700; }
 
-  .av { flex: none; width: 28px; height: 28px; border-radius: 50%; color: #fff;
-        font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .av { flex: none; width: 28px; height: 28px; border-radius: 50%; display: block; object-fit: cover; }
 </style>
 </head>
 <body>
@@ -138,9 +137,9 @@ const T = {
   "ja": { f1: "通知をトークごとに整理", f2: "画面の端からスワイプで確認", sub: "処理はスマホの中だけ・登録不要・広告なし", ph: "最近のメッセージ", now: "今",
     cards: [
       ["プロジェクト", [["Tom", "スライドできたよ"], ["Ann", "会議室とっておくね"], ["Mia", "明日10時に会議"]]],
-      ["Ann", [["", "写真をグループに送ったよ"], ["", "見てみて"]]],
+      ["Ann", [["", "グループに画像送ったよ"], ["", "見てみて"]]],
       ["Tom", [["", "今夜ご飯どう？"]]]],
-    rows: [["Tom", "今夜ご飯どう？"], ["Ann", "写真をグループに送ったよ"], ["プロジェクト", "Mia：明日10時に会議"], ["Mia", "了解、ありがとう！"]] },
+    rows: [["Tom", "今夜ご飯どう？"], ["Ann", "グループに画像送ったよ"], ["プロジェクト", "Mia：明日10時に会議"], ["Mia", "了解、ありがとう！"]] },
   "ko": { f1: "알림을 채팅방별로 정리", f2: "가장자리에서 밀어 바로 확인", sub: "모든 처리는 휴대폰 안에서 · 가입 없음 · 광고 없음", ph: "최근 메시지", now: "지금",
     cards: [
       ["프로젝트", [["Tom", "슬라이드 다 했어"], ["Ann", "회의실은 내가 잡을게"], ["Mia", "내일 10시 회의"]]],
@@ -148,8 +147,8 @@ const T = {
       ["Tom", [["", "오늘 저녁 같이 먹을래?"]]]],
     rows: [["Tom", "오늘 저녁 같이 먹을래?"], ["Ann", "사진 그룹에 올렸어"], ["프로젝트", "Mia: 내일 10시 회의"], ["Mia", "알겠어, 고마워!"]] },
 };
-const COLOR = { Tom: "#2563EB", Ann: "#DB2777", Mia: "#EA580C" };
-const GROUP_COLOR = "#7C3AED";
+// 頭像原稿在 store/avatars/*.svg，測試版截圖示範資料（ScreenshotDemo.kt）用的是同一份；其他名字（群組）用 group.svg。
+const AVATAR = { Tom: "tom", Ann: "ann", Mia: "mia" };
 const lang = (location.hash.slice(1) || "zh-TW");
 const d = T[lang] || T["zh-TW"];
 document.documentElement.lang = lang;
@@ -157,7 +156,7 @@ document.body.dataset.lang = lang;
 for (const k of ["f1", "f2", "sub", "ph"]) document.getElementById(k).textContent = d[k];
 
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
-const avatar = (name) => { const a = el("div", "av", name[0]); a.style.background = COLOR[name] || GROUP_COLOR; return a; };
+const avatar = (name) => { const a = el("img", "av"); a.src = `../avatars/${AVATAR[name] || "group"}.svg`; a.alt = ""; return a; };
 
 const cards = document.getElementById("cards");
 for (const [title, lines] of d.cards) {

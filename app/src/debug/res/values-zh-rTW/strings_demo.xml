@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 測試版專用：商店截圖的示範資料（ScreenshotDemo.kt） -->
+<resources>
+    <string name="demo_group">專案</string>
+    <string name="demo_g1">投影片好了</string>
+    <string name="demo_g2">我來訂會議室</string>
+    <string name="demo_g3">明天十點開會</string>
+    <string name="demo_g4">資料放這裡 https://example.com/slides</string>
+    <string name="demo_mia1">收到，謝謝！</string>
+    <string name="demo_ann1">照片我傳到群組了</string>
+    <string name="demo_ann2">你看一下</string>
+    <string name="demo_tom1">晚上一起吃飯嗎？</string>
+    <string name="shortcut_demo_post">放入截圖示範資料</string>
+    <string name="shortcut_demo_post_short">示範資料</string>
+    <string name="shortcut_demo_clear">清除示範資料</string>
+    <string name="shortcut_demo_clear_short">清除示範</string>
+    <string name="toast_demo_posted">已放入 4 個示範聊天室</string>
+    <string name="toast_demo_cleared">已清除示範資料</string>
+</resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 測試版專用：商店截圖的示範資料（ScreenshotDemo.kt） -->
+<resources>
+    <string name="demo_group">プロジェクト</string>
+    <string name="demo_g1">スライドできたよ</string>
+    <string name="demo_g2">会議室とっておくね</string>
+    <string name="demo_g3">明日10時に会議</string>
+    <string name="demo_g4">資料はここ https://example.com/slides</string>
+    <string name="demo_mia1">了解、ありがとう！</string>
+    <string name="demo_ann1">グループに画像送ったよ</string>
+    <string name="demo_ann2">見てみて</string>
+    <string name="demo_tom1">今夜ご飯どう？</string>
+    <string name="shortcut_demo_post">スクショ用のデモを追加</string>
+    <string name="shortcut_demo_post_short">デモ追加</string>
+    <string name="shortcut_demo_clear">デモを削除</string>
+    <string name="shortcut_demo_clear_short">デモ削除</string>
+    <string name="toast_demo_posted">デモのチャットを4件追加しました</string>
+    <string name="toast_demo_cleared">デモを削除しました</string>
+</resources>

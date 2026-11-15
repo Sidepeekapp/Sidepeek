@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- Tom：藍底企鵝。方形底色，App 和主題圖片各自裁成圓形。 -->
+  <rect width="192" height="192" fill="#2563EB"/>
+  <ellipse cx="96" cy="134" rx="62" ry="76" fill="#0F172A"/>
+  <ellipse cx="78" cy="112" rx="25" ry="29" fill="#FFFFFF"/>
+  <ellipse cx="114" cy="112" rx="25" ry="29" fill="#FFFFFF"/>
+  <ellipse cx="96" cy="150" rx="42" ry="44" fill="#FFFFFF"/>
+  <circle cx="80" cy="106" r="7.5" fill="#0F172A"/>
+  <circle cx="112" cy="106" r="7.5" fill="#0F172A"/>
+  <circle cx="82.6" cy="103.2" r="2.6" fill="#FFFFFF"/>
+  <circle cx="114.6" cy="103.2" r="2.6" fill="#FFFFFF"/>
+  <ellipse cx="65" cy="124" rx="8" ry="5" fill="#F9A8D4"/>
+  <ellipse cx="127" cy="124" rx="8" ry="5" fill="#F9A8D4"/>
+  <path d="M85 120 Q96 113 107 120 Q96 134 85 120Z" fill="#F59E0B"/>
+</svg>

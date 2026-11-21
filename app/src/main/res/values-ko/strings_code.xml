@@ -155,7 +155,7 @@
     <string name="seek_panel_h">높이: %1$d%%</string>
     <string name="seek_max_lines">메시지당 최대: %1$d줄</string>
     <string name="seek_radius">모서리: %1$d dp</string>
-    <string name="seek_inset">가장자리와의 거리: %1$d dp</string>
+    <string name="seek_inset">가장자리 거리: %1$d dp</string>
     <string name="seek_handle_w">너비: %1$d dp</string>
     <string name="seek_handle_h">높이: %1$d dp</string>
     <string name="seek_opacity">불투명도: %1$d%%</string>

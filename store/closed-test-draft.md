@@ -35,6 +35,8 @@ PEPK 要輸入金鑰密碼：請自己在電腦上操作，不要把密碼傳給
 ・LINE 通知依聊天室整理，一次看到前面的訊息
 ・從螢幕邊緣的 Peek 條往內滑，打開側邊欄看最近訊息
 ・支援繁中、英文、日文、韓文（設定 → 其他 → 語言）
+・通知震動可以選模式，也能自己錄一段節奏
+・桌面小工具點 × 就能刪除訊息
 ・設定步驟附操作示範影片
 
 請照首頁的設定步驟開好權限，正常使用 LINE 就好。
@@ -44,19 +46,23 @@ PEPK 要輸入金鑰密碼：請自己在電腦上操作，不要把密碼傳給
 <en-US>
 Thanks for testing Sidepeek!
 • LINE notifications grouped by chat, so earlier messages stay visible
-• Swipe in from the Peek bar on the screen edge to open the side panel
-• English, Traditional Chinese, Japanese and Korean (Settings → Other → Language)
+• Swipe in from the Peek bar at the edge to open the side panel
+• 4 languages (Settings → Other → Language)
+• Pick or record a vibration pattern
+• Delete messages from the widget with ×
 • Demo videos in the setup steps
 
 Follow the setup steps on the Home tab, then use LINE as usual.
 Found a problem? Open the Help tab and tap "Email the developer".
-Please keep the app and stay in the test for at least 14 days.
+Please stay in the test for at least 14 days.
 </en-US>
 <ja-JP>
 Sidepeekのテストにご参加いただきありがとうございます！
 ・LINEの通知をトークごとにまとめ、前のメッセージも見られます
 ・画面端のPeekバーから内側にスワイプしてサイドパネルを開けます
 ・日本語、英語、繁体字中国語、韓国語に対応（設定 → その他 → 言語）
+・バイブのパターンを選べて、自分でリズムを録音することもできます
+・ホーム画面のウィジェットから × でメッセージを削除できます
 ・設定手順に操作のデモ動画付き
 
 ホームの設定手順に沿って権限をオンにし、普段どおりLINEを使ってください。
@@ -68,6 +74,8 @@ Sidepeek 테스트에 참여해 주셔서 감사합니다!
 • LINE 알림을 채팅방별로 정리해 이전 메시지도 볼 수 있어요
 • 화면 가장자리의 Peek 바에서 안쪽으로 밀면 사이드 패널이 열려요
 • 한국어, 영어, 일본어, 중국어(번체) 지원(설정 → 기타 → 언어)
+• 진동 패턴을 고르거나 리듬을 직접 녹음할 수 있어요
+• 홈 화면 위젯에서 ×로 메시지를 삭제할 수 있어요
 • 설정 단계에 데모 영상 제공
 
 홈의 설정 단계대로 권한을 켠 뒤 평소처럼 LINE을 사용해 주세요.
@@ -77,7 +85,7 @@ Sidepeek 테스트에 참여해 주셔서 감사합니다!
 ```
 
 > 分頁、按鈕、選單名稱已對過四種語言的 strings（tab_help、ui_btn_feedback、grp_other、set_language）。
-> 字數（node 算）：中 187、英 479、日 254、韓 275；英文接近 500 上限，要加字先刪別的。
+> 字數（node 算，11/15 加震動和小工具刪除後）：中 225、英 495、日 319、韓 336；英文幾乎到 500 上限，要加字先刪別的。
 
 ## 四、寄給報名者的邀請（中文）
 

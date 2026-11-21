@@ -18,7 +18,7 @@
 | 是不是無障礙工具（isAccessibilityTool） | **否**（manifest 是 `false`） |
 | 使用原因 | 勾 **App functionality**（應用程式功能），其他都不勾 |
 | 是否透過無障礙功能收集或分享個人／敏感資料 | **否**。Play 的「收集」是指資料傳出裝置；Sidepeek 讀到的前景 App、鍵盤狀態、返回鍵、（進階清理開啟時）LINE 標題列文字都只在手機上即時使用，不儲存、不上傳。 |
-| 揭露畫面影片 | YouTube「不公開」連結（拍法見第四節） |
+| 揭露畫面影片 | `https://youtu.be/YJk_wDQy_so`（11/19 上傳，不公開；檔案 `store/videos/video1-accessibility.mp4`） |
 
 **用途說明（貼這段）：**
 
@@ -48,7 +48,7 @@ The service never performs gestures or actions on behalf of the user (canPerform
 |---|---|
 | 前景服務類型 | **Special use**（只有這一個） |
 | 用到的功能 | 側邊欄的備用方式（使用者不想開無障礙時，用「顯示在其他 App 上層」） |
-| 影片 | YouTube「不公開」連結（拍法見第四節） |
+| 影片 | `https://youtu.be/_0th-HA7668`（11/19 上傳，不公開；檔案 `store/videos/video2-foreground-service.mp4`） |
 
 **功能說明（貼這段）：**
 

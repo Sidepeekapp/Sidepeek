@@ -33,7 +33,7 @@ LINE 的通知常常只留下最新一則，訊息一多，前面說了什麼就
 • 每則新訊息都會提醒；在通知上回覆或按已讀，通知會跟著更新或消失
 • 點通知進聊天室、或直接打開 LINE 看過訊息，整理好的通知會自動收掉
 • 群組裡顯示每個人的頭貼；沒頭貼的人用名字第一個字和固定顏色區分
-• 可以換通知鈴聲、狀態列小圖示，也能自訂群組頭貼
+• 可以換通知鈴聲、震動模式（也能自己錄一段節奏）、狀態列小圖示，也能自訂群組頭貼
 • 來電通知不會被隱藏
 
 ■ 側邊欄與 Peek 條
@@ -43,6 +43,7 @@ LINE 的通知常常只留下最新一則，訊息一多，前面說了什麼就
 • Peek 條的位置、寬高、不透明度（可以調到 0% 完全看不到）、滑動靈敏度都能調，設定頁有即時預覽
 • 可設定只在桌面顯示、打字時隱藏、鎖定畫面也顯示
 • 也可以從快速設定按鈕、App 捷徑、桌面小工具打開
+• 桌面小工具「最近訊息」不用打開側邊欄就能看，點 × 就能刪除單則
 
 ■ 支援語言
 繁體中文、English、日本語、한국어，可以在 App 裡單獨切換。
@@ -86,7 +87,7 @@ Everything happens on your phone. No server, no sign-up, no ads, no in-app purch
 • Every new message still alerts you; reply or mark as read right from the notification
 • Notifications clear themselves once you've read the chat, from the notification or by opening LINE
 • Group members show their own profile pictures; people without one get their initial in a fixed color
-• Choose the notification sound and status bar icon, and set custom group pictures
+• Choose the notification sound, vibration pattern (or record your own rhythm) and status bar icon, and set custom group pictures
 • Incoming call notifications are never hidden
 
 ■ Side panel and Peek bar
@@ -96,6 +97,7 @@ Everything happens on your phone. No server, no sign-up, no ads, no in-app purch
 • Adjust the Peek bar's position, size, opacity (down to 0%, fully invisible) and swipe sensitivity, with a live preview
 • Show it only on the home screen, hide it while typing, or show it on the lock screen too
 • Open the panel from a Quick Settings tile, an app shortcut or a home screen widget
+• The "Recent messages" home screen widget shows them at a glance; tap × to delete one
 
 ■ Languages
 English, Traditional Chinese, Japanese and Korean, switchable inside the app.
@@ -139,7 +141,7 @@ LINE の通知は最新の 1 件しか残らないことが多く、メッセー
 • 新しいメッセージごとに通知。通知から返信・既読にすると通知も更新・消去
 • 通知からトークを開くか、LINE を開いて読むと、整理した通知は自動で消えます
 • グループではメンバーごとのプロフィール画像を表示。画像がない人は名前の頭文字と決まった色で表示
-• 通知音やステータスバーのアイコンを変更、グループ画像のカスタマイズも可能
+• 通知音・バイブのパターン（自分でリズムを録音することも可能）・ステータスバーのアイコンを変更、グループ画像のカスタマイズも可能
 • 着信の通知は隠しません
 
 ■ サイドパネルと Peek バー
@@ -149,6 +151,7 @@ LINE の通知は最新の 1 件しか残らないことが多く、メッセー
 • Peek バーの位置・サイズ・不透明度（0% で完全に見えなくすることも可能）・スワイプ感度を調整でき、設定画面でリアルタイムにプレビュー
 • ホーム画面だけで表示、入力中は隠す、ロック画面にも表示、を選べます
 • クイック設定タイル、アプリのショートカット、ホーム画面のウィジェットからも開けます
+• ホーム画面のウィジェット「最近のメッセージ」で一覧でき、× で 1 件ずつ削除できます
 
 ■ 対応言語
 日本語、English、繁體中文、한국어。アプリ内で切り替えられます。
@@ -192,7 +195,7 @@ LINE 알림은 최신 메시지 하나만 남는 경우가 많아, 메시지가 
 • 새 메시지마다 알림. 알림에서 답장하거나 읽음 처리하면 알림도 함께 갱신·삭제
 • 알림으로 채팅방에 들어가거나 LINE을 열어 읽으면, 정리된 알림이 자동으로 사라집니다
 • 그룹에서는 멤버마다 프로필 사진을 표시. 사진이 없는 사람은 이름 첫 글자와 고정된 색으로 구분
-• 알림음과 상태 표시줄 아이콘 변경, 그룹 사진 직접 지정 가능
+• 알림음, 진동 패턴(리듬 직접 녹음 가능), 상태 표시줄 아이콘 변경, 그룹 사진 직접 지정 가능
 • 전화 알림은 숨기지 않습니다
 
 ■ 사이드 패널과 Peek 바
@@ -202,6 +205,7 @@ LINE 알림은 최신 메시지 하나만 남는 경우가 많아, 메시지가 
 • Peek 바의 위치, 크기, 불투명도(0%로 완전히 안 보이게도 가능), 스와이프 감도를 조절하고 설정 화면에서 바로 미리보기
 • 홈 화면에서만 표시, 입력 중 숨기기, 잠금 화면에도 표시를 선택할 수 있습니다
 • 빠른 설정 타일, 앱 바로가기, 홈 화면 위젯으로도 열 수 있습니다
+• 홈 화면 위젯 '최근 메시지'에서 바로 확인하고, ×로 하나씩 삭제할 수 있습니다
 
 ■ 지원 언어
 한국어, English, 繁體中文, 日本語. 앱 안에서 바꿀 수 있습니다.
@@ -230,28 +234,30 @@ Sidepeek은 오픈소스(GPL-3.0)입니다: https://github.com/Sidepeekapp/sidep
 | 主題圖片（Feature graphic） | 1024×500 JPG 或 24 位元 PNG，**必填** | 左邊名稱「Sidepeek」＋一句話（各語言一張，或只放名稱不放字），右邊手機露出 Peek 條和側邊欄；品牌綠 #16A34A，不要用 LINE 綠 |
 | 手機截圖 | 至少 2 張、最多 8 張；9:16 直向，邊長 320–3840px（建議 1080×1920 以上） | 見下面清單 |
 
-### 截圖清單（建議 6 張，四語各一套）
+### 截圖（11/15 已完成，四語各 6 張）
 
-先準備**示範資料**，不要用真的聊天：開一個測試用 LINE 帳號或測試群組，用假名字（跟 App 示意動畫一樣用 Tom、Ann、Mia、「專案」群組），頭貼用預設或自己畫的。截圖裡不能有真人姓名、電話、真實對話。手機語言切成該語言再截。
+**成品**：`store/screenshots/<zh-TW|en|ja|ko>/01.png～06.png`（1080×1920），照順序上傳到各語言的「手機螢幕截圖」。實機原圖在 `store/screenshots/raw/`，版型 `frame.html`（四語標語寫在裡面），`node store/screenshots/render.js` 重新產生。手機原圖 1440×3120 超過 Play「長邊不能大於短邊兩倍」，所以一定要用成品。
 
-| # | 畫面 | 圖上的標語（可後製加在上方） |
+**示範資料**：測試版（截圖版 `./gradlew assemblePlayDebug -Pshots`）長按圖示 →「放入截圖示範資料」，假名字 Tom、Ann、Mia、「專案」群組，動物頭像（`store/avatars/`，跟主題圖片同一份）。**手機系統語言**要切成該語言、Sidepeek 語言選「跟隨系統」再拍，不然通知時間、時鐘、小工具標題會是別的語言。
+
+| # | 畫面 | 標語（中／英，日韓見 frame.html） |
 |---|---|---|
-| 1 | 通知欄：一個群組的對話通知，三則訊息展開 | 每個聊天室一則通知／One notification per chat |
-| 2 | 側邊欄打開，列出幾個聊天室的最近訊息 | 從邊緣一滑，看最近訊息／Swipe in to read |
-| 3 | 桌面，邊緣看得到 Peek 條（不透明度調高一點才看得清楚） | 細細一條，不擋畫面／Slim and out of the way |
-| 4 | 設定 → 側邊欄外觀（左邊縮圖預覽） | 大小、位置都能調／Make it yours |
-| 5 | 設定 → Peek 條樣式（手機＋放大鏡預覽） | 0% 也能滑開／Invisible but still works |
-| 6 | 桌面小工具「最近訊息」或快速設定按鈕 | 小工具、快速設定也能開／Widget and Quick Settings |
+| 1 | 通知欄：「專案」群組展開＋Tom、Ann、Mia 三則一對一 | 每個聊天室一則通知／One notification per chat |
+| 2 | 桌面打開側邊欄 | 從邊緣一滑，看最近訊息／Swipe in to read recent messages |
+| 3 | 桌面，Peek 條不透明度 100%、寬 10dp；後製加放大圈和「從這裡往內滑」 | 細細一條，不擋畫面／Slim and out of the way |
+| 4 | 設定 → 側邊欄外觀（寬度 63%） | 大小、位置都能調／Size and position, your way |
+| 5 | 設定 → Peek 條樣式 | 粗細、長短、透明度都能調／Adjust width, length and opacity |
+| 6 | 桌面小工具「最近訊息」（每則有 ×） | 桌面小工具也能看／Also on a home screen widget |
 
-截圖時記得：關掉通知欄上其他 App 的通知、時間最好是整點、電量和訊號滿格比較好看；狀態列不要出現 Sidepeek 以外的個人資訊。
+截圖時記得：拍下一張前先清掉上一張的截圖通知、等截圖工具列消失；狀態列（電信商、通知圖示）後製會裁掉。
 
 ---
 
 ## 字數（node 計算，Play 上限：名稱 30／簡短 80／完整 4000）
 
 ```
-繁體中文（zh-TW，預設語言） title 14 /30  short 29 /80  full 1157 /4000
-English (en-US) title 28 /30  short 76 /80  full 2772 /4000
-日本語（ja-JP） title 20 /30  short 42 /80  full 1459 /4000
-한국어（ko-KR） title 20 /30  short 48 /80  full 1564 /4000
+繁體中文（zh-TW，預設語言） title 14 /30  short 29 /80  full 1208 /4000
+English (en-US) title 28 /30  short 76 /80  full 2906 /4000
+日本語（ja-JP） title 20 /30  short 42 /80  full 1532 /4000
+한국어（ko-KR） title 20 /30  short 48 /80  full 1632 /4000
 ```

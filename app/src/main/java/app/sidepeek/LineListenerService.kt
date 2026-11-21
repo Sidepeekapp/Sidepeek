@@ -260,13 +260,10 @@ class LineListenerService : NotificationListenerService() {
      * LINE's missed-call notification is posted as category=msg on the 新訊息 channel, tagged
      * NOTIFICATION_TAG_MISSED_CALL, and later missed calls re-post the same notification, often
      * unchanged. It is mirrored like a message (so it alerts on Sidepeek's channel even when the
-     * user silenced LINE's 訊息提醒), but each re-post counts as a new call: see [handle].
+     * user silenced LINE's 訊息提醒), and every post is its own call with its own card: see [handle].
      */
     private fun isMissedCall(sbn: StatusBarNotification) =
         isLinePkg(sbn.packageName) && sbn.tag?.contains("MISSED_CALL", ignoreCase = true) == true
-
-    /** sbn.key -> postTime of the last LINE missed-call post seen (spots further missed calls). */
-    private val lastMissedPost = HashMap<String, Long>()
 
     private fun flagsOf(sbn: StatusBarNotification) =
         "flags=0x${Integer.toHexString(sbn.notification.flags)} summary=${sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY != 0}"
@@ -453,9 +450,7 @@ class LineListenerService : NotificationListenerService() {
         // Incoming calls / meeting-started alerts use a full-screen intent or are insistent.
         if (n.fullScreenIntent != null) return
         if (n.flags and Notification.FLAG_INSISTENT != 0) return
-        // LINE missed calls: mirrored like messages, and every further missed call alerts again.
         val missedCall = isMissedCall(sbn)
-        val prevMissedPost = if (missedCall) synchronized(lastMissedPost) { lastMissedPost.put(sbn.key, sbn.postTime) } else null
 
         val ex = n.extras
         // Downloads, uploads, media playback and similar progress notifications are never messages
@@ -489,6 +484,41 @@ class LineListenerService : NotificationListenerService() {
             !conversationTitle.isNullOrBlank() ||
             (!lineSubText.isNullOrBlank() && lineSubText.trim() != notificationTitle?.trim())
 
+        // LINE missed calls: every post is one call -> its own card, alerting again. LINE re-posts
+        // the same notification (same key, usually identical text and message time) for each
+        // further missed call, so only postTime tells calls apart. The same post seen again by our
+        // own paths (asap / post / sweep) keeps its postTime, so its id is already stored.
+        // Never merged into an older card: that card may be gone (200-card limit, deleted).
+        if (missedCall) {
+            val last = ms?.messages?.lastOrNull()
+            val text = (last?.text ?: ex.getCharSequence(Notification.EXTRA_BIG_TEXT)
+                ?: ex.getCharSequence(Notification.EXTRA_TEXT))?.toString()?.trim().orEmpty()
+            if (text.isEmpty()) return
+            val sender = last?.person?.name?.toString()?.takeIf { it.isNotBlank() }
+                ?: notificationTitle ?: chatTitle
+            val id = "$chatKey|missed:${sbn.postTime}"
+            if (MessageStore.contains(this, id)) { dedupeLog("skip seen missed call id=$id"); return }
+            MessageStore.setIntent(chatKey, n.contentIntent)
+            MessageStore.setMessageIntent(id, n.contentIntent)
+            try { MessageStore.setLineActions(chatKey, extractLineActions(n)) } catch (e: Throwable) {
+                Diagnostics.fail(this, "capture LINE actions", e)
+            }
+            val largeIcon = n.getLargeIcon()?.let { iconToBitmap(it) }
+            val call = build(id, sbn.packageName, chatKey, chatTitle, sender, text, sbn.postTime, null,
+                last?.person?.let { personAvatar(it) } ?: largeIcon, linePic = largeIcon)
+            MessageStore.add(this, call)?.let { why ->
+                dedupeLog("skip store duplicate ($why) missed call chat=$chatKey"); return
+            }
+            dedupeLog("added missed call id=$id chat=$chatKey")
+            if (!Prefs.enabled(this)) return
+            main.post { pendingResets.remove(chatKey)?.let { main.removeCallbacks(it) } }
+            largeIcon?.let { MessageStore.saveChatAvatar(this, chatKey, it) }
+            try { Notifier.postChat(this, call, isGroup, silent) } catch (e: Throwable) {
+                Diagnostics.fail(this, "POST missed call chat=$chatKey", e)
+            }
+            return
+        }
+
         // Same notification key re-posted with identical content (LINE updates / re-alerts) -> skip.
         val fingerprint = listOf(
             ex.getCharSequence(Notification.EXTRA_TITLE), ex.getCharSequence(Notification.EXTRA_TEXT),
@@ -504,18 +534,6 @@ class LineListenerService : NotificationListenerService() {
             dedupeLog("skip unchanged update key=${sbn.key}")
             if (prevWhen != null && n.`when` - prevWhen >= 5_000L &&
                 MessageStore.bumpRepeat(this, chatKey, n.`when`)) dedupeLog("repeat +1 (new when) chat=$chatKey")
-            // LINE re-posts one missed-call notification, often unchanged, for each further missed
-            // call: every real re-post (newer postTime) is counted and alerts again. The same post
-            // seen again by our own paths (asap / post / sweep) keeps its postTime and is skipped.
-            if (missedCall && prevMissedPost != null && sbn.postTime > prevMissedPost &&
-                MessageStore.bumpRepeat(this, chatKey, sbn.postTime)) {
-                dedupeLog("repeat +1 (missed call) chat=$chatKey")
-                if (Prefs.enabled(this)) MessageStore.latestInChat(this, chatKey)?.let { latest ->
-                    try { Notifier.postChat(this, latest, isGroup, silent) } catch (e: Throwable) {
-                        Diagnostics.fail(this, "POST missed call again chat=$chatKey", e)
-                    }
-                }
-            }
             return
         }
         if (lastKeyPostTime[sbn.key] == sbn.postTime && lastContent.containsKey(sbn.key)) {
